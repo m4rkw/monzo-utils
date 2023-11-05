@@ -26,9 +26,9 @@ salary_description:
  - SALARY EMPLOYER A
  - SALARY EMPLOYER B
 
-# the day of the month on which your salary is paid. if this falls
-# on a weekend or bank holiday it will automatically be adjusted to
-# the previous working day.
+# the day of the month on which your salary is paid
+# the code assumes that the payment will be made by or on this date
+# so in the case of weekends or bank holidays it may be earlier
 salary_payment_day: 15
 
 # the day of the month that your Flex card payment is made
