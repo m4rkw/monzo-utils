@@ -52,11 +52,7 @@ configure your OAuth clients.
 points at the monzo.py CGI script and that Confidentiality is set to
 Confidential.
 
-4. Go to: https://developers.monzo.com and create an OAuth client, be sure to
-set the confidentiality to Confidential and set the redirect url to point at
-where you configured a webserver to host the CGI script.
-
-5. Click on the new OAuth client to view its Client ID and Client Secret.
+4. Click on the new OAuth client to view its Client ID and Client Secret.
 
 ## Setup Monzo Sync
 
