@@ -33,6 +33,10 @@ cover the expenses.
    who like to schedule a regular payment into a bills pot
  - Can track payments in a separate account to the account that the salary gets
    paid into, eg if a joint account is used to pay bills
+ - Can track payments monthly, yearly or when a payment is due at a fixed
+   arbitrary date in the future
+ - Supports skipping payments on specific months for bills that are only charged
+   during certain months of the year
 
 ## Example
 

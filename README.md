@@ -53,8 +53,9 @@ The code is a bit rough and there are probably uncaught edge-cases, bugs and
 other potential issues due to my having very limited time to work on it.
 It pretty much assumes you're in the UK and using GBP as your main currency,
 there's no support for other currencies yet. There is some support for
-specifying transactions in dollar amounts (precede with a $) but this hasn't
-been well tested.
+specifying transactions in dollar amounts, precede the amount with a $ and it
+will attempt to use the current exchange rate to estimate the GBP amount, but
+this hasn't been well tested.
 
 I switched to Monzo a few weeks before releasing this project on github after
 around 20 years of using various different scraping technologies to scrape my
