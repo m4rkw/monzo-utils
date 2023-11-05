@@ -1,0 +1,16 @@
+#!/opt/local/bin/python3
+
+import sys
+from monzo_api import Monzo
+
+if 'setup' in sys.argv:
+    m = Monzo(no_init=True)
+    m.setup()
+    sys.exit()
+
+m = Monzo()
+
+if 'scan-accounts' in sys.argv:
+    m.scan_accounts()
+else:
+    m.sync()

@@ -1,0 +1,178 @@
+---
+# pushover.net account key and app key
+# required for push notifications
+pushover_key: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+pushover_app: yyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+
+# the pot that your bills are paid from
+# if omitted then it's assumed that the bills are paid from the
+# account itself.
+
+# note that withdrawals and deposits are only possible via the API
+# for pots.
+
+pot: Bills
+
+# account that your salary is paid into, if omitted it is assumed
+# to be the account this config file is for
+
+# salary_account: Current
+
+# strings to match in the description field of the transaction
+# for your salary payments. supports multiple to handle people
+# changing jobs or if the work payment system gets changed.
+
+# only the most recent salary payment is searched for.
+salary_description:
+ - SALARY EMPLOYER A
+ - SALARY EMPLOYER B
+
+# the day of the month on which your salary is paid. if this falls
+# on a weekend or bank holiday it will automatically be adjusted to
+# the previous working day.
+salary_payment_day: 15
+
+# the day of the month that your Flex card payment is made
+flex_payment_date: 16
+
+# automatically withdraw funds if the pot has more credit than required
+auto_withdraw: false
+
+# automatically deposit funds if the pot has a shortfall
+auto_deposit: false
+
+# prompt the user to withdraw credit funds
+# note: this only works if running interactively, otherwise it is ignored
+prompt_withdraw: false
+
+# prompt the user to deposit funds for a shortfall
+# only works if running interactively
+prompt_deposit: false
+
+# notify the user via push message if there is a shortfall
+notify_shortfall: true
+
+# notify the user via push message if the pot is in credit
+notify_credit: false
+
+# notify when funds are withdrawn from the pot
+notify_withdraw: false
+
+# notify when funds are deposited into the pot
+notify_deposit: false
+
+# lists of payments to track
+payments:
+
+# supported payment types are:
+# - Card payment
+# - Direct Debit
+# - Standing Order
+# - Finance
+# - Flex
+# - Amazon Payments
+#
+# See below for examples
+
+
+- type: Card payment
+
+  payments:
+
+      # name for the payment so you can easily see what it is
+    - name: AWS
+
+      # amount of the transaction in £. this can be approximate if the exact
+      # amount isn't known, eg for foreign currency transactions.
+      # by defauly this value is only used if there is no previous transaction,
+      # if a previous transaction is found that value will be used instead.
+      amount: 1.50
+
+      # if fixed is set to true the value is fixed at the set amount and any
+      # previous transaction is ignored
+      # fixed: true
+
+      # string to match in the description field to identify the transaction
+      desc: AWS EMEA aws.amazon.co
+
+      # if the description field changes over time you can add old values here
+      # old_desc:
+      #   - AWS EMEA LUX AWS
+
+      # if the payment is made yearly you can indicate this by specifying the
+      # month and day of the yearly payment
+      # yearly_month: 11
+      # yearly_day: 13
+
+      # if the subscription is long-running, eg a few years, you can indicate
+      # this by specifying a fixed renewal date:
+      # renew_date: 2027-05-28
+
+      # if payments are beginning in the future you can specify a start date
+      # start_date: 2023-12-01
+
+      # if payments are not made in some months you can exclude months by number
+      # this is handy for bills like council tax which is not charged during
+      # Feb/Mar
+      # exclude_months: [2,3]
+
+# config for Amazon Payments purchases (not Barclays Partner Finance for Amazon)
+# this is intended for Amazon's own financing where you pay over 5 monthly payments
+# with 0% interest
+- type: Amazon Payments
+
+  # day of the month that payments are taken
+  payment_day: 1
+
+  payments:
+
+    - name: My amazon product  # name for your reference
+      amount: 114.44           # total amount to pay
+      months: 5                # how many months this is split over
+      start_date: 2023-11-05   # date purchased
+      desc:                    # string to match in the description of the transaction
+
+# config parameters for direct debits is the same as for Card payments
+- type: Direct Debit
+
+  payments:
+
+# config parameters for standing orders is the same as for Card payments,
+# the only thing of note is that you probably want fixed: true for all
+# standing orders as they tend to be fixed value
+- type: Standing Order
+
+  payments:
+
+    - name: Credit card
+      amount: 50
+      desc: '1234123412341234'
+      fixed: true
+
+# generic finance payment type, this should be usable for pretty much any
+# kind of finance agreement. the example shown is for an iPhone purchase
+# using Barclays Partner Finance
+
+- type: Finance
+
+  payments:
+
+    - name: iPhone 14
+      amount: 35.44
+      desc: BARCLAYS PRTNR FIN CARDIFF GBR
+      fixed: true
+      start_date: 2023-02-21
+      months: 24
+
+# Flex payments are configured similarly to finance payments, simply add
+# the number of months the payment is Flex'd over. this can be 1 for
+# purchases that will be paid off in full at the next payment date
+
+- type: Flex
+
+  payments:
+
+    - name: Thing I bought
+      amount: 120
+      start_date: 2023-10-22
+      months: 3
