@@ -4,7 +4,7 @@ Synchronises transactions into a local MySQL database.
 
 ## Setup
 
-See: [INSTALL.md](https://github.com/m4rkw/monzo-utils/blob/master/INSTALL.md) for installation instructions.
+See: [INSTALL.md](https://github.com/m4rkw/monzo-utils/blob/master/docs/INSTALL.md) for installation instructions.
 
 Once installed you can initiate the setup process with:
 

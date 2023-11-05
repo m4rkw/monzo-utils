@@ -7,13 +7,13 @@ accounts. PRs very welcome!
 
 Monzo Utils comprises of:
 
- - [monzo-sync](https://github.com/m4rkw/monzo-utils/blob/master/monzo-sync.md) - polls the Monzo API and syncs account, transaction and pot
+ - [monzo-sync](https://github.com/m4rkw/monzo-utils/blob/master/docs/monzo-sync.md) - polls the Monzo API and syncs account, transaction and pot
    information into a local MySQL database
- - [monzo-status](https://github.com/m4rkw/monzo-utils/blob/master/monzo-status.md) - shows a summary of all accounts and pots and their balances
- - [monzo-search](https://github.com/m4rkw/monzo-utils/blob/master/monzo-search.md) - provides a simple commandline search interface for
+ - [monzo-status](https://github.com/m4rkw/monzo-utils/blob/master/docs/monzo-status.md) - shows a summary of all accounts and pots and their balances
+ - [monzo-search](https://github.com/m4rkw/monzo-utils/blob/master/docs/monzo-search.md) - provides a simple commandline search interface for
    transactions in the SQL database, allowing search by string or transaction
    value
- - [monzo-payments](https://github.com/m4rkw/monzo-utils/blob/master/monzo-payments.md) - tracks regular payments like direct Debits, standing
+ - [monzo-payments](https://github.com/m4rkw/monzo-utils/blob/master/docs/monzo-payments.md) - tracks regular payments like direct Debits, standing
    orders, regular card payments, flex payments and finance payments being paid
    from a bills pot and provides a summary show which payments are due and when
 
@@ -37,7 +37,7 @@ macOS.
 
 ## Installation
 
-See: [INSTALL.md](https://github.com/m4rkw/monzo-utils/blob/master/INSTALL.md)
+See: [INSTALL.md](https://github.com/m4rkw/monzo-utils/blob/master/docs/INSTALL.md)
 
 ## Disclaimer
 
