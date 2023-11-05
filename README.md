@@ -13,7 +13,7 @@ Monzo Utils comprises of:
  - [monzo-search](https://github.com/m4rkw/monzo-utils/blob/master/docs/monzo-search.md) - provides a simple commandline search interface for
    transactions in the SQL database, allowing search by string or transaction
    value
- - [monzo-payments](https://github.com/m4rkw/monzo-utils/blob/master/docs/monzo-payments.md) - tracks regular payments like direct Debits, standing
+ - [monzo-payments](https://github.com/m4rkw/monzo-utils/blob/master/docs/monzo-payments.md) - tracks regular payments like direct debits, standing
    orders, regular card payments, flex payments and finance payments being paid
    from a bills pot and provides a summary show which payments are due and when
 
