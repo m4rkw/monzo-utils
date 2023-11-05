@@ -7,15 +7,14 @@ pushover_app: yyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
 # the pot that your bills are paid from
 # if omitted then it's assumed that the bills are paid from the
 # account itself.
-
-# note that withdrawals and deposits are only possible via the API
-# for pots.
-
 pot: Bills
 
-# account that your salary is paid into, if omitted it is assumed
-# to be the account this config file is for
+# note that withdrawals and deposits are only possible via the API
+# for pots, it's not possible to transfer funds from one account
+# to another.
 
+# the account that your salary is paid into, if omitted it is assumed
+# to be the account this config file is for
 # salary_account: Current
 
 # strings to match in the description field of the transaction
