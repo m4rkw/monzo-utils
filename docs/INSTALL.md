@@ -61,9 +61,41 @@ Run the setup wizard to configure the sync script:
 ````
 $ monzo-sync setup
 
+========================
+Monzo Utils Setup Wizard
+========================
+
+Requirements:
+
+1) You must have created an OAuth client here: https://developers.monzo.com/apps/new
+   Note: confidentiality must be set to Confidential
+
+2) The MySQL database must be ready (see README.md)
+
+3) The machine we are running on must be reachable on a known port from the internet.
+   This is only required during setup for the initial oauth authentication flow.
+   Once this is complete and the tokens are stored this can be removed.
+
+Continue? [y/N] y
+
+Enter MySQL host [127.0.0.1]:
+Enter MySQL port [3306]:
+Enter MySQL database [monzo]:
+Enter MySQL username [monzo]:
+Enter MySQL password [monzo]:
+
+Enter Monzo Client ID: oauth2client_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+Enter Monzo Client Secret: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+Enter Monzo Client redirect URL: https://hostname/monzo.py
+Enter the path where the CGI script will store the token file:
+Enter Token path [/var/www/monzo/token]:
+
+If the auth token expires or stops working the sync script can send
+an email to notify you. Enter this email below or leave blank if not required.
+Enter Email: emailaddress
 Authentication required, check email or visit:
 
-https://auth.monzo.com?.....
+https://auth.monzo.com?client_id=oauth2client_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ````
 
 Click the link, enter your Monzo email address and click Grant Access.

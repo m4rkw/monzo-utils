@@ -270,7 +270,7 @@ class Monzo:
             sys.stderr.write('Authentication required, unable to sync.\n')
             sys.exit(1)
 
-        print("Authentication required, check email or visit:\n")
+        print("\nAuthentication required, check email or visit:\n")
         print(client.authentication_url)
 
         if os.path.exists(self.config['oauth_token_file']):
