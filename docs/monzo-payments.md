@@ -17,7 +17,24 @@ enough funds to cover all regular expenses that are due. If you don't specify a
 pot then it assumes that the account itself needs to have sufficient funds to
 cover the expenses.
 
-Here's an example:
+## Features
+
+ - Supports tracking regular card payments, direct debits, standing orders,
+   Amazon Payments payments, Flex payments and generic finance payments
+ - Tracks salary payments to determine which regular payments are due within
+   the current salary period
+ - Indicates when a payment was last paid and when it's next due
+ - Fairly customisable configuration in simple YAML, see [example](https://github.com/m4rkw/monzo-utils/blob/master/payments_config_example.yaml)
+ - For finance, Amazon Payments and Flex it tracks the number of payments made vs
+   total number of payments and the total balance remaining
+ - Can notify when the bills pot or account is in credit or shortfall
+ - If using a bills pot it can automatically top it up or withdraw credit
+ - Indicates the total outgoings for this month and next month, handy for people
+   who like to schedule a regular payment into a bills pot
+ - Can track payments in a separate account to the account that the salary gets
+   paid into, eg if a joint account is used to pay bills
+
+## Example
 
 ````
 $ monzo-payments Current
