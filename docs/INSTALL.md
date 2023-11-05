@@ -93,6 +93,7 @@ Enter Token path [/var/www/monzo/token]:
 If the auth token expires or stops working the sync script can send
 an email to notify you. Enter this email below or leave blank if not required.
 Enter Email: emailaddress
+
 Authentication required, check email or visit:
 
 https://auth.monzo.com?client_id=oauth2client_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
