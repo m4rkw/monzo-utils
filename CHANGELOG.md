@@ -4,6 +4,7 @@
 
 - Fixed confusing error message in monzo-payments
 - Fixed error in exception handling
+- Fixed some code paths that resulted in an undefined variable
 - Forked python-pushover as python-pushover2 and added support for Python3
   to make life easier, original project looks dead
 
