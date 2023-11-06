@@ -62,7 +62,7 @@ class PaymentFundsCheck:
         self.account = self.db.one("select * from account where provider_id = %s and name = %s", [self.provider['id'], self.account_name])
 
         if not self.account:
-            sys.stderr.write(f"account not found in ~/.monzo/config.yaml: {self.account_name}\n")
+            sys.stderr.write(f"account {self.account_name} not found in the database\n")
             sys.exit(1)
 
 
@@ -97,21 +97,19 @@ class PaymentFundsCheck:
                         if last_amount >= remaining:
                             due += last_amount * 100
                             total += last_amount * 100
-                            due_next_month = remaining - last_amount
                         else:
                             due += remaining * 100
                             total += remaining * 100
-                            due_next_month = 0
 
                     elif status == 'PAID':
                         total += last_amount * 100
 
-                        if remaining == 0:
-                            due_next_month = 0
-                        elif last_amount >= remaining:
-                            due_next_month = remaining
-                        else:
-                            due_next_month = last_amount
+                    if remaining == 0:
+                        due_next_month = 0
+                    elif last_amount >= remaining:
+                        due_next_month = remaining
+                    else:
+                        due_next_month = last_amount
 
                     next_month_bills_pot += due_next_month * 100
                     continue

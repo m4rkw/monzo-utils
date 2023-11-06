@@ -16,7 +16,7 @@ if 'scan-accounts' in sys.argv:
 else:
     try:
         m.sync()
-    except urllib.error.URLError as e:
+    except URLError as e:
         if 'timed out' in str(e):
             sys.stdout.write("timeout encountered, service may be busy.\n")
         else:

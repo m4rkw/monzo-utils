@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(name='monzo-utils',
-    version='0.0.3',
+    version='0.0.4',
     description='Monzo Utils',
     author='Mark Wadham',
     url='https://github.com/m4rkw/monzo-utils',
@@ -19,7 +19,6 @@ setup(name='monzo-utils',
         'mysqlclient',
         'monzo-api',
         'requests',
-        'setuptools==58',
-        'python-pushover==0.4'
+        'python-pushover2==0.5'
     ]
 )

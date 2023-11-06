@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.4 - 06/11/2023
+
+- Fixed confusing error message in monzo-payments
+- Fixed error in exception handling
+- Forked python-pushover as python-pushover2 and added support for Python3
+  to make life easier, original project looks dead
+
 ## 0.0.3 - 06/11/2023
 
 - Timeouts are common with the Monzo API so catch these and handle without
@@ -12,4 +19,3 @@
 ## 0.0.1 - 05/11/2023
 
 - Initial public release
-
