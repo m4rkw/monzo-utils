@@ -1,6 +1,7 @@
 #!/opt/local/bin/python3
 
 import sys
+from urllib.error import URLError
 from monzo_api import Monzo
 
 if 'setup' in sys.argv:
@@ -13,4 +14,10 @@ m = Monzo()
 if 'scan-accounts' in sys.argv:
     m.scan_accounts()
 else:
-    m.sync()
+    try:
+        m.sync()
+    except urllib.error.URLError as e:
+        if 'timed out' in str(e):
+            sys.stdout.write("timeout encountered, service may be busy.\n")
+        else:
+            sys.stderr.write(f"URLError encountered during sync: {str(e)}\n")
