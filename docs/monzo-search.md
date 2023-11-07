@@ -5,13 +5,36 @@ A handy search interface for synced transactions.
 ### Usage
 
 ````
+usage:
+
 monzo-search [-p] [-d] [search string]
 
--p    :    include pot transactions
--d    :    show declined transactions
+-p                 # include pot transactions
+-d                 # show declined transactions
+
+search string examples:
+
+monzo-search amazon                                # case-insensitive string search
+monzo-search TfL Travel Charge                     # case-insensitive string search
+monzo-search on 2023-11-05                         # transactions for date
+monzo-search on 2023-11                            # transactions for month
+monzo-search on 2023                               # transactions for year
+monzo-search on 2023-11-05 amazon                  # transactions on date matching string
+monzo-search from 2023-11-05                       # transactions from date onwards
+monzo-search from 2023-11-05 amazon                # transactions from date onwards matching string
+monzo-search to 2023-11-05                         # transactions up to date
+monzo-search to 2023-11-05 amazon                  # transactions up to date matching string
+monzo-search from 2023-11-01 to 2023-11-05         # transactions for date range
+monzo-search from 2023-11-01 to 2023-11-05 amazon  # transactions for date range matching string
+monzo-search from 2022 to 2023                     # year range
+monzo-search from 2022-04 to 2022-09               # month range
+monzo-search 10.99                                 # query for monetary value
+monzo-search 11                                    # query for monetary value 11.00 - 11.99
+
+dates can be in any parseable format
 ````
 
-### Show all transactions
+### By default - show the last years worth of transactions
 
 ````
 $ monzo-search
@@ -48,7 +71,3 @@ account  pot    date         money_in  money_out  description
 ------------------------------------------------------------------------------------
 Current  Bills  21/10 13:02            8.99       APPLE.COM/BILL APPLE.COM/BIL IRL
 ````
-
-### Todo
-
-- Add date/range search

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.5 - 07/11/2023
+
+- Support date searching in monzo-search
+
 ## 0.0.4 - 06/11/2023
 
 - Fixed confusing error message in monzo-payments

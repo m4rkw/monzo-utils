@@ -8,7 +8,16 @@ import re
 import datetime
 import yaml
 import pwd
+import warnings
+import dateparser
+import calendar
 from monzo_db import DB
+
+# Ignore dateparser warnings regarding pytz
+warnings.filterwarnings(
+    "ignore",
+    message="The localize method is no longer necessary, as this time zone supports the fold attribute",
+)
 
 FIELD_MAP = {
     'date': 'created_at'
@@ -32,70 +41,155 @@ class Monzo:
         include_pots = False
         show_declined = False
 
-        parsed_args = []
+        on_date = None
+        date_range = False
+        date_from = datetime.datetime.now() - datetime.timedelta(days=365)
+        date_to = None
+        skip = False
 
-        for arg in args[1:]:
-            if arg == '-h':
+        query_args = []
+
+        for i in range(1, len(args)):
+            if skip:
+                skip = False
+                continue
+
+            if args[i] == '-h':
                 self.help()
                 continue
 
-            if arg == '-p':
+            if args[i] == '-p':
                 include_pots = True
                 continue
-            if arg == '-d':
+            if args[i] == '-d':
                 show_declined = True
                 continue
 
-            parsed_args.append(arg)
+            if args[i] == 'on' and i+1 < len(args):
+                if re.match('^[\d]{4}$', args[i+1]):
+                    date_from = datetime.datetime(int(args[i+1]), 1,1,0,0,0)
+                    date_to = datetime.datetime(int(args[i+1]), 12,31,23,59,59)
+                    skip = True
+                    continue
 
-        if len(parsed_args) >0:
-            q = ' '.join(parsed_args)
+                m = re.match('^([\d]{4})-([\d]{1,2})$', args[i+1])
 
-            sql = "select transaction.*, account.name as account, pot.name as pot, transaction_metadata.value as mastercard_lifecycle_id from transaction join account on transaction.account_id = account.id left join transaction_metadata on transaction_metadata.transaction_id = transaction.id and transaction_metadata.`key` = %s left join pot on transaction.pot_id = pot.id where declined = %s and ((money_in >0 or money_out >0) and (description like %s"
+                if m:
+                    year = int(m.group(1))
+                    month = int(m.group(2))
 
-            params = [
-                'metadata_mastercard_lifecycle_id',
-                1 if show_declined else 0,
-                '%' + q + '%',
-            ]
+                    date_from = datetime.datetime(year, month, 1,0,0,0)
+                    date_to = datetime.datetime(year, month, calendar.monthrange(year, month)[1],23,59,59)
+                    skip = True
+                    continue
 
-            if q.replace('.','').isdigit():
-                if q.isdigit():
-                    money_from = '%s.00' % (q)
-                    money_to = '%s.99' % (q)
+                try:
+                    on_date = dateparser.parse(args[i+1])
+                    skip = True
+                    continue
+                except Exception as e:
+                    sys.stderr.write("unparseable date format '%s': %s\n" % (args[i+1], str(e)))
+                    sys.exit(1)
 
-                    sql += " or (money_in >0 and money_in >= %s and money_in <= %s) or (money_out >0 and money_out >= %s and money_out <= %s)))"
+            if args[i] == 'from' and i+1 < len(args):
+                if re.match('^[\d]{4}$', args[i+1]):
+                    date_from = datetime.datetime(int(args[i+1]), 1,1,0,0,0)
+                    skip = True
+                    continue
 
-                    params.append(money_from)
-                    params.append(money_to)
-                    params.append(money_from)
-                    params.append(money_to)
+                m = re.match('^([\d]{4})-([\d]{1,2})$', args[i+1])
+
+                if m:
+                    year = int(m.group(1))
+                    month = int(m.group(2))
+
+                    date_from = datetime.datetime(year, month, 1,0,0,0)
+                    skip = True
+                    continue
+
+                try:
+                    date_from = dateparser.parse(args[i+1])
+                    skip = True
+                    continue
+                except Exception as e:
+                    sys.stderr.write("unparseable date format '%s': %s\n" % (args[i+1], str(e)))
+                    sys.exit(1)
+
+            if args[i] == 'to' and i+1 < len(args):
+                if re.match('^[\d]{4}$', args[i+1]):
+                    date_to = datetime.datetime(int(args[i+1]), 12,31,23,59,59)
+                    skip = True
+                    continue
+
+                m = re.match('^([\d]{4})-([\d]{1,2})$', args[i+1])
+
+                if m:
+                    year = int(m.group(1))
+                    month = int(m.group(2))
+
+                    date_to = datetime.datetime(year, month, calendar.monthrange(year, month)[1] ,23,59,59)
+                    skip = True
+                    continue
+ 
+                try:
+                    date_to = dateparser.parse(args[i+1])
+                    skip = True
+                    continue
+                except Exception as e:
+                    sys.stderr.write("unparseable date format '%s': %s\n" % (args[i+1], str(e)))
+                    sys.exit(1)
+ 
+            query_args.append(args[i])
+
+        sql = "select transaction.*, account.name as account, pot.name as pot, transaction_metadata.value as mastercard_lifecycle_id from transaction join account on transaction.account_id = account.id left join transaction_metadata on transaction_metadata.transaction_id = transaction.id and transaction_metadata.`key` = %s left join pot on transaction.pot_id = pot.id where declined = %s and ((money_in >0 or money_out >0)"
+        params = [
+            'metadata_mastercard_lifecycle_id',
+            1 if show_declined else 0
+        ]
+
+        if len(query_args) >0:
+            query_string = (' '.join(query_args))
+
+            query = '%' + query_string + '%'
+
+            sql += " and description like %s"
+            params.append(query)
+
+            if query_string.replace('.','').isdigit():
+                # integer value is queried as a range <n>.00 - <n>.99
+                if query_string.isdigit():
+                    money_from = '%s.00' % (query_string)
+                    money_to = '%s.99' % (query_string)
+
+                    sql += " or (money_in >0 and money_in >= %s and money_in <= %s) or (money_out >0 and money_out >= %s and money_out <= %s)"
+                    params += [money_from, money_to, money_from, money_to]
+                # query for specific value, eg 10.99
                 else:
-                    if len(q.split('.')[1]) == 0:
-                        q += '0'
+                    while len(query_string.split('.')[1]) <2:
+                        query_string += '0'
 
-                    sql += " or (money_in >0 and money_in = %s) or (money_out >0 and money_out = %s)))"
+                    sql += "or (money_in >0 and money_in = %s) or (money_out >0 and money_out = %s)"
 
-                    params.append(q)
-                    params.append(q)
-            else:
-                sql += "))"
+                    params += [query_string, query_string]
 
-            if include_pots is False:
-                sql += " and description not like %s"
-                params.append('pot_0000%')
+        sql += ")"
 
-            sql += " group by id order by date, created_at"
+        if include_pots is False:
+            sql += " and description not like %s"
+            params.append('pot_0000%')
 
+        if on_date:
+            sql += " and transaction.date = %s"
+            params.append(on_date)
         else:
-            sql = "select transaction.*, account.name as account, pot.name as pot, transaction_metadata.value as mastercard_lifecycle_id from transaction join account on transaction.account_id = account.id left join pot on transaction.pot_id = pot.id left join transaction_metadata on transaction_metadata.transaction_id = transaction.id and transaction_metadata.`key` = %s where declined = %s and transaction.transaction_id is not null and (money_in >0 or money_out >0)"
-            params = ['metadata_mastercard_lifecycle_id', 1 if show_declined else 0]
+            if date_from:
+                sql += " and transaction.date >= %s"
+                params.append(date_from)
+            if date_to:
+                sql += " and transaction.date <= %s"
+                params.append(date_to)
 
-            if include_pots is False:
-                sql += " and description not like %s"
-                params.append('pot_0000%')
-
-            sql += " order by date, created_at"
+        sql += " group by id order by date, created_at"
 
         rows = self.db.query(sql, params)
 
@@ -110,10 +204,32 @@ class Monzo:
 
 
     def help(self):
+        cmd = sys.argv[0].split('/')[-1]
+
         print("usage:\n")
-        print("%s [-p] [-d] [search string]\n" % (sys.argv[0].split('/')[-1]))
-        print("-p    :    include pot transactions")
-        print("-d    :    show declined transactions")
+        print("%s [-p] [-d] [search string]\n" % (cmd))
+        print("-p                 # include pot transactions")
+        print("-d                 # show declined transactions")
+        print("\nsearch string examples:\n")
+        print("%s amazon                                # case-insensitive string search" % (cmd))
+        print("%s TfL Travel Charge                     # case-insensitive string search" % (cmd))
+        print("%s on 2023-11-05                         # transactions for date" % (cmd))
+        print("%s on 2023-11                            # transactions for month" % (cmd))
+        print("%s on 2023                               # transactions for year" % (cmd))
+        print("%s on 2023-11-05 amazon                  # transactions on date matching string" % (cmd))
+        print("%s from 2023-11-05                       # transactions from date onwards" % (cmd))
+        print("%s from 2023-11-05 amazon                # transactions from date onwards matching string" % (cmd))
+        print("%s to 2023-11-05                         # transactions up to date" % (cmd))
+        print("%s to 2023-11-05 amazon                  # transactions up to date matching string" % (cmd))
+        print("%s from 2023-11-01 to 2023-11-05         # transactions for date range" % (cmd))
+        print("%s from 2023-11-01 to 2023-11-05 amazon  # transactions for date range matching string" % (cmd))
+        print("%s from 2022 to 2023                     # year range" % (cmd))
+        print("%s from 2022-04 to 2022-09               # month range" % (cmd))
+        print("%s 10.99                                 # query for monetary value" % (cmd))
+        print("%s 11                                    # query for monetary value 11.00 - 11.99" % (cmd))
+
+        print("\ndates can be in any parseable format\n")
+
         sys.exit()
 
 

@@ -2,6 +2,8 @@ import MySQLdb
 import re
 import sys
 import os
+import json
+import datetime
 
 class DB():
 
@@ -47,7 +49,25 @@ class DB():
         self.cur = self.db.cursor()
 
 
+    def json_params(self, params):
+        json_params = []
+
+        for param in params:
+            if type(param) == datetime.date:
+                json_params.append(param.strftime('%Y-%M-%d'))
+            elif type(param) == datetime.datetime:
+                json_params.append(param.strftime('%Y-%M-%d %H:%M:%S'))
+            else:
+                json_params.append(param)
+
+        return json_params
+
+
     def query(self, sql, params=[]):
+        if 'DEBUG' in os.environ and os.environ['DEBUG'] == '1':
+            print("SQL: %s" % (sql))
+            print("PARAMS: %s" % (json.dumps(self.json_params(params),indent=4)))
+
         self.connect()
         self.cur.execute((sql), params)
 
