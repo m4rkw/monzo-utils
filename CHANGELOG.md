@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.6 - 08/11/2023
+
+- Fixed ordering of records in monzo-payments, could have caused issues if historical
+  data was ever backfilled
+
 ## 0.0.5 - 07/11/2023
 
 - Support date searching in monzo-search

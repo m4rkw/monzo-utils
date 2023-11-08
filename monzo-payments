@@ -569,7 +569,7 @@ class PaymentFundsCheck:
                     sql += " or description like %s"
                     params.append('%' + str(old_desc) + '%')
 
-            sql += " ) order by transaction.id desc"
+            sql += " ) order by transaction.created_at desc"
 
             rows = self.db.query(sql, params)
         else:
@@ -581,7 +581,7 @@ class PaymentFundsCheck:
                     sql += " or description like %s"
                     params.append('%' + str(old_desc) + '%')
 
-            sql += " ) order by transaction.id desc"
+            sql += " ) order by transaction.created_at desc"
 
             rows = self.db.query(sql, params)
 
@@ -661,7 +661,7 @@ class PaymentFundsCheck:
         initial_amount = int(math.ceil(int(payment_spec['amount'] * 100) / payment_spec['months'])) / 100
         final_amount = payment_spec['amount'] - (initial_amount * (payment_spec['months']-1))
 
-        sql = "select * from transaction join account on transaction.account_id = account.id where provider_id = %s and declined = 0 and `date` >= %s and description like %s and (money_out = %s or money_out = %s) order by `date` asc"
+        sql = "select * from transaction join account on transaction.account_id = account.id where provider_id = %s and declined = 0 and `date` >= %s and description like %s and (money_out = %s or money_out = %s) order by `created_at` asc"
         params = [
             self.provider['id'],
             payment_spec['start_date'],
