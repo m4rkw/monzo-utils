@@ -7,7 +7,11 @@ import json
 import datetime
 import yaml
 import pwd
-from monzo_db import DB
+from monzo_utils.lib.db import DB
+from monzo_utils.model.provider import Provider
+from monzo_utils.model.account import Account
+from monzo_utils.model.pot import Pot
+from monzo_utils.model.transaction import Transaction
 
 PROVIDER = 'Monzo'
 
@@ -16,6 +20,8 @@ FIELD_MAP = {
 }
 
 class Monzo:
+
+    widths = {}
 
     def __init__(self):
         homedir = pwd.getpwuid(os.getuid()).pw_dir
@@ -32,109 +38,89 @@ class Monzo:
 
 
     def accounts(self, first=True):
-        provider = m.db.one("select * from provider where name = %s", [PROVIDER])
-        accounts = m.db.query("select * from account where provider_id = %s", [provider['id']])
+        transactions = False
+        n = 10
 
-        accounts_by_name = {}
+        for i in range(0, len(sys.argv)):
+            if sys.argv[i] == '-t':
+                transactions = True
+                if i+1 < len(sys.argv) and sys.argv[i+1].isdigit():
+                    n = int(sys.argv[i+1])
 
-        for account in accounts:
-            accounts_by_name[account['name']] = account
+        provider = Provider().find_by_name(PROVIDER)
+        accounts = provider.accounts(order=self.config['account_order'] if 'account_order' in self.config else None)
 
         count = 0
-
-        if 'account_order' in self.config:
-            order = self.config['account_order']
-        else:
-            order = list(sorted(list(accounts_by_name.keys())))
-
-        for account_name in order:
-            acc = accounts_by_name[account_name]
-
-            account = {
-                'Account': acc['name']
-            }
-
-            if 'sortcode' in acc:
-                account['Sort code'] = acc['sortcode']
-                account['Account no'] = acc['account_no']
-            else:
-                account['Sort code'] = ' ' * 8
-                account['Account no'] = ' ' * 8
-
-            account['Balance'] = '£%.2f' % (acc['balance'])
-            account['Available'] = '£%.2f' % (acc['available'])
-
-            pots = self.db.query("select * from pot where account_id = %s and deleted = 0", [acc['id']])
-
-            keys = ['Account','Sort code','Account no', 'Balance', 'Available']
-
-            for pot in pots:
-                account[pot['name']] = '£%.2f' % (pot['balance'])
-
-                keys.append(pot['name'])
-
-            self.display([account], keys, count == 0 or '-t' in sys.argv)
-
-            transactions = False
-            n = 10
-
-            for i in range(0, len(sys.argv)):
-                if sys.argv[i] == '-t':
-                    transactions = True
-                    if i+1 < len(sys.argv) and sys.argv[i+1].isdigit():
-                        n = int(sys.argv[i+1])
+        for account in accounts:
+            self.display([account], account.keys, show_headers=(count == 0 or transactions))
 
             if transactions:
                 sys.stdout.write("\n")
 
-                rows = m.db.query("select transaction.*, account.name as account from transaction join account on account_id = account.id where account_id = %s order by id desc limit %s", [acc['id'], n])
+                rows = list(reversed(account.transactions(orderby='created_at', orderdir='desc', limit=n)))
 
-                rows = list(reversed(rows))
-
-                self.display(rows, ['account','date','type','money_in','money_out','pending','description','notes'])
+                self.display(rows, Transaction.DISPLAY_KEYS)
 
                 sys.stdout.write("\n")
 
             count += 1
 
 
-    def display(self, data, columns, show_headers=True):
-        widths = {}
-
+    def get_column_widths(self, data, columns):
         for key in columns:
-            if key in ['Balance','Available']:
-                widths[key] = 8
+            if key in ['balance','available']:
+                if key not in self.widths or self.widths[key] <8:
+                    self.widths[key] = 8
             else:
-                widths[key] = len(key)
+                if key not in self.widths or self.widths[key] < len(key):
+                    self.widths[key] = len(key)
 
         for i in range(0, len(data)):
+            if type(data[i]) != dict:
+                obj = data[i].__dict__['attrs']
+            else:
+                obj = data[i]
+
             for key in columns:
                 if key in FIELD_MAP:
-                    data[i][key] = data[i][FIELD_MAP[key]]
+                    obj[key] = obj[FIELD_MAP[key]]
 
-                if data[i][key] is None:
-                    data[i][key] = ''
+                if key not in obj or obj[key] is None:
+                    obj[key] = ''
 
-                if type(data[i][key]) == datetime.datetime:
-                    data[i][key] = data[i][key].strftime('%d.%m.%Y %H:%M')
+                if obj[key] == datetime.datetime:
+                    obj[key] = obj[key].strftime('%d.%m.%Y %H:%M')
 
-                if len(str(data[i][key])) > widths[key]:
-                    widths[key] = len(str(data[i][key]))
+                if len(str(obj[key])) > self.widths[key]:
+                    self.widths[key] = len(str(obj[key]))
+ 
+ 
+    def display(self, data, columns, show_headers=True):
+        self.get_column_widths(data, columns)
 
         if show_headers:
             for key in columns:
-                sys.stdout.write(key.ljust(widths[key]+2))
+                sys.stdout.write(self.capitalise(key).ljust(self.widths[key]+2))
             sys.stdout.write("\n")
 
             for key in columns:
-                sys.stdout.write('-' * (widths[key]+2))
+                sys.stdout.write('-' * (self.widths[key]+2))
             sys.stdout.write("\n")
 
         for i in range(0, len(data)):
+            if type(data[i]) != dict:
+                obj = data[i].__dict__['attrs']
+            else:
+                obj = data[i]
+
             for key in columns:
-                sys.stdout.write(str(data[i][key]).ljust(widths[key]+2))
+                sys.stdout.write(str(obj[key]).ljust(self.widths[key]+2))
 
             sys.stdout.write("\n")
+
+
+    def capitalise(self, string):
+        return string.title().replace('_','')
 
 
 m = Monzo()

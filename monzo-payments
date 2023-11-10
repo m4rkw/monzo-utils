@@ -11,8 +11,12 @@ import requests
 import math
 import pwd
 from pushover import Client
-from monzo_api import Monzo
-from monzo_db import DB
+from monzo_utils.lib.monzo_api import Monzo
+from monzo_utils.lib.db import DB
+from monzo_utils.model.provider import Provider
+from monzo_utils.model.account import Account
+from monzo_utils.model.pot import Pot
+from monzo_utils.model.transaction import Transaction
 
 PROVIDER = 'Monzo'
 
@@ -58,8 +62,8 @@ class PaymentFundsCheck:
         self.seen = []
         self.exchange_rates = {}
 
-        self.provider = self.db.one("select * from provider where name = %s", [PROVIDER])
-        self.account = self.db.one("select * from account where provider_id = %s and name = %s", [self.provider['id'], self.account_name])
+        self.provider = Provider().find_by_name(PROVIDER)
+        self.account = Account().find_by_provider_id_and_name(self.provider.id, self.account_name)
 
         if not self.account:
             sys.stderr.write(f"account {self.account_name} not found in the database\n")
@@ -299,11 +303,11 @@ class PaymentFundsCheck:
                 )
 
         if 'pot' in self.config:
-            pot = self.db.one("select * from pot where account_id = %s and name = %s", [self.account['id'], self.config['pot']])
+            pot = Pot().find_by_account_id_and_name(self.account.id, self.config['pot'])
         else:
             pot = self.account
 
-        shortfall = (due - (round(pot['balance'] * 100))) / 100
+        shortfall = (due - (round(pot.balance * 100))) / 100
 
         sys.stdout.write("\n")
 
@@ -325,7 +329,7 @@ class PaymentFundsCheck:
 
         if round(shortfall * 100) >0:
             print("      due: £%.2f" % (due / 100))
-            print("  balance: £%.2f" % (pot['balance']))
+            print("  balance: £%.2f" % (pot.balance))
             print("shortfall: £%.2f" % (shortfall))
 
             if 'pot' in self.config:
@@ -355,33 +359,33 @@ class PaymentFundsCheck:
                 if deposit:
                     m = Monzo()
 
-                    result = m.deposit_to_pot(self.account['account_id'], pot, shortfall)
+                    result = m.deposit_to_pot(self.account.account_id, pot, shortfall)
 
                     if 'notify_deposit' in self.config and self.config['notify_deposit']:
                         self.notify(
-                            '%s - pot topped up' % (self.account['name']),
+                            '%s - pot topped up' % (self.account.name),
                             "£%.2f\n£%.2f due, £%.2f available" % (
                                 shortfall,
                                 due / 100,
-                                pot['balance']
+                                pot.balance
                             )
                         )
  
                 elif notify:
                     self.notify(
-                        '%s - shortfall' % (self.account['name']),
+                        '%s - shortfall' % (self.account.name),
                         "£%.2f\n£%.2f due, £%.2f available" % (
                             shortfall,
                             due / 100,
-                            pot['balance']
+                            pot.balance
                         )
                     )
 
         else:
-            credit = (round(pot['balance'] * 100) - due) / 100
+            credit = (round(pot.balance * 100) - due) / 100
 
             print("    due: £%.2f" % (due / 100))
-            print("balance: £%.2f" % (pot['balance']))
+            print("balance: £%.2f" % (pot.balance))
 
             if round(credit * 100) == 0:
                 credit = 0
@@ -414,26 +418,26 @@ class PaymentFundsCheck:
                 if withdraw:
                     m = Monzo()
 
-                    if not m.withdraw_credit(self.account['account_id'], pot, credit):
+                    if not m.withdraw_credit(self.account.account_id, pot, credit):
                         sys.stderr.write("ERROR: failed to withdraw credit\n")
 
                     if 'notify_withdraw' in self.config and self.config['notify_withdraw']:
                         self.notify(
-                            '%s - pot credit withdrawn' % (self.account['name']),
+                            '%s - pot credit withdrawn' % (self.account.name),
                             "£%.2f\n£%.2f due, £%.2f available" % (
                                 credit,
                                 due / 100,
-                                pot['balance']
+                                pot.balance
                             )
                         )
  
                 elif notify:
                     self.notify(
-                        '%s - credit' % (self.account['name']),
+                        '%s - credit' % (self.account.name),
                         "£%.2f\n£%.2f due, £%.2f available" % (
                             credit,
                             due / 100,
-                            pot['balance']
+                            pot.balance
                         )
                     )
 
@@ -506,26 +510,15 @@ class PaymentFundsCheck:
 
     def get_last_salary_date(self):
         if 'salary_account' in self.config and self.config['salary_account'] != self.account_name:
-            account = self.db.one("select * from account where provider_id = %s and name = %s", [self.provider['id'], self.config['salary_account']])
+            account = Account().find_by_provider_id_and_name(self.provider.id, self.config['salary_account'])
         else:
             account = self.account
 
-        now = datetime.datetime.now()
-        _from = now.strftime('%Y-%m-01')
-        _to = now.strftime('%Y-%m-30')
-
-        sql = "select * from transaction where declined = 0 and account_id = %s and ("
-        params = [account['id']]
-
-        for i in range(0, len(self.config['salary_description'])):
-            if i >0:
-                sql += ' or '
-            sql += 'description like %s'
-            params.append('%' + self.config['salary_description'][i] + '%')
-
-        sql += ')'
-
-        last_salary_transaction = self.db.one(sql, params)
+        last_salary_transaction = account.last_salary_transaction(
+            description=self.config['salary_description'],
+            payment_day=self.config['salary_payment_day'],
+            salary_minimum=self.config['salary_minimum'] if 'salary_minimum' in self.config else 1000
+        )
 
         if not last_salary_transaction:
             sys.stderr.write("failed to find last salary transaction.\n")
@@ -558,38 +551,29 @@ class PaymentFundsCheck:
 
     def get_last_payment_date(self, payment_type, payment):
         if payment_type != 'Standing Order' and 'fixed' in payment and payment['fixed']:
-            sql = "select transaction.* from transaction where declined = 0 and money_out = %s and ( description like %s"
-            params = [
+            transactions = Transaction().find_all_by_declined_and_money_out_and_description(
+                0,
                 payment['amount'],
-                '%' + str(payment['desc']) + '%'
-            ]
+                payment['desc'],
+                orderby='created_at',
+                orderdir='desc',
+                search=['description']
+            )
 
-            if 'old_desc' in payment:
-                for old_desc in payment['old_desc']:
-                    sql += " or description like %s"
-                    params.append('%' + str(old_desc) + '%')
-
-            sql += " ) order by transaction.created_at desc"
-
-            rows = self.db.query(sql, params)
         else:
-            sql = "select transaction.* from transaction where declined = 0 and money_out >0 and ( description like %s"
-            params = ['%' + str(payment['desc']) + '%']
+            transactions = Transaction().find_all_by_declined_and_description(
+                0,
+                payment['desc'],
+                orderby='created_at',
+                orderdir='desc',
+                search=['description']
+            )
 
-            if 'old_desc' in payment:
-                for old_desc in payment['old_desc']:
-                    sql += " or description like %s"
-                    params.append('%' + str(old_desc) + '%')
+        for transaction in transactions:
+            if transaction.id not in self.seen:
+                self.seen.append(transaction.id)
 
-            sql += " ) order by transaction.created_at desc"
-
-            rows = self.db.query(sql, params)
-
-        for row in rows:
-            if row['id'] not in self.seen:
-                self.seen.append(row['id'])
-
-                return row['date'], row['money_out']
+                return transaction.date, transaction.money_out
 
         return None, None
 
@@ -661,26 +645,31 @@ class PaymentFundsCheck:
         initial_amount = int(math.ceil(int(payment_spec['amount'] * 100) / payment_spec['months'])) / 100
         final_amount = payment_spec['amount'] - (initial_amount * (payment_spec['months']-1))
 
-        sql = "select * from transaction join account on transaction.account_id = account.id where provider_id = %s and declined = 0 and `date` >= %s and description like %s and (money_out = %s or money_out = %s) order by `created_at` asc"
-        params = [
-            self.provider['id'],
-            payment_spec['start_date'],
-            '%' + payment_spec['desc'] + '%',
-            initial_amount,
-            final_amount
-        ]
-
-        payments = self.db.query(sql, params)
+        payments = Transaction().find_all_by_provider_id_and_declined_and_description(
+            self.provider.id,
+            0,
+            payment_spec['desc'],
+            orderby='created_at',
+            orderdir='asc',
+            search=['description'],
+            where=[{
+                'clause': '`date` >= %s',
+                'params': [payment_spec['start_date']]
+            },{
+                'clause': '(money_out = %s or money_out = %s)',
+                'params': [initial_amount, final_amount]
+            }]
+        )
 
         num_paid = len(payments)
         remaining = payment_spec['amount']
 
         for payment in payments:
-            remaining -= payment['money_out']
+            remaining -= payment.money_out
 
         if len(payments) >0:
-            last_amount = payments[-1]['money_out']
-            last_date = payments[-1]['date']
+            last_amount = payments[-1].money_out
+            last_date = payments[-1].date
         else:
             last_amount = initial_amount
             last_date = None
@@ -697,7 +686,7 @@ class PaymentFundsCheck:
             due_date = None
 
         # if paid since last salary then status is PAID
-        if len(payments) >0 and payments[-1]['date'] >= last_salary_date:
+        if len(payments) >0 and payments[-1].date >= last_salary_date:
             status = 'PAID'
 
         else:
@@ -725,18 +714,19 @@ class PaymentFundsCheck:
 
 
     def get_next_amazon_payment(self, i, payment_spec, payment, amount):
-        date_from = self.add_month(payment['date']) - datetime.timedelta(days=7)
-        date_to = self.add_month(payment['date']) + datetime.timedelta(days=7)
+        date_from = self.add_month(payment.date) - datetime.timedelta(days=7)
+        date_to = self.add_month(payment.date) + datetime.timedelta(days=7)
 
-        payment = self.db.one("select * from transaction join account on transaction.account_id = account.id where provider_id = %s and declined = 0 and `date` >= %s and `date` <= %s and description like %s and money_out = %s", [
+        return Transaction().find_by_provider_id_and_declined_and_description_and_money_out(
             self.provider['id'],
-            date_from,
-            date_to,
-            '%' + payment_spec['desc'] + '%',
-            amount
-        ])
-
-        return payment
+            0,
+            payment_spec['desc'],
+            amount,
+            where=[{
+                'clause': '(`date` >= %s and `date` <= %s)',
+                'params': [date_from, date_to]
+            }]
+        )
 
 
     def add_month(self, date):
@@ -760,21 +750,15 @@ class PaymentFundsCheck:
 
 
     def get_num_payments_made(self, payment):
-        sql = "select transaction.* from transaction where date >= %s and declined = 0 and money_out = %s and ( description like %s"
-        params = [
-            payment['start_date'],
+        return len(Transaction().find_all_by_declined_and_money_out_and_description(
+            0,
             payment['amount'],
-            '%' + str(payment['desc']) + '%'
-        ]
-
-        if 'old_desc' in payment:
-            for old_desc in payment['old_desc']:
-                sql += " or description like %s"
-                params.append('%' + str(old_desc) + '%')
-
-        sql += ')'
-
-        return len(self.db.query(sql, params))
+            payment['desc'],
+            where=[{
+                'clause': '`date` >= %s',
+                'params': [payment['start_date']]
+            }]
+        ))
 
 
 if len(sys.argv) <2:

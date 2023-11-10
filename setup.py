@@ -3,11 +3,11 @@
 from setuptools import setup
 
 setup(name='monzo-utils',
-    version='0.0.6',
+    version='0.0.7',
     description='Monzo Utils',
     author='Mark Wadham',
     url='https://github.com/m4rkw/monzo-utils',
-    packages=['.'],
+    packages=['.','monzo_utils/lib','monzo_utils/model'],
     setup_requires=['wheel'],
     scripts=[
         'monzo-sync',

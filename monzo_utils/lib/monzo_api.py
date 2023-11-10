@@ -10,11 +10,19 @@ import datetime
 import pwd
 from pathlib import Path
 from monzo.authentication import Authentication
-from monzo.endpoints.account import Account
-from monzo.endpoints.pot import Pot
-from monzo.endpoints.transaction import Transaction
+import monzo.endpoints.account
+import monzo.endpoints.pot
+import monzo.endpoints.transaction
 from monzo.exceptions import MonzoAuthenticationError, MonzoServerError, MonzoHTTPError, MonzoPermissionsError
-from monzo_db import DB
+from monzo_utils.lib.db import DB
+from monzo_utils.model.provider import Provider
+from monzo_utils.model.account import Account
+from monzo_utils.model.merchant import Merchant
+from monzo_utils.model.merchant_address import MerchantAddress
+from monzo_utils.model.pot import Pot
+from monzo_utils.model.transaction import Transaction
+from monzo_utils.model.counterparty import Counterparty
+from monzo_utils.model.transaction_metadata import TransactionMetadata
 
 PROVIDER = 'Monzo'
 
@@ -148,7 +156,7 @@ class Monzo:
     def scan_accounts(self):
         sys.stdout.write("\nFinding accounts...\n\n")
 
-        accounts = Account.fetch(self.client)
+        accounts = monzo.endpoints.account.Account.fetch(self.client)
 
         found_accounts = []
 
@@ -329,12 +337,12 @@ class Monzo:
 
 
     def account(self, account_id):
-        return Account.fetch(self.client, account_id=account_id)
+        return monzo.endpoints.account.Account.fetch(self.client, account_id=account_id)
 
 
     def accounts(self, first=True):
         try:
-            accounts = Account.fetch(self.client)
+            accounts = monzo.endpoints.account.Account.fetch(self.client)
         except MonzoHTTPError:
             if first:
                 if 'NO_AUTH' in os.environ:
@@ -391,8 +399,7 @@ class Monzo:
 
         for i in range(0, 3):
             try:
-                transactions = Transaction.fetch(self.client, account_id=account_id, expand=['merchant'])
-                return transactions
+                return monzo.endpoints.transaction.Transaction.fetch(self.client, account_id=account_id, expand=['merchant'])
             except Exception as e:
                 error = str(e)
 
@@ -405,7 +412,7 @@ class Monzo:
 
     def pots(self, account_id, first=True):
         try:
-            pots = Pot.fetch(self.client, account_id=account_id)
+            pots = monzo.endpoints.pot.Pot.fetch(self.client, account_id=account_id)
         except MonzoHTTPError:
             if first:
                 if 'NO_AUTH' in os.environ:
@@ -434,58 +441,57 @@ class Monzo:
         return pots
 
 
-    def get_or_create_merchant(self, merchant):
-        mer = self.db.one("select * from merchant where merchant_id = %s", [merchant['id']])
-
-        if 'metadata' in merchant and 'website' in merchant['metadata']:
-            website = merchant['metadata']['website']
+    def get_or_create_merchant(self, mo_merchant):
+        if 'metadata' in mo_merchant and 'website' in mo_merchant['metadata']:
+            website = mo_merchant['metadata']['website']
         else:
             website = None
 
-        merchant['merchant_id'] = merchant['id']
-        merchant.pop('id')
-        address = merchant.pop('address')
+        merchant_id = mo_merchant['id']
 
-        if mer:
-            mer = self.db.update('merchant', mer['id'], merchant)
+        mo_merchant['merchant_id'] = mo_merchant['id']
+        mo_merchant.pop('id')
+        mo_address = mo_merchant.pop('address')
 
-            address['merchant_id'] = mer['id']
+        merchant = Merchant().find_by_merchant_id(merchant_id)
 
-            addr = self.db.one("select * from merchant_address where merchant_id = %s", [mer['id']])
+        if not merchant:
+            merchant = Merchant()
 
-            if addr:
-                self.db.update('merchant_address', addr['id'], address)
-            else:
-                self.db.create('merchant_address', address)
-        else:
-            mer = self.db.create('merchant', merchant)
+        merchant.update(mo_merchant)
+        merchant.save()
 
-            address['merchant_id'] = mer['id']
+        mo_address['merchant_id'] = merchant.id
 
-            self.db.create('merchant_address', address)
+        address = MerchantAddress().find_by_merchant_id(merchant.id)
 
-        return mer
+        if not address:
+            address = MerchantAddress()
+
+        address.update(mo_address)
+        address.save()
+
+        return merchant
 
 
     def sanitise(self, string):
         return re.sub('[\s\t]+', ' ', string)
 
 
-    def add_transaction(self, a, tr, pot_account_ids, pot_id=None):
-        if tr.counterparty:
-            counterparty = self.get_or_create_counterparty(tr.counterparty)
-            counterparty_id = counterparty['id']
+    def add_transaction(self, account, mo_transaction, pot_account_ids, pot_id=None):
+        counterparty = None
 
-            if counterparty['name'] != tr.description:
-                description = self.sanitise('%s %s' % (counterparty['name'], tr.description))
+        if mo_transaction.counterparty:
+            counterparty = self.get_or_create_counterparty(mo_transaction.counterparty)
+
+            if counterparty.name != mo_transaction.description:
+                description = self.sanitise('%s %s' % (counterparty.name, mo_transaction.description))
             else:
-                description = tr.description
+                description = mo_transaction.description
         else:
-            counterparty_id = None
+            description = self.sanitise(mo_transaction.description)
 
-            description = self.sanitise(tr.description)
-
-        amount = tr.amount
+        amount = mo_transaction.amount
 
         if amount >0:
             money_in = amount / 100
@@ -498,199 +504,207 @@ class Monzo:
             verb = 'to'
             _type = 'debit'
 
-        sql = "select * from transaction where account_id = %s and transaction_id = %s and "
-        params = [a['id'], tr.transaction_id]
-
         if pot_id:
-            sql += "pot_id = %s"
-            params.append(pot_id)
+            where = [{
+                'clause': 'pot_id = %s',
+                'params': [pot_id]
+            }]
         else:
-            sql += "pot_id is null"
+            where = [{
+                'clause': 'pot_id is null'
+            }]
 
-        t = self.db.one(sql, params)
+        transaction = Transaction().find_by_account_id_and_transaction_id(
+            account.id,
+            mo_transaction.transaction_id,
+            where=where
+        )
 
-        if pot_id is None and tr.metadata and 'pot_account_id' in tr.metadata and tr.metadata['pot_account_id'] not in pot_account_ids:
-            pot_account_ids[tr.metadata['pot_account_id']] = tr.metadata['pot_id']
+        if not transaction:
+            transaction = Transaction()
 
-        if tr.merchant:
-            merchant = self.get_or_create_merchant(tr.merchant)
+        if pot_id is None and mo_transaction.metadata and 'pot_account_id' in mo_transaction.metadata and mo_transaction.metadata['pot_account_id'] not in pot_account_ids:
+            pot_account_ids[mo_transaction.metadata['pot_account_id']] = mo_transaction.metadata['pot_id']
+
+        if mo_transaction.merchant:
+            merchant = self.get_or_create_merchant(mo_transaction.merchant)
         else:
             merchant = None
 
-        obj = {
-            'account_id': a['id'],
-            'transaction_id': tr.transaction_id,
-            'date': tr.created.strftime('%Y-%m-%d'),
+        transaction.update({
+            'account_id': account.id,
+            'transaction_id': mo_transaction.transaction_id,
+            'date': mo_transaction.created.strftime('%Y-%m-%d'),
             'type': _type,
             'description': description,
-            'ref': tr.description,
+            'ref': mo_transaction.description,
             'money_in': money_in,
             'money_out': money_out,
-            'pending': tr.amount_is_pending,
-            'created_at': tr.created,
-            'updated_at': tr.updated,
-            'currency': tr.currency,
-            'local_currency': tr.local_currency,
-            'local_amount': tr.local_amount,
-            'merchant_id': merchant['id'] if merchant else None,
-            'notes': tr.notes,
-            'originator': tr.originator,
-            'scheme': tr.scheme,
-            'settled': tr.settled,
-            'declined': 1 if len(tr.decline_reason) >0 else 0,
-            'decline_reason': tr.decline_reason,
-            'counterparty_id': counterparty_id,
+            'pending': mo_transaction.amount_is_pending,
+            'created_at': mo_transaction.created,
+            'updated_at': mo_transaction.updated,
+            'currency': mo_transaction.currency,
+            'local_currency': mo_transaction.local_currency,
+            'local_amount': mo_transaction.local_amount,
+            'merchant_id': merchant.id if merchant else None,
+            'notes': mo_transaction.notes,
+            'originator': mo_transaction.originator,
+            'scheme': mo_transaction.scheme,
+            'settled': mo_transaction.settled,
+            'declined': 1 if len(mo_transaction.decline_reason) >0 else 0,
+            'decline_reason': mo_transaction.decline_reason,
+            'counterparty_id': counterparty.id if counterparty else None,
             'pot_id': pot_id
-        }
+        })
 
-        if t:
-            t = self.db.update('transaction', t['id'], obj)
-
-        else:
-            t = self.db.create('transaction', obj)
+        transaction.save()
 
         metadata = {}
 
-        if type(tr.atm_fees_detailed) == dict:
-            for key in tr.atm_fees_detailed:
-                metadata['atm_fees_detailed_%s' % (key)] = tr.atm_fees_detailed[key]
+        if type(mo_transaction.atm_fees_detailed) == dict:
+            for key in mo_transaction.atm_fees_detailed:
+                metadata['atm_fees_detailed_%s' % (key)] = mo_transaction.atm_fees_detailed[key]
 
-        if type(tr.categories) == dict:
-            for key in tr.categories:
-                metadata['categories_%s' % (key)] = tr.categories[key]
+        if type(mo_transaction.categories) == dict:
+            for key in mo_transaction.categories:
+                metadata['categories_%s' % (key)] = mo_transaction.categories[key]
 
-        if type(tr.fees) == dict:
-            for key in tr.fees:
-                metadata['fees_%s' % (key)] = tr.fees[key]
+        if type(mo_transaction.fees) == dict:
+            for key in mo_transaction.fees:
+                metadata['fees_%s' % (key)] = mo_transaction.fees[key]
 
-        if type(tr.metadata) == dict:
-            for key in tr.metadata:
-                metadata['metadata_%s' % (key)] = tr.metadata[key]
+        if type(mo_transaction.metadata) == dict:
+            for key in mo_transaction.metadata:
+                metadata['metadata_%s' % (key)] = mo_transaction.metadata[key]
 
         for key in metadata:
-            met = self.db.one("select * from transaction_metadata where transaction_id = %s and `key` = %s", [t['id'], key])
+            transaction_metadata = TransactionMetadata().find_by_transaction_id_and_key(transaction.id, key)
 
-            if met:
-                self.db.query("update transaction_metadata set `value` = %s where id = %s", [metadata[key], met['id']])
-            else:
-                self.db.query("insert into transaction_metadata (transaction_id, `key`, `value`) VALUES(%s,%s,%s)", [t['id'], key, metadata[key]])
+            if not transaction_metadata:
+                transaction_metadata = TransactionMetadata()
+                transaction_metadata.transaction_id = transaction.id
+                transaction_metadata.key = key
 
-        for row in self.db.query("select * from transaction_metadata where transaction_id = %s", [t['id']]):
-            if row['key'] not in metadata:
-                self.db.query("delete from transaction_metadata where id = %s", [row['id']])
+            transaction_metadata.value = metadata[key]
 
-        return t
+            transaction_metadata.save()
+
+        for transaction_metadata in TransactionMetadata().find_all_by_transaction_id(transaction.id):
+            if transaction_metadata.key not in metadata:
+                transaction_metadata.delete()
+
+        return transaction
 
 
-    def get_or_create_counterparty(self, data):
-        counterparty = self.db.one("select * from counterparty where user_id = %s", [data['user_id']])
+    def get_or_create_counterparty(self, mo_counterparty):
+        counterparty = Counterparty().find_by_user_id(mo_counterparty['user_id'])
 
-        if counterparty:
-            counterparty = self.db.update('counterparty', counterparty['id'], data)
-        else:
-            counterparty = self.db.create('counterparty', data)
+        if not counterparty:
+            counterparty = Counterparty()
+
+        counterparty.update(mo_counterparty)
+
+        counterparty.save()
 
         return counterparty
 
 
     def get_provider(self):
-        provider = self.db.one("select * from provider where name = %s", [PROVIDER])
+        provider = Provider().find_by_name(PROVIDER)
 
         if not provider:
-            self.db.query("insert into provider (name) values (%s)", [PROVIDER])
-            provider = self.db.one("select * from provider where name = %s", [PROVIDER])
+            provider = Provider()
+            provider.name = PROVIDER
+            provider.save()
 
         return provider
 
 
     def sync(self):
-        a = self.accounts()
+        mo_accounts = self.accounts()
 
         accounts = []
 
-        for acc in a:
-            if 'monzoflexbackingloan' in acc.description:
+        for mo_account in mo_accounts:
+            if 'monzoflexbackingloan' in mo_account.description:
                 continue
 
-            a = self.get_or_create_account(acc, self.config['accounts'][acc.account_id])
+            account = self.get_or_create_account(mo_account, self.config['accounts'][mo_account.account_id])
 
             try:
-                transactions = self.transactions(acc.account_id)
+                mo_transactions = self.transactions(account.account_id)
             except MonzoPermissionsError:
                 continue
             except MonzoServerError:
                 continue
 
-            pots = self.pots(account_id=acc.account_id)
+            mo_pots = self.pots(account_id=account.account_id)
 
             pot_lookup = {}
 
-            for pot in pots:
-                p = self.db.one("select * from pot where account_id = %s and pot_id = %s", [a['id'], pot.pot_id])
+            for mo_pot in mo_pots:
+                pot = Pot().find_by_account_id_and_pot_id(account.id, mo_pot.pot_id)
 
-                obj = {
-                    'account_id': a['id'],
-                    'name': pot.name,
-                    'balance': pot.balance/100,
-                    'pot_id': pot.pot_id,
-                    'deleted': pot.deleted
-                }
+                if not pot:
+                    pot = Pot()
 
-                if not p:
-                    p = self.db.create('pot', obj)
-                else:
-                    p = self.db.update('pot', p['id'], obj)
+                pot.account_id = account.id
+                pot.pot_id = mo_pot.pot_id
+                pot.name = mo_pot.name
+                pot.balance = mo_pot.balance / 100
+                pot.deleted = mo_pot.deleted
 
-                pot_lookup[pot.pot_id] = p['id']
+                pot.save()
+
+                pot_lookup[pot.pot_id] = pot.id
 
             seen = {}
 
             pot_account_ids = {}
 
-            for tr in transactions:
-                t = self.add_transaction(a, tr, pot_account_ids)
+            for mo_transaction in mo_transactions:
+                transaction = self.add_transaction(account, mo_transaction, pot_account_ids)
 
-                seen[t['id']] = 1
+                seen[transaction.id] = 1
 
             seen = {}
 
             for pot_account_id in pot_account_ids:
-                transactions = self.transactions(pot_account_id)
+                mo_pot_transactions = self.transactions(pot_account_id)
 
-                for tr in transactions:
-                    t = self.add_transaction(a, tr, pot_account_ids, pot_lookup[pot_account_ids[pot_account_id]])
+                for mo_pot_transaction in mo_pot_transactions:
+                    transaction = self.add_transaction(account, mo_pot_transaction, pot_account_ids, pot_lookup[pot_account_ids[pot_account_id]])
 
-                    seen[t['id']] = 1
+                    seen[transaction.id] = 1
 
         if 'touch_file' in self.config:
             Path(self.config['touch_file']).touch()
 
 
-    def get_or_create_account(self, api_account, account_config):
-        a = self.db.one("select * from account where account_id = %s", [api_account.account_id])
+    def get_or_create_account(self, mo_account, account_config):
+        account = Account().find_by_provider_id_and_account_id(self.provider.id, mo_account.account_id)
 
-        account = {
-            'provider_id': self.provider['id'],
-            'name': account_config['name'],
-            'account_id': api_account.account_id
-        }
+        if not account:
+            account = Account()
+
+        account.provider_id = self.provider.id
+        account.name = account_config['name']
+        account.account_id = mo_account.account_id
 
         if 'sortcode' in account_config:
-            account['type'] = 'bank'
-            account['balance'] = account['available'] = api_account.balance.balance / 100
-            account['sortcode'] = account_config['sortcode']
-            account['account_no'] = account_config['account_no']
+            account.type = 'bank'
+            account.balance = account.available = mo_account.balance.balance / 100
+            account.sortcode = account_config['sortcode']
+            account.account_no = account_config['account_no']
         else:
-            account['type'] = 'credit'
-            account['balance'] = 0 - (api_account.balance.balance / 100)
-            account['available'] = account_config['credit_limit'] - account['balance']
+            account.type = 'credit'
+            account.balance = 0 - (mo_account.balance.balance / 100)
+            account.available = account_config['credit_limit'] - account.balance
+            account.credit_limit = account_config['credit_limit']
 
-        if not a:
-            a = self.db.create('account', account)
-        else:
-            a = self.db.update('account', a['id'], account)
+        account.save()
 
-        return a
+        return account
 
 
     def withdraw_credit(self, account_id, pot, credit):
@@ -705,7 +719,7 @@ class Monzo:
 
         self.client = self.get_client()
 
-        pot = Pot.fetch_single(self.client, account_id=account_id, pot_id=pot['pot_id'])
+        pot = monzo.endpoints.pot.Pot.fetch_single(self.client, account_id=account_id, pot_id=pot['pot_id'])
 
         dedupe_code = '%s_%s' % (
             pot.pot_id,
@@ -716,7 +730,7 @@ class Monzo:
 
         for i in range(0, 3):
             try:
-                Pot.withdraw(self.client, pot=pot, account_id=account_id, amount=amount, dedupe_id=dedupe_code)
+                monzo.endpoints.pot.Pot.withdraw(self.client, pot=pot, account_id=account_id, amount=amount, dedupe_id=dedupe_code)
                 self.sync()
                 return True
             except Exception as e:
@@ -740,7 +754,7 @@ class Monzo:
 
         self.client = self.get_client()
 
-        pot = Pot.fetch_single(self.client, account_id=account_id, pot_id=pot['pot_id'])
+        pot = monzo.endpoints.pot.Pot.fetch_single(self.client, account_id=account_id, pot_id=pot['pot_id'])
 
         dedupe_code = '%s_%s' % (
             pot.pot_id,
@@ -751,7 +765,7 @@ class Monzo:
 
         for i in range(0, 3):
             try:
-                Pot.deposit(self.client, pot=pot, account_id=account_id, amount=amount, dedupe_id=dedupe_code)
+                monzo.endpoints.pot.Pot.deposit(self.client, pot=pot, account_id=account_id, amount=amount, dedupe_id=dedupe_code)
                 self.sync()
                 return True
             except Exception as e:

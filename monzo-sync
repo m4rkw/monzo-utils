@@ -2,7 +2,7 @@
 
 import sys
 from urllib.error import URLError
-from monzo_api import Monzo
+from monzo_utils.lib.monzo_api import Monzo
 
 if 'setup' in sys.argv:
     m = Monzo(no_init=True)

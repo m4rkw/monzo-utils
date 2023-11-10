@@ -11,7 +11,7 @@ import pwd
 import warnings
 import dateparser
 import calendar
-from monzo_db import DB
+from monzo_utils.lib.db import DB
 
 # Ignore dateparser warnings regarding pytz
 warnings.filterwarnings(

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.7 - 10/11/2023
+
+- Push credit limit into the account table for credit cards
+- Created models for the database records as a first step towards
+  an abstraction layer for the database backend
+
 ## 0.0.6 - 08/11/2023
 
 - Fixed ordering of records in monzo-payments, could have caused issues if historical

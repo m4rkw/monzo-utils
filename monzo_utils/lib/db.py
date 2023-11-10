@@ -4,25 +4,77 @@ import sys
 import os
 import json
 import datetime
+from monzo_utils.lib.singleton import Singleton
 
-class DB():
+class DB(metaclass=Singleton):
 
     def __getattr__(self, name):
         match = re.match('^find_([\w]+)_by_(.*?)$', name)
 
         if match:
             table = match.group(1)
+
+            if table[0:4] == 'all_':
+                table = table[4:]
+                find_all = True
+            else:
+                find_all = False
+
             fields = match.group(2).split('_and_')
 
             def find_object_by_fields(*args, **kwargs):
-                sql = "select * from `" + table + "` where "
+                sql = "select * from `" + table + "` where ("
+
+                sql_args = []
 
                 for i in range(0, len(fields)):
                     if i >0:
                         sql += " and "
-                    sql += "`" + fields[i] + "` = %s"
 
-                return self.one(sql, args)
+                    if type(args[i]) == list:
+                        sql += "("
+                        for j in range(0, len(args[i])):
+                            if j >0:
+                                sql += " or "
+
+                            if 'search' in kwargs and type(kwargs['search']) == list and fields[i] in kwargs['search']:
+                                sql += f"`{fields[i]}` like %s"
+                                sql_args.append('%' + args[i][j] + '%')
+                            else:
+                                sql += f"`{fields[i]}` = %s"
+                                sql_args.append(args[i][j])
+
+                        sql += ")"
+                    else:
+                        if 'search' in kwargs and type(kwargs['search']) == list and fields[i] in kwargs['search']:
+                            sql += "`" + fields[i] + "` like %s"
+                            sql_args.append('%' + args[i] + '%')
+                        else:
+                            sql += "`" + fields[i] + "` = %s"
+                            sql_args.append(args[i])
+
+                sql += ")"
+
+                if 'where' in kwargs:
+                    for where_clause in kwargs['where']:
+                        sql += f" and {where_clause['clause']}"
+
+                        if 'params' in where_clause:
+                            sql_args += where_clause['params']
+
+                if 'orderby' in kwargs:
+                    sql += f" order by {kwargs['orderby']}"
+
+                    if 'orderdir' in kwargs:
+                        sql += f" {kwargs['orderdir']}"
+
+                if 'limit' in kwargs:
+                    sql += f" limit {kwargs['limit']}"
+
+                if find_all:
+                    return self.query(sql, sql_args)
+                else:
+                    return self.one(sql, sql_args)
 
             return find_object_by_fields
         else:
@@ -282,8 +334,6 @@ class DB():
 
         self.query(sql, params)
 
-        return self.one(f"select * from `{table}` where `id` = %s", [_id])
-
 
     def create(self, table, data):
         if table not in self.columns:
@@ -310,4 +360,4 @@ class DB():
 
         self.query(sql, params)
 
-        return self.one(f"select * from `{table}` order by `id` desc limit 1")
+        return self.one(f"select `id` from `{table}` order by `id` desc limit 1")['id']
