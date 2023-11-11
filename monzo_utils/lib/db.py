@@ -346,7 +346,7 @@ class DB(metaclass=Singleton):
             if i >0:
                 sql += ","
 
-            sql += f"{self.columns[table][i]}"
+            sql += f"`{self.columns[table][i]}`"
             params.append(data[self.columns[table][i]] if self.columns[table][i] in data else None)
 
         sql += f") VALUES ("

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.8 - 11/11/2023
+
+- Ensure column names are always escaped in sql queries
+
 ## 0.0.7 - 10/11/2023
 
 - Push credit limit into the account table for credit cards
