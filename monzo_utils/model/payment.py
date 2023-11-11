@@ -131,7 +131,10 @@ class Payment:
         if self.last_payment:
             self.cache['last_date'] = self.last_payment.date
         else:
-            self.cache['last_date'] = None
+            if self.older_last_payment is not None:
+                self.cache['last_date'] = self.older_last_payment.date
+            else:
+                self.cache['last_date'] = None
 
         return self.cache['last_date']
 
@@ -185,6 +188,50 @@ class Payment:
         return self.cache['last_payment']
 
 
+    # older last payment, may be before start_date
+    @property
+    def older_last_payment(self):
+        if 'older_last_payment' in self.cache:
+            return self.cache['older_last_payment']
+
+        if 'desc' not in self.payment_config:
+            self.payment_config['desc'] = type(self).__name__
+
+        where=[{'clause': 'money_out > %s', 'params': [0]}]
+
+        if 'fixed' in self.payment_config and self.payment_config['fixed']:
+            transactions = Transaction().find_all_by_declined_and_money_out_and_description(
+                0,
+                self.payment_config['amount'],
+                self.payment_config['desc'],
+                orderby='created_at',
+                orderdir='desc',
+                search=['description'],
+                where=where
+            )
+        else:
+            transactions = Transaction().find_all_by_declined_and_description(
+                0,
+                self.payment_config['desc'],
+                orderby='created_at',
+                orderdir='desc',
+                search=['description'],
+                where=where
+            )
+
+        for transaction in transactions:
+            if transaction.id not in Transactions().seen:
+                Transactions().seen[transaction.id] = 1
+
+                self.cache['older_last_payment'] = transaction
+
+                return self.cache['older_last_payment']
+
+        self.cache['older_last_payment'] = None
+
+        return self.cache['older_last_payment']
+
+
     @property
     def due_date(self):
         if 'yearly_month' in self.payment_config:
@@ -205,9 +252,14 @@ class Payment:
             return None
 
         if self.last_date.month == 12:
-            return datetime.date(self.last_date.year+1, 1, self.last_date.day)
+            due_date = datetime.date(self.last_date.year+1, 1, self.last_date.day)
+        else:
+            due_date = datetime.date(self.last_date.year, self.last_date.month+1, self.last_date.day)
 
-        return datetime.date(self.last_date.year, self.last_date.month+1, self.last_date.day)
+        if 'start_date' in self.payment_config and due_date < self.payment_config['start_date']:
+            return self.payment_config['start_date']
+
+        return due_date
 
 
     @property
