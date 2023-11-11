@@ -232,19 +232,9 @@ class PaymentFundsCheck:
 
 
     def display_payment_list(self, payment_type, payment_list):
-        for payment_config in payment_list:
-            payment_list_type_library = payment_type.lower().replace(' ','_')
-            payment_list_type = payment_type.title().replace(' ','')
+        payments = self.get_payments(payment_type, payment_list)
 
-            payment = getattr(importlib.import_module(f"monzo_utils.model.{payment_list_type_library}"), payment_list_type)(
-                self.config,
-                payment_list,
-                payment_config,
-                self.last_salary_date,
-                self.next_salary_date,
-                self.following_salary_date
-            )
-
+        for payment in payments:
             if payment.status in ['DUE','PAID']:
                 self.total_this_month += payment.display_amount * 100
 
@@ -258,6 +248,27 @@ class PaymentFundsCheck:
                     self.next_month_bills_pot += payment.display_amount * 100
 
             payment.display()
+
+
+    def get_payments(self, payment_type, payment_list):
+        payments = []
+
+        for payment_config in payment_list:
+            payment_list_type_library = payment_type.lower().replace(' ','_')
+            payment_list_type = payment_type.title().replace(' ','')
+
+            payment = getattr(importlib.import_module(f"monzo_utils.model.{payment_list_type_library}"), payment_list_type)(
+                self.config,
+                payment_list,
+                payment_config,
+                self.last_salary_date,
+                self.next_salary_date,
+                self.following_salary_date
+            )
+
+            payments.append(payment)
+
+        return payments
 
 
     def notify(self, event, message):
