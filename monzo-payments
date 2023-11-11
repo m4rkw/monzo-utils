@@ -773,6 +773,7 @@ class PaymentFundsCheck:
             0,
             payment['amount'],
             payment['desc'],
+            search=['description'],
             where=[{
                 'clause': '`date` >= %s',
                 'params': [payment['start_date']]
