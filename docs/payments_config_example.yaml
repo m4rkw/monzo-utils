@@ -106,8 +106,9 @@ refunds_due:
       # string to match in the description field to identify the transaction
       desc: AWS EMEA aws.amazon.co
 
-      # if the description field changes over time you can add old values here
-      # old_desc:
+      # if the description field changes over time you can specify multiple values
+      # desc:
+      #   - AWS LUX AWS
       #   - AWS EMEA LUX AWS
 
       # if the payment is made yearly you can indicate this by specifying the
