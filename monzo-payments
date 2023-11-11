@@ -17,6 +17,7 @@ from monzo_utils.model.provider import Provider
 from monzo_utils.model.account import Account
 from monzo_utils.model.pot import Pot
 from monzo_utils.model.transaction import Transaction
+from monzo_utils.model.payment import Payment
 
 PROVIDER = 'Monzo'
 
@@ -131,7 +132,10 @@ class PaymentFundsCheck:
                     last_amount = dollar_value / rate
 
                 if last_amount is None:
-                    last_amount = payment['amount']
+                    if payment_list['type'] == 'Finance':
+                        last_amount = int(payment['amount'] * 100 / payment['months']) / 100
+                    else:
+                        last_amount = payment['amount']
 
                 if 'last_amount_overrides' in self.config and payment['name'] in self.config['last_amount_overrides'] and last_salary_date in self.config['last_amount_overrides'][payment['name']]:
                     last_amount = self.config['last_amount_overrides'][payment['name']][last_salary_date]
@@ -206,11 +210,10 @@ class PaymentFundsCheck:
                     if 'start_date' not in payment:
                         raise Exception('finance entries must have key: start_date')
 
-                    num_paid = self.get_num_payments_made(payment)
+                    num_paid, total_paid, last_amount = self.get_num_payments_made(payment)
                     num_total = payment['months']
 
-                    total_paid = num_paid * payment['amount']
-                    remaining = (num_total - num_paid) * payment['amount']
+                    remaining = payment['amount'] - total_paid
 
                 self.display(status, payment_list['type'], payment['name'], last_amount, last_date, due_date, num_paid, num_total, remaining)
 
@@ -267,7 +270,6 @@ class PaymentFundsCheck:
                     flex_status = status
 
             elif status == 'SKIPPED':
-                flex_this_month += amount
                 remaining = max([0, payment['amount'] - (payment_num * amount)])
                 total_remaining += remaining
 
@@ -280,8 +282,13 @@ class PaymentFundsCheck:
                     'num_total': payment['months'],
                     'remaining': remaining
                 })
-                next_month_bills_pot += round(amount * 100)
-                next_month += round(amount * 100)
+
+                end_of_next_salary_period = self.get_next_salary_date(next_salary_date)
+
+                if date < end_of_next_salary_period:
+                    flex_this_month += amount
+                    next_month_bills_pot += round(amount * 100)
+                    next_month += round(amount * 100)
 
                 if flex_status in ['DONE']:
                     flex_status = status
@@ -769,16 +776,35 @@ class PaymentFundsCheck:
 
 
     def get_num_payments_made(self, payment):
-        return len(Transaction().find_all_by_declined_and_money_out_and_description(
-            0,
-            payment['amount'],
-            payment['desc'],
-            search=['description'],
-            where=[{
-                'clause': '`date` >= %s',
-                'params': [payment['start_date']]
-            }]
-        ))
+        count = 0
+        total_paid = 0
+        last_amount = None
+
+        amounts = [int(payment['amount'] / payment['months'] * 100) / 100]
+
+        final_payment = round(payment['amount'] - (amounts[0] * (payment['months']-1)), 2)
+
+        if final_payment not in amounts:
+            amounts.append(final_payment)
+
+        for row in Transaction().find_all_by_declined_and_money_out_and_description(
+                0,
+                amounts,
+                payment['desc'],
+                search=['description'],
+                where=[{
+                    'clause': '`date` >= %s',
+                    'params': [payment['start_date']]
+                }],
+                orderby='created_at',
+                orderdir='asc'
+            ):
+
+            count += 1
+            total_paid += row.money_out
+            last_amount = row.money_out
+
+        return count, total_paid, last_amount
 
 
     def get_refund_status(self, refund, next_salary_date):
