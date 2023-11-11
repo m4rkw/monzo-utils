@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.16 - 11/11/2023
+
+- Added flex payment summary back in after refactoring work
+
 ## 0.0.15 - 11/11/2023
 
 - Refactored monzo-payments and fixed some bugs
