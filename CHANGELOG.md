@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.18 - 11/11/2023
+
+- Bugfixes
+
 ## 0.0.17 - 11/11/2023
 
 - Show due date when start\_date is defined in payment config
