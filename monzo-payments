@@ -10,6 +10,7 @@ import time
 import requests
 import math
 import pwd
+import importlib
 from pushover import Client
 from monzo_utils.lib.monzo_api import Monzo
 from monzo_utils.lib.db import DB
@@ -71,290 +72,75 @@ class PaymentFundsCheck:
 
 
     def main(self):
-        last_salary_date = self.get_last_salary_date()
-        next_salary_date = self.get_next_salary_date(last_salary_date)
+        self.last_salary_date = self.get_last_salary_date()
+        self.next_salary_date = self.get_next_salary_date(self.last_salary_date)
+        self.following_salary_date = self.get_next_salary_date(self.next_salary_date)
 
-        due = 0
-        total = 0
-        next_month = 0
-        next_month_bills_pot = 0
-
-        now = datetime.datetime.now()
-
-        flex_payments = []
+        self.due = 0
+        self.total_this_month = 0
+        self.next_month = 0
+        self.next_month_bills_pot = 0
 
         for payment_list in self.config['payments']:
-            if payment_list['type'] == 'Flex':
-                flex_payments += payment_list['payments']
-                continue
-
             if not payment_list['payments']:
                 continue
 
-            for payment in payment_list['payments']:
-                if payment_list['type'] == 'Amazon Payments':
-                    status, num_paid, remaining, last_amount, last_date, due_date = self.get_amazon_payment(payment, last_salary_date, next_salary_date, payment_list['payment_day'])
+            self.display_payment_list(payment_list['type'], payment_list['payments'])
 
-                    self.display(status, 'Amazon Payments', payment['name'], last_amount, last_date, due_date, num_paid, payment['months'], remaining)
+        if 'refunds_due' in self.config and self.config['refunds_due']:
 
-                    if status == 'DUE':
-                        if last_amount >= remaining:
-                            due += last_amount * 100
-                            total += last_amount * 100
-                        else:
-                            due += remaining * 100
-                            total += remaining * 100
-
-                    elif status == 'PAID':
-                        total += last_amount * 100
-
-                    if remaining == 0:
-                        due_next_month = 0
-                    elif last_amount >= remaining:
-                        due_next_month = remaining
-                    else:
-                        due_next_month = last_amount
-
-                    next_month_bills_pot += due_next_month * 100
-                    continue
-
-                last_date, last_amount = self.get_last_payment_date(payment_list['type'], payment)
-
-                if 'fixed' in payment and payment['fixed']:
-                    last_amount = payment['amount']
-
-                if str(payment['amount'])[0] == '$':
-                    rate = self.get_exchange_rate('usd')
-
-                    dollar_value = float(str(payment['amount'])[1:])
-
-                    last_amount = dollar_value / rate
-
-                if last_amount is None:
-                    if payment_list['type'] == 'Finance':
-                        last_amount = int(payment['amount'] * 100 / payment['months']) / 100
-                    else:
-                        last_amount = payment['amount']
-
-                if 'last_amount_overrides' in self.config and payment['name'] in self.config['last_amount_overrides'] and last_salary_date in self.config['last_amount_overrides'][payment['name']]:
-                    last_amount = self.config['last_amount_overrides'][payment['name']][last_salary_date]
-
-                if 'last_date_overrides' in self.config and payment['name'] in self.config['last_date_overrides'] and last_date in self.config['last_date_overrides'][payment['name']]:
-                    last_date = self.config['last_date_overrides'][payment['name']][last_date]
-
-                could_be_due = True
-
-                due_date = last_date
-
-                if 'yearly_month' in payment:
-                    could_be_due = self.is_yearly_payment_due_this_month(payment, last_salary_date)
-
-                    today = datetime.datetime.now()
-
-                    while today.month != payment['yearly_month'] or today.day != payment['yearly_day']:
-                        today += datetime.timedelta(days=1)
-
-                    due_date = datetime.date(today.year, today.month, today.day)
-
-                else:
-                    if 'renew_date' in payment:
-                        due_date = payment['renew_date']
-                    elif due_date:
-                        if due_date.month == 12:
-                            due_date = datetime.date(due_date.year+1, 1, due_date.day)
-                        else:
-                            due_date = datetime.date(due_date.year, due_date.month+1, due_date.day)
-
-                # payment period not started yet
-                if 'start_date' in payment:
-                    if payment['start_date'] >= next_salary_date:
-                        could_be_due = False
-                        due_date = payment['start_date']
-
-                # excluded months (council tax)
-                if 'exclude_months' in payment:
-                    if last_date is None:
-                        if 'start_date' in payment:
-                            next_payment_month = payment['start_date'].month + 1
-                        else:
-                            next_payment_month = None
-                    else:
-                        next_payment_month = last_date.month + 1
-
-                    if next_payment_month:
-                        if next_payment_month >12:
-                            next_payment_month = 1
-
-                        if next_payment_month in payment['exclude_months']:
-                            could_be_due = False
-
-                if could_be_due and (last_date is None or last_date < last_salary_date):
-                    status = 'DUE'
-                    due += round(last_amount * 100)
-                    total += round(last_amount * 100)
-                else:
-                    if could_be_due:
-                        status = 'PAID'
-                        total += round(last_amount * 100)
-                    else:
-                        status = 'SKIPPED'
-
-                num_paid = None
-                num_total = None
-                remaining = None
-
-                if payment_list['type'] == 'Finance':
-                    if 'months' not in payment:
-                        raise Exception('finance entries must have key: months')
-                    if 'start_date' not in payment:
-                        raise Exception('finance entries must have key: start_date')
-
-                    num_paid, total_paid, last_amount = self.get_num_payments_made(payment)
-                    num_total = payment['months']
-
-                    remaining = payment['amount'] - total_paid
-
-                self.display(status, payment_list['type'], payment['name'], last_amount, last_date, due_date, num_paid, num_total, remaining)
-
-                # determine if due next month
-                if 'yearly_month' in payment:
-                    date_from = next_salary_date
-                    date_to = self.get_next_salary_date(next_salary_date)
-
-                    if due_date >= date_from and due_date <= date_to:
-                        next_month += round(last_amount * 100)
-
-                        if 'exclude_yearly_from_bills' not in self.config or self.config['exclude_yearly_from_bills'] is False:
-                            next_month_bills_pot += round(last_amount * 100)
-                else:
-                    end_of_next_salary_period = self.get_next_salary_date(next_salary_date)
-
-                    if 'start_date' not in payment or payment['start_date'] < end_of_next_salary_period:
-                        if 'renew_date' not in payment or payment['renew_date'] < end_of_next_salary_period:
-                            next_month += round(last_amount * 100)
-
-                            if 'exclude_from_bills' not in self.config or ('exclude_from_bills' in self.config and payment['name'] not in self.config['exclude_from_bills']):
-                                next_month_bills_pot += round(last_amount * 100)
-
-        flex_this_month = 0
-        flex_due = []
-        flex_status = 'DONE'
-
-        total_remaining = 0
-
-        for payment in flex_payments:
-            status, date, amount, payment_num = self.flex_payment_due(payment, next_salary_date)
-
-            if status == 'DUE':
-                due += round(amount * 100)
-                total += round(amount * 100)
-                flex_this_month += amount
-                remaining = max([0, payment['amount'] - (payment_num * amount)])
-                total_remaining += remaining
-
-                flex_due.append({
-                    'status': status,
-                    'date': date,
-                    'amount': amount,
-                    'name': payment['name'],
-                    'num_paid': payment_num,
-                    'num_total': payment['months'],
-                    'remaining': remaining
-                })
-
-                next_month_bills_pot += round(amount * 100)
-                next_month += round(amount * 100)
-
-                if flex_status in ['DONE','SKIPPED']:
-                    flex_status = status
-
-            elif status == 'SKIPPED':
-                remaining = max([0, payment['amount'] - (payment_num * amount)])
-                total_remaining += remaining
-
-                flex_due.append({
-                    'status': status,
-                    'date': date,
-                    'amount': amount,
-                    'name': payment['name'],
-                    'num_paid': payment_num,
-                    'num_total': payment['months'],
-                    'remaining': remaining
-                })
-
-                end_of_next_salary_period = self.get_next_salary_date(next_salary_date)
-
-                if date < end_of_next_salary_period:
-                    flex_this_month += amount
-                    next_month_bills_pot += round(amount * 100)
-                    next_month += round(amount * 100)
-
-                if flex_status in ['DONE']:
-                    flex_status = status
-
-        if flex_status != 'DONE':
-            self.display(flex_status, 'Flex', 'Flex payment', flex_this_month, None, date, None, None, total_remaining)
-
-            for flex_payment in flex_due:
-                self.display(
-                    flex_payment['status'],
-                    'Flex',
-                    '- ' + flex_payment['name'],
-                    flex_payment['amount'],
-                    None,
-                    flex_payment['date'],
-                    flex_payment['num_paid'],
-                    flex_payment['num_total'],
-                    flex_payment['remaining']
-                )
-
-        if 'refunds_due' in self.config:
-            for refund in self.config['refunds_due']:
-                refund_status, due_next_month = self.get_refund_status(refund, next_salary_date)
-
-                if refund_status == 'DUE':
-                    due -= (refund['amount'] * 100)
-                    total -= (refund['amount'] * 100)
-
-                if due_next_month:
-                    next_month -= (refund['amount'] * 100)
-
-                self.display(
-                    refund_status,
-                    'Refund',
-                    refund['name'],
-                    0 - refund['amount'],
-                    None,
-                    refund['due_after']
-                )
+            self.display_payment_list('Refund', self.config['refunds_due'])
+#            for refund_config in self.config['refunds_due']:
+#                payment = getattr(importlib.import_module("monzo_utils.model.refund"), 'Refund')(
+#                    self.config,
+#                    'Refund',
+#                    refund_config,
+#                    self.last_salary_date,
+#                    self.next_salary_date,
+#                    self.following_salary_date
+#                )
+#
+#            if payment.status in ['DUE','PAID']:
+#                total_this_month += payment.display_amount * 100
+#
+#            if payment.status == 'DUE':
+#                due += payment.display_amount * 100
+#
+#            if payment.due_next_month:
+#                next_month += payment.display_amount * 100
+#
+#                if 'exclude_yearly_from_bills' not in self.config or self.config['exclude_yearly_from_bills'] is False or 'yearly_month' not in payment_config:
+#                    next_month_bills_pot += payment.display_amount * 100
+#
+#            payment.display()
 
         if 'pot' in self.config:
             pot = Pot().find_by_account_id_and_name(self.account.id, self.config['pot'])
         else:
             pot = self.account
 
-        shortfall = (due - (round(pot.balance * 100))) / 100
+        shortfall = (self.due - (round(pot.balance * 100))) / 100
 
         sys.stdout.write("\n")
 
         sys.stdout.write(" " * 25)
-        sys.stdout.write(" TOTAL THIS MONTH:".ljust(31))
-        print("£%.2f" % (total / 100))
+        sys.stdout.write("TOTAL THIS MONTH:".ljust(31))
+        print("£%.2f" % (self.total_this_month / 100))
 
         if 'exclude_yearly_from_bills' in self.config and self.config['exclude_yearly_from_bills']:
             sys.stdout.write("\n")
 
         sys.stdout.write(" " * 25)
-        sys.stdout.write(" TOTAL NEXT MONTH:".ljust(31))
-        print("£%.2f" % (next_month / 100))
+        sys.stdout.write("TOTAL NEXT MONTH:".ljust(31))
+        print("£%.2f" % (self.next_month / 100))
 
         if 'exclude_yearly_from_bills' in self.config and self.config['exclude_yearly_from_bills']:
             sys.stdout.write(" " * 25)
             sys.stdout.write("Bills pot payment:".ljust(31))
-            print("£%.2f" % (next_month_bills_pot / 100))
+            print("£%.2f" % (self.next_month_bills_pot / 100))
 
         if round(shortfall * 100) >0:
-            print("      due: £%.2f" % (due / 100))
+            print("      due: £%.2f" % (self.due / 100))
             print("  balance: £%.2f" % (pot.balance))
             print("shortfall: £%.2f" % (shortfall))
 
@@ -392,7 +178,7 @@ class PaymentFundsCheck:
                             '%s - pot topped up' % (self.account.name),
                             "£%.2f\n£%.2f due, £%.2f available" % (
                                 shortfall,
-                                due / 100,
+                                self.due / 100,
                                 pot.balance
                             )
                         )
@@ -402,15 +188,15 @@ class PaymentFundsCheck:
                         '%s - shortfall' % (self.account.name),
                         "£%.2f\n£%.2f due, £%.2f available" % (
                             shortfall,
-                            due / 100,
+                            self.due / 100,
                             pot.balance
                         )
                     )
 
         else:
-            credit = (round(pot.balance * 100) - due) / 100
+            credit = (round(pot.balance * 100) - self.due) / 100
 
-            print("    due: £%.2f" % (due / 100))
+            print("    due: £%.2f" % (self.due / 100))
             print("balance: £%.2f" % (pot.balance))
 
             if round(credit * 100) == 0:
@@ -452,7 +238,7 @@ class PaymentFundsCheck:
                             '%s - pot credit withdrawn' % (self.account.name),
                             "£%.2f\n£%.2f due, £%.2f available" % (
                                 credit,
-                                due / 100,
+                                self.due / 100,
                                 pot.balance
                             )
                         )
@@ -462,71 +248,39 @@ class PaymentFundsCheck:
                         '%s - credit' % (self.account.name),
                         "£%.2f\n£%.2f due, £%.2f available" % (
                             credit,
-                            due / 100,
+                            self.due / 100,
                             pot.balance
                         )
                     )
 
 
-    def display(self, status, payment_type, payment_name, amount, last_date, due_date, num_paid=None, num_total=None, remaining=None):
-        if num_paid is not None:
-            suffix = '%d/%d' % (
-                num_paid,
-                num_total
+    def display_payment_list(self, payment_type, payment_list):
+        for payment_config in payment_list:
+            payment_list_type_library = payment_type.lower().replace(' ','_')
+            payment_list_type = payment_type.title().replace(' ','')
+
+            payment = getattr(importlib.import_module(f"monzo_utils.model.{payment_list_type_library}"), payment_list_type)(
+                self.config,
+                payment_list,
+                payment_config,
+                self.last_salary_date,
+                self.next_salary_date,
+                self.following_salary_date
             )
-        else:
-            suffix = ''
 
-        if remaining is not None:
-            remaining = '£%.2f' % (remaining)
-        else:
-            remaining = ''
+            if payment.status in ['DUE','PAID']:
+                self.total_this_month += payment.display_amount * 100
 
-        print("%s: %s %s %s %s %s %s %s" % (
-            status.rjust(7),
-            payment_type.ljust(15),
-            payment_name.ljust(25),
-            suffix.ljust(4),
-            ('£%.2f' % (amount)).ljust(8),
-            remaining.ljust(8),
-            last_date.strftime('%Y-%m-%d').ljust(12) if last_date else ''.ljust(12),
-            due_date.strftime('%Y-%m-%d').ljust(10) if due_date else ''
-        ))
+            if payment.status == 'DUE':
+                self.due += payment.display_amount * 100
 
+            if payment.due_next_month:
+                self.next_month += payment.display_amount * 100
 
-    def flex_payment_due(self, payment, next_salary_date):
-        date = payment['start_date']
-        today = datetime.datetime.now()
-        today = datetime.date(today.year, today.month, today.day)
+                if 'exclude_yearly_from_bills' not in self.config or self.config['exclude_yearly_from_bills'] is False or 'yearly_month' not in payment_config:
+                    self.next_month_bills_pot += payment.display_amount * 100
 
-        due = False
-        total_paid = 0
-        for i in range(0, payment['months']):
-            amount = int(math.ceil(payment['amount'] / payment['months']))
-
-            if total_paid + amount > payment['amount']:
-                amount = payment['amount'] - total_paid
-
-            while date.day != self.config['flex_payment_date']:
-                date += datetime.timedelta(days=1)
-
-            if date >= today:
-                due = True
-                payment_num = i
-                break
-
-            date += datetime.timedelta(days=1)
-
-            total_paid += amount
-
-        if not due:
-            status = 'DONE'
-        elif date <= next_salary_date:
-            status = 'DUE'
-        else:
-            status = 'SKIPPED'
-
-        return status, date, amount, payment_num
+            payment.display()
 
 
     def notify(self, event, message):
@@ -554,13 +308,16 @@ class PaymentFundsCheck:
 
         last_salary_date = last_salary_transaction['date']
 
-        while last_salary_date.day <self.config['salary_payment_day']:
-            last_salary_date = datetime.date(last_salary_date.year, last_salary_date.month, last_salary_date.day+1)
-
         return last_salary_date
 
 
     def get_next_salary_date(self, last_salary_date):
+        while last_salary_date.day != 15:
+            try:
+                last_salary_date = datetime.date(last_salary_date.year, last_salary_date.month, last_salary_date.day+1)
+            except:
+                last_salary_date = datetime.date(last_salary_date.year, last_salary_date.month+1, 1)
+
         next_salary_date = datetime.date(last_salary_date.year, last_salary_date.month, last_salary_date.day+1)
 
         while next_salary_date.day != 15:
@@ -573,265 +330,6 @@ class PaymentFundsCheck:
             next_salary_date = datetime.date(next_salary_date.year, next_salary_date.month, next_salary_date.day-1)
 
         return next_salary_date
-
-
-    def get_last_payment_date(self, payment_type, payment):
-        if payment_type != 'Standing Order' and 'fixed' in payment and payment['fixed']:
-            transactions = Transaction().find_all_by_declined_and_money_out_and_description(
-                0,
-                payment['amount'],
-                payment['desc'],
-                orderby='created_at',
-                orderdir='desc',
-                search=['description']
-            )
-
-        else:
-            transactions = Transaction().find_all_by_declined_and_description(
-                0,
-                payment['desc'],
-                orderby='created_at',
-                orderdir='desc',
-                search=['description']
-            )
-
-        for transaction in transactions:
-            if transaction.id not in self.seen:
-                self.seen.append(transaction.id)
-
-                return transaction.date, transaction.money_out
-
-        return None, None
-
-
-    def days_in_month(self, year, month):
-        return calendar.monthrange(year, month)[1]
-
-
-    def is_yearly_payment_due_this_month(self, payment, last_salary_date):
-        date_from = last_salary_date.strftime('%Y-%m-%d')
-        date = last_salary_date
-
-        while date.day <= 15:
-            date += datetime.timedelta(days=1)
-
-        while date.day != 15:
-            date += datetime.timedelta(days=1)
-
-        date_to = date.strftime('%Y-%m-%d')
-
-        due_date = str(last_salary_date.year) + '-' + (str(payment['yearly_month']).rjust(2,'0')) + '-' + (str(payment['yearly_day']).rjust(2,'0'))
-
-        return due_date >= date_from and due_date <= date_to
-
-
-    def get_exchange_rate(self, currency):
-        if currency in self.exchange_rates:
-            return self.exchange_rates[currency]
-
-        if os.path.exists(self.monzo_config['exchange_rate_files'][currency]):
-            mtime = os.stat(self.monzo_config['exchange_rate_files'][currency]).st_mtime
-
-            dt = datetime.datetime.fromtimestamp(mtime)
-
-            if dt.strftime('%Y%m%d') == datetime.datetime.now().strftime('%Y%m%d'):
-                self.exchange_rates[currency] = float(open(self.monzo_config['exchange_rate_files'][currency]).read())
-
-                return self.exchange_rates[currency]
-
-        resp = requests.get('https://raw.githubusercontent.com/TheArmagan/currency/main/api/GBP-to-%s.txt' % (currency.upper()))
-        rate = float(resp.text)
-
-        with open(self.monzo_config['exchange_rate_files'][currency], 'w') as f:
-            f.write(resp.text)
-
-        self.exchange_rates[currency] = rate
-
-        return rate
-
-
-    def handle_amazon_payments(self, payment_day, payment, last_salary_date, next_salary_date):
-        amazon_due = 0
-        amazon_total = 0
-        amazon_next_month_bills_pot = 0
-        first = True
-
-        status, num_paid, remaining, last_amount, last_date, due_date = self.get_amazon_payment(payment, last_salary_date, next_salary_date, payment_day)
-
-        self.display(status, 'Amazon Payments', payment['name'], last_amount, last_date, due_date, num_paid, payment['months'], remaining)
-
-        return amazon_due, amazon_total, amazon_next_month_bills_pot
-
-
-    def get_amazon_payment(self, payment_spec, last_salary_date, next_salary_date, payment_day):
-        date_from = payment_spec['start_date']
-
-        payments = []
-
-        initial_amount = int(math.ceil(int(payment_spec['amount'] * 100) / payment_spec['months'])) / 100
-        final_amount = payment_spec['amount'] - (initial_amount * (payment_spec['months']-1))
-
-        payments = Transaction().find_all_by_provider_id_and_declined_and_description(
-            self.provider.id,
-            0,
-            payment_spec['desc'],
-            orderby='created_at',
-            orderdir='asc',
-            search=['description'],
-            where=[{
-                'clause': '`date` >= %s',
-                'params': [payment_spec['start_date']]
-            },{
-                'clause': '(money_out = %s or money_out = %s)',
-                'params': [initial_amount, final_amount]
-            }]
-        )
-
-        num_paid = len(payments)
-        remaining = payment_spec['amount']
-
-        for payment in payments:
-            remaining -= payment.money_out
-
-        if len(payments) >0:
-            last_amount = payments[-1].money_out
-            last_date = payments[-1].date
-        else:
-            last_amount = initial_amount
-            last_date = None
-
-        if num_paid < payment_spec['months']:
-            if last_date:
-                due_date = last_date + datetime.timedelta(months=1)
-            else:
-                due_date = datetime.datetime.now() + datetime.timedelta(days=1)
-
-                while due_date.day != payment_day:
-                    due_date += datetime.timedelta(days=1)
-        else:
-            due_date = None
-
-        # if paid since last salary then status is PAID
-        if len(payments) >0 and payments[-1].date >= last_salary_date:
-            status = 'PAID'
-
-        else:
-            # determine if the payment date falls before the next salary date
-            # if it does then this payment is DUE
-            now = datetime.datetime.now() + datetime.timedelta(days=1)
-            due = False
-
-            while 1:
-                if datetime.date(now.year, now.month, now.day) == next_salary_date:
-                    break
-
-                if now.day == payment_day:
-                    due = True
-                    break
-
-                now += datetime.timedelta(days=1)
-
-            if due:
-                status = 'DUE'
-            else:
-                status = 'SKIPPED'
-
-        return status, num_paid, remaining, last_amount, last_date, due_date
-
-
-    def get_next_amazon_payment(self, i, payment_spec, payment, amount):
-        date_from = self.add_month(payment.date) - datetime.timedelta(days=7)
-        date_to = self.add_month(payment.date) + datetime.timedelta(days=7)
-
-        return Transaction().find_by_declined_and_description_and_money_out(
-            0,
-            payment_spec['desc'],
-            amount,
-            where=[{
-                'clause': '(`date` >= %s and `date` <= %s)',
-                'params': [date_from, date_to]
-            }]
-        )
-
-
-    def add_month(self, date):
-        if date.month == 12:
-            day = date.day
-            month = 1
-            year = date.year + 1
-        else:
-            day = date.day
-            month = date.month + 1
-            year = date.year
-
-        while 1:
-            try:
-                new_date = datetime.date(year, month, day)
-                break
-            except ValueError:
-                day -= 1
-
-        return new_date
-
-
-    def get_num_payments_made(self, payment):
-        count = 0
-        total_paid = 0
-        last_amount = None
-
-        amounts = [int(payment['amount'] / payment['months'] * 100) / 100]
-
-        final_payment = round(payment['amount'] - (amounts[0] * (payment['months']-1)), 2)
-
-        if final_payment not in amounts:
-            amounts.append(final_payment)
-
-        for row in Transaction().find_all_by_declined_and_money_out_and_description(
-                0,
-                amounts,
-                payment['desc'],
-                search=['description'],
-                where=[{
-                    'clause': '`date` >= %s',
-                    'params': [payment['start_date']]
-                }],
-                orderby='created_at',
-                orderdir='asc'
-            ):
-
-            count += 1
-            total_paid += row.money_out
-            last_amount = row.money_out
-
-        return count, total_paid, last_amount
-
-
-    def get_refund_status(self, refund, next_salary_date):
-        transaction = Transaction().find_by_declined_and_money_in_and_description(
-            0,
-            refund['amount'],
-            refund['desc'],
-            search=['description'],
-            orderby='created_at',
-            orderdir='asc',
-            limit=1,
-            where=[{
-                'clause': '`date` >= %s',
-                'params': [refund['due_after']]
-            }]
-        )
-
-        if transaction:
-            return 'PAID', False
-
-        if refund['due_after'] >= next_salary_date:
-            following_salary_date = self.get_next_salary_date(next_salary_date)
-
-            due_next_month = refund['due_after'] < following_salary_date
-
-            return 'SKIPPED', due_next_month
-
-        return 'DUE', False
 
 
 if len(sys.argv) <2:

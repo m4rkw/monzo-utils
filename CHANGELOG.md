@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.15 - 11/11/2023
+
+- Refactored monzo-payments and fixed some bugs
+
 ## 0.0.14 - 11/11/2023
 
 - Bugfixes in monzo-payments

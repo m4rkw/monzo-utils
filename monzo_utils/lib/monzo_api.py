@@ -719,7 +719,7 @@ class Monzo:
 
         self.client = self.get_client()
 
-        pot = monzo.endpoints.pot.Pot.fetch_single(self.client, account_id=account_id, pot_id=pot['pot_id'])
+        pot = monzo.endpoints.pot.Pot.fetch_single(self.client, account_id=account_id, pot_id=pot.pot_id)
 
         dedupe_code = '%s_%s' % (
             pot.pot_id,
@@ -754,7 +754,7 @@ class Monzo:
 
         self.client = self.get_client()
 
-        pot = monzo.endpoints.pot.Pot.fetch_single(self.client, account_id=account_id, pot_id=pot['pot_id'])
+        pot = monzo.endpoints.pot.Pot.fetch_single(self.client, account_id=account_id, pot_id=pot.pot_id)
 
         dedupe_code = '%s_%s' % (
             pot.pot_id,
