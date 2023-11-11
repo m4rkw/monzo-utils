@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.13 - 11/11/2023
+
+- Bugfixes in monzo-payments
+
 ## 0.0.12 - 11/11/2023
 
 - Bugfix: num payments calculation for finance wasn't using a LIKE query
