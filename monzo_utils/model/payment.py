@@ -199,6 +199,9 @@ class Payment:
             return self.payment_config['renew_date']
 
         if not self.last_date:
+            if 'start_date' in self.payment_config:
+                return self.payment_config['start_date']
+
             return None
 
         if self.last_date.month == 12:
