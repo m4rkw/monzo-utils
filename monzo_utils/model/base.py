@@ -5,9 +5,16 @@ from monzo_utils.lib.db import DB
 
 class BaseModel:
 
-    def __init__(self, attrs={}):
+    def __init__(self, attrs=None):
         self.table = re.sub(r'(?<!^)(?=[A-Z])', '_', type(self).__name__).lower()
-        self.attrs = attrs
+
+        if attrs:
+            self.attrs = attrs
+        else:
+            self.attrs = {}
+
+        if 'id' not in self.attrs:
+            self.attrs['id'] = None
 
 
     def __getattr__(self, name):
@@ -91,14 +98,14 @@ class BaseModel:
 
 
     def save(self):
-        if 'id' in self.attrs:
+        if self.id:
             DB().update(self.table, self.id, self.attrs)
         else:
             self.id = DB().create(self.table, self.attrs)
 
 
     def delete(self):
-        if 'id' not in self.attrs:
+        if self.id is None:
             raise Exception("Unable to delete record with null id")
 
         DB().query(f"delete from {self.table} where id = %s", [self.id])

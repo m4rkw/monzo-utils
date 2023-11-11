@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.9 - 11/11/2023
+
+- Fixed sync issues introduced accidentally in 0.0.7
+
 ## 0.0.8 - 11/11/2023
 
 - Ensure column names are always escaped in sql queries

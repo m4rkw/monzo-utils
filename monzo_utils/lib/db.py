@@ -85,6 +85,7 @@ class DB(metaclass=Singleton):
     def __init__(self, config):
         self.config = config
         self.columns = {}
+        self.connect()
 
 
     def connect(self):
@@ -120,7 +121,6 @@ class DB(metaclass=Singleton):
             print("SQL: %s" % (sql))
             print("PARAMS: %s" % (json.dumps(self.json_params(params),indent=4)))
 
-        self.connect()
         self.cur.execute((sql), params)
 
         if sql[0:6].lower() == "select":
@@ -128,6 +128,9 @@ class DB(metaclass=Singleton):
             return self.build_rows(self.cur.fetchall())
 
         self.db.commit()
+
+        if sql[0:6].lower() == "insert":
+            return self.cur.lastrowid
 
         return None
 
@@ -358,6 +361,4 @@ class DB(metaclass=Singleton):
 
         sql += ")"
 
-        self.query(sql, params)
-
-        return self.one(f"select `id` from `{table}` order by `id` desc limit 1")['id']
+        return self.query(sql, params)
