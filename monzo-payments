@@ -18,6 +18,7 @@ from monzo_utils.model.provider import Provider
 from monzo_utils.model.account import Account
 from monzo_utils.model.pot import Pot
 from monzo_utils.model.transaction import Transaction
+from monzo_utils.model.flex_summary import FlexSummary
 
 PROVIDER = 'Monzo'
 
@@ -233,6 +234,28 @@ class PaymentFundsCheck:
 
     def display_payment_list(self, payment_type, payment_list):
         payments = self.get_payments(payment_type, payment_list)
+
+        if payment_type == 'Flex':
+            flex_status = 'SKIPPED'
+            flex_total = 0
+            flex_remaining = 0
+
+            for payment in payments:
+                flex_remaining += payment.remaining
+
+                if payment.status == 'DUE' and flex_status in ['PAID','SKIPPED']:
+                    flex_status = 'DUE'
+                elif payment.status == 'PAID' and flex_status in ['SKIPPED']:
+                    flex_status = 'PAID'
+
+            for payment in payments:
+                if flex_status == 'DUE' and payment.status == 'DUE' and payment.due_date < self.next_salary_date:
+                    flex_total += payment.display_amount
+                elif flex_status == 'SKIPPED' and payment.due_date < self.following_salary_date:
+                    flex_total += payment.display_amount
+
+            summary = FlexSummary(self.config, flex_status, flex_total, flex_remaining)
+            summary.display()
 
         for payment in payments:
             if payment.status in ['DUE','PAID']:
