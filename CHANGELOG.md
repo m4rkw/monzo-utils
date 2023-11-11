@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.17 - 11/11/2023
+
+- Show due date when start\_date is defined in payment config
+
 ## 0.0.16 - 11/11/2023
 
 - Added flex payment summary back in after refactoring work
