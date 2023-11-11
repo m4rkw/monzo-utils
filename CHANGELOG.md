@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.10 - 11/11/2023
+
+- Added support for pending refunds in monzo-payments
+
 ## 0.0.9 - 11/11/2023
 
 - Fixed sync issues introduced accidentally in 0.0.7

@@ -73,6 +73,18 @@ payments:
 #
 # See below for examples
 
+# indicate when a refund is pending
+# this amount will be deducted from the total due in the salary period
+# immediately after its due_after date
+# WARNING: if the refund comes towards the end of your salary period you
+# could end up with insufficient funds for some outgoings
+# use with caution
+refunds_due:
+
+    - name: DVLA Overpayment # name of the refund due for your reference
+      desc: DVLA-AA01AAA     # string to match in the description field
+      due_after: 2023-11-15  # refund is due after this date
+      amount: 34.59          # refund amount
 
 - type: Card payment
 

@@ -24,7 +24,7 @@ cover the expenses.
  - Tracks salary payments to determine which regular payments are due within
    the current salary period
  - Indicates when a payment was last paid and when it's next due
- - Fairly customisable configuration in simple YAML, see [example](https://github.com/m4rkw/monzo-utils/blob/master/payments_config_example.yaml)
+ - Fairly customisable configuration in simple YAML, see [example](https://github.com/m4rkw/monzo-utils/blob/master/docs/payments_config_example.yaml)
  - For finance, Amazon Payments and Flex it tracks the number of payments made vs
    total number of payments and the total balance remaining
  - Can notify when the bills pot or account is in credit or shortfall
@@ -104,4 +104,4 @@ that you wish to use it with, these need to be in:
 ~/.monzo/<account name>.yaml
 ````
 
-See: [payments\_config\_example.yaml](https://github.com/m4rkw/monzo-utils/blob/master/payments_config_example.yaml) for configuration details.
+See: [payments\_config\_example.yaml](https://github.com/m4rkw/monzo-utils/blob/master/docs/payments_config_example.yaml) for configuration details.

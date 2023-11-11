@@ -302,6 +302,26 @@ class PaymentFundsCheck:
                     flex_payment['remaining']
                 )
 
+        if 'refunds_due' in self.config:
+            for refund in self.config['refunds_due']:
+                refund_status, due_next_month = self.get_refund_status(refund, next_salary_date)
+
+                if refund_status == 'DUE':
+                    due -= (refund['amount'] * 100)
+                    total -= (refund['amount'] * 100)
+
+                if due_next_month:
+                    next_month -= (refund['amount'] * 100)
+
+                self.display(
+                    refund_status,
+                    'Refund',
+                    refund['name'],
+                    0 - refund['amount'],
+                    None,
+                    refund['due_after']
+                )
+
         if 'pot' in self.config:
             pot = Pot().find_by_account_id_and_name(self.account.id, self.config['pot'])
         else:
@@ -717,8 +737,7 @@ class PaymentFundsCheck:
         date_from = self.add_month(payment.date) - datetime.timedelta(days=7)
         date_to = self.add_month(payment.date) + datetime.timedelta(days=7)
 
-        return Transaction().find_by_provider_id_and_declined_and_description_and_money_out(
-            self.provider['id'],
+        return Transaction().find_by_declined_and_description_and_money_out(
             0,
             payment_spec['desc'],
             amount,
@@ -759,6 +778,34 @@ class PaymentFundsCheck:
                 'params': [payment['start_date']]
             }]
         ))
+
+
+    def get_refund_status(self, refund, next_salary_date):
+        transaction = Transaction().find_by_declined_and_money_in_and_description(
+            0,
+            refund['amount'],
+            refund['desc'],
+            search=['description'],
+            orderby='created_at',
+            orderdir='asc',
+            limit=1,
+            where=[{
+                'clause': '`date` >= %s',
+                'params': [refund['due_after']]
+            }]
+        )
+
+        if transaction:
+            return 'PAID', False
+
+        if refund['due_after'] >= next_salary_date:
+            following_salary_date = self.get_next_salary_date(next_salary_date)
+
+            due_next_month = refund['due_after'] < following_salary_date
+
+            return 'SKIPPED', due_next_month
+
+        return 'DUE', False
 
 
 if len(sys.argv) <2:
