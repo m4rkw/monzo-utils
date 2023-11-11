@@ -90,29 +90,6 @@ class PaymentFundsCheck:
         if 'refunds_due' in self.config and self.config['refunds_due']:
 
             self.display_payment_list('Refund', self.config['refunds_due'])
-#            for refund_config in self.config['refunds_due']:
-#                payment = getattr(importlib.import_module("monzo_utils.model.refund"), 'Refund')(
-#                    self.config,
-#                    'Refund',
-#                    refund_config,
-#                    self.last_salary_date,
-#                    self.next_salary_date,
-#                    self.following_salary_date
-#                )
-#
-#            if payment.status in ['DUE','PAID']:
-#                total_this_month += payment.display_amount * 100
-#
-#            if payment.status == 'DUE':
-#                due += payment.display_amount * 100
-#
-#            if payment.due_next_month:
-#                next_month += payment.display_amount * 100
-#
-#                if 'exclude_yearly_from_bills' not in self.config or self.config['exclude_yearly_from_bills'] is False or 'yearly_month' not in payment_config:
-#                    next_month_bills_pot += payment.display_amount * 100
-#
-#            payment.display()
 
         if 'pot' in self.config:
             pot = Pot().find_by_account_id_and_name(self.account.id, self.config['pot'])
