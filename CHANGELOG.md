@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.11 - 11/11/2023
+
+- Use ORM query interface for monzo-search
+
 ## 0.0.10 - 11/11/2023
 
 - Added support for pending refunds in monzo-payments

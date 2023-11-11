@@ -155,10 +155,10 @@ class Monzo:
 
         if len(query_args) >0:
             query_string = (' '.join(query_args))
-            query = '%' + query_string + '%'
+            query_param = '%' + query_string + '%'
 
             clause = 'description like %s'
-            params = [query]
+            params = [query_param]
 
             if query_string.replace('.','').isdigit():
                 # integer value is queried as a range <n>.00 - <n>.99
