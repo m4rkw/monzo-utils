@@ -1,4 +1,5 @@
 import re
+import sys
 import json
 import importlib
 from monzo_utils.lib.db import DB
@@ -15,6 +16,8 @@ class BaseModel:
 
         if 'id' not in self.attrs:
             self.attrs['id'] = None
+
+        self.factory_query = False
 
 
     def __getattr__(self, name):
@@ -109,3 +112,83 @@ class BaseModel:
             raise Exception("Unable to delete record with null id")
 
         DB().query(f"delete from {self.table} where id = %s", [self.id])
+
+
+    def factory(self):
+        if self.factory_query is False:
+            DB().find(self.table)
+            self.factory_query = True
+
+
+    def select(self, select):
+        self.factory()
+
+        DB().select(select)
+
+        return self
+
+
+    def join(self, join_table):
+        if join_table not in self.RELATIONSHIPS:
+            raise Exception(f"no relationship defined between {self.table} and {join_table}")
+
+        self.factory()
+
+        DB().join(join_table, self.RELATIONSHIPS[join_table][0], self.RELATIONSHIPS[join_table][1])
+
+        return self
+
+
+    def leftJoin(self, join_table, where=None):
+        if join_table not in self.RELATIONSHIPS:
+            raise Exception(f"no relationship defined between {self.table} and {join_table}")
+
+        self.factory()
+
+        DB().leftJoin(join_table, self.RELATIONSHIPS[join_table][0], self.RELATIONSHIPS[join_table][1], where)
+
+        return self
+
+
+    def where(self, clause, params):
+        self.factory()
+
+        DB().where(clause, params)
+
+        return self
+
+
+    def andWhere(self, clause, params):
+        self.factory()
+
+        DB().andWhere(clause, params)
+
+        return self
+
+
+    def groupBy(self, group_by):
+        self.factory()
+
+        DB().groupBy(group_by)
+
+        return self
+
+
+    def orderBy(self, orderby, orderdir):
+        self.factory()
+
+        DB().orderBy(orderby, orderdir)
+
+        return self
+
+
+    def getall(self):
+        self.factory()
+
+        return DB().getall()        
+
+
+    def getone(self):
+        self.factory()
+
+        return DB().getone()

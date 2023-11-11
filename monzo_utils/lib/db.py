@@ -163,35 +163,43 @@ class DB(metaclass=Singleton):
 
 
     def find(self, table):
-        self.sel = '*'
         self.query_table = table
+        self.sel = []
         self.whereClauses = []
         self.whereParams = []
-        self.whereType = 'and'
-        self.orderBy = None
-        self.orderDir = None
+        self.andWhereClauses = []
+        self._orderBy = None
+        self._orderDir = None
         self._join = []
         self._leftJoin = []
+        self._groupBy = None
 
         return self
 
 
-    def select(self, select_str):
-        self.sel = select_str
+    def select(self, select):
+        self.sel.append(select)
 
         return self
 
 
-    def where(self, where, *whereParams):
+    def where(self, where, whereParams):
         self.whereClauses.append(where)
         self.whereParams += whereParams
 
         return self
 
 
-    def orderby(self, field, direction='asc'):
-        self.orderBy = field
-        self.orderDir = direction
+    def andWhere(self, where, whereParams):
+        self.andWhereClauses.append(where)
+        self.whereParams += whereParams
+
+        return self
+
+
+    def orderBy(self, field, direction='asc'):
+        self._orderBy = field
+        self._orderDir = direction
 
         return self
 
@@ -212,18 +220,13 @@ class DB(metaclass=Singleton):
         return self
 
 
-    def leftJoin(self, join_table, join_left_col, join_right_col=None):
-        if join_right_col:
-            self._leftJoin.append({
-                'table': join_table,
-                'join_left_col': join_left_col,
-                'join_right_col': join_right_col
-            })
-        else:
-            self._leftJoin.append({
-                'table': join_table,
-                'clause': join_left_col
-            })
+    def leftJoin(self, join_table, join_left_col, join_right_col, where=None):
+        self._leftJoin.append({
+            'table': join_table,
+            'join_left_col': join_left_col,
+            'join_right_col': join_right_col,
+            'where': where
+        })
 
         return self
 
@@ -234,8 +237,24 @@ class DB(metaclass=Singleton):
         return self.where(whereClause, whereParams)
 
 
+    def groupBy(self, groupBy):
+        self._groupBy = groupBy
+
+        return self
+
+
     def prepare(self):
-        sql = "select " + self.sel + " from `" + self.query_table + "`"
+        if self.sel == []:
+            select = '*'
+        else:
+            select = ''
+
+            for i in range(0, len(self.sel)):
+                if i >0:
+                    select += ','
+                select += f"{self.sel[i]}"
+
+        sql = "select " + select + " from `" + self.query_table + "`"
 
         for join in self._join:
             sql += " join `" + join['table'] + "` on "
@@ -253,19 +272,33 @@ class DB(metaclass=Singleton):
             else:
                 sql += join['join_left_col'] + " = " + join['join_right_col']
 
-        for i in range(0, len(self.whereClauses)):
-            if i >0:
-                sql += " " + self.whereType + " "
-            else:
-                sql += " where "
+        if len(self.whereClauses) >0:
+            sql += " where ("
 
-            sql += self.whereClauses[i]
+            for i in range(0, len(self.whereClauses)):
+                if i >0:
+                    sql += " or "
+                sql += self.whereClauses[i]
 
-        if self.orderBy:
-            sql += " order by `" + self.orderBy + "`"
+            sql += ")"
 
-        if self.orderDir:
-            sql += " " + self.orderDir
+            for i in range(0, len(self.andWhereClauses)):
+                sql += " and (" + self.andWhereClauses[i] + ") "
+
+        if self._groupBy:
+            sql += " group by " + self._groupBy
+
+        if self._orderBy:
+            sql += " order by "
+            order_by_fields = self._orderBy.split(',')
+
+            for i in range(0, len(order_by_fields)):
+                if i >0:
+                    sql += ","
+                sql += f" `{order_by_fields[i].strip()}`"
+
+        if self._orderDir:
+            sql += " " + self._orderDir
 
         return sql
 

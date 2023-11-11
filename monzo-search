@@ -12,6 +12,7 @@ import warnings
 import dateparser
 import calendar
 from monzo_utils.lib.db import DB
+from monzo_utils.model.transaction import Transaction
 
 # Ignore dateparser warnings regarding pytz
 warnings.filterwarnings(
@@ -141,19 +142,23 @@ class Monzo:
  
             query_args.append(args[i])
 
-        sql = "select transaction.*, account.name as account, pot.name as pot, transaction_metadata.value as mastercard_lifecycle_id from transaction join account on transaction.account_id = account.id left join transaction_metadata on transaction_metadata.transaction_id = transaction.id and transaction_metadata.`key` = %s left join pot on transaction.pot_id = pot.id where declined = %s and ((money_in >0 or money_out >0)"
-        params = [
-            'metadata_mastercard_lifecycle_id',
-            1 if show_declined else 0
-        ]
+        query = Transaction() \
+            .select('transaction.*') \
+            .select('transaction_metadata.value as mastercard_lifecycle_id') \
+            .select('account.name as account') \
+            .select('pot.name as pot') \
+            .join('account') \
+            .leftJoin('transaction_metadata', where=['key', 'metadata_mastercard_lifecycle_id']) \
+            .leftJoin('pot') \
+            .where('declined = %s', [1 if show_declined else 0]) \
+            .andWhere('money_in > %s or money_out > %s', [0,0])
 
         if len(query_args) >0:
             query_string = (' '.join(query_args))
-
             query = '%' + query_string + '%'
 
-            sql += " and description like %s"
-            params.append(query)
+            clause = 'description like %s'
+            params = [query]
 
             if query_string.replace('.','').isdigit():
                 # integer value is queried as a range <n>.00 - <n>.99
@@ -161,46 +166,42 @@ class Monzo:
                     money_from = '%s.00' % (query_string)
                     money_to = '%s.99' % (query_string)
 
-                    sql += " or (money_in >0 and money_in >= %s and money_in <= %s) or (money_out >0 and money_out >= %s and money_out <= %s)"
+                    clause += " or (money_in >0 and money_in >= %s and money_in <= %s) or (money_out >0 and money_out >= %s and money_out <= %s)"
                     params += [money_from, money_to, money_from, money_to]
+
                 # query for specific value, eg 10.99
                 else:
                     while len(query_string.split('.')[1]) <2:
                         query_string += '0'
 
-                    sql += "or (money_in >0 and money_in = %s) or (money_out >0 and money_out = %s)"
-
+                    clause += "or (money_in >0 and money_in = %s) or (money_out >0 and money_out = %s)"
                     params += [query_string, query_string]
 
-        sql += ")"
+            query.andWhere(clause, params)
 
         if include_pots is False:
-            sql += " and description not like %s"
-            params.append('pot_0000%')
+            query.andWhere('description not like %s', ['pot_0000%'])
 
         if on_date:
-            sql += " and transaction.date = %s"
-            params.append(on_date)
+            query.andWhere('transaction.`date` = %s', [on_date])
         else:
             if date_from:
-                sql += " and transaction.date >= %s"
-                params.append(date_from)
+                query.andWhere('transaction.`date` >= %s', [date_from])
             if date_to:
-                sql += " and transaction.date <= %s"
-                params.append(date_to)
+                query.andWhere('transaction.`date` <= %s', [date_to])
 
-        sql += " group by id order by date, created_at"
+        transactions = query.groupBy('transaction.id') \
+            .orderBy('date, created_at', 'asc') \
+            .getall()
 
-        rows = self.db.query(sql, params)
-
-        rows = self.process_pending_refunds(rows)
+        transactions = self.process_pending_refunds(transactions)
 
         display_columns = ['account','pot','date','money_in','money_out','description']
 
         if show_declined:
             display_columns.append('decline_reason')
 
-        self.display(rows, display_columns)
+        self.display(transactions, display_columns)
 
 
     def help(self):
@@ -244,6 +245,9 @@ class Monzo:
         today = datetime.datetime.now()
 
         for i in range(0, len(data)):
+            if type(data[i]) != dict:
+                data[i] = data[i].__dict__
+
             for key in columns:
                 if key in FIELD_MAP:
                     if data[i][FIELD_MAP[key]]:
