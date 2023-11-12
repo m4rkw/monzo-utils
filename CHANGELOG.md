@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.28 - 12/11/2023
+
+- Added support for SQLite3
+
 ## 0.0.27 - 12/11/2023
 
 - Bugfixes
