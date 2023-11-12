@@ -2,14 +2,14 @@
 
 import sys
 from urllib.error import URLError
-from monzo_utils.lib.monzo_api import Monzo
+from monzo_utils.lib.monzo_sync import MonzoSync
 
 if 'setup' in sys.argv:
-    m = Monzo(no_init=True)
+    m = MonzoSync(no_init=True)
     m.setup()
     sys.exit()
 
-m = Monzo()
+m = MonzoSync()
 
 if 'scan-accounts' in sys.argv:
     m.scan_accounts()

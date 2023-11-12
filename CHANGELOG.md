@@ -3,6 +3,7 @@
 ## 0.0.22 - 12/11/2023
 
 - Refactored monzo-payments
+- Refactored monzo-sync, split API stuff out into a separate file
 
 ## 0.0.21 - 12/11/2023
 
