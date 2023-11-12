@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.19 - 12/11/2023
+
+- Added logging
+
 ## 0.0.18 - 11/11/2023
 
 - Bugfixes

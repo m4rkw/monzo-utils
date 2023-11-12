@@ -15,6 +15,7 @@ import monzo.endpoints.pot
 import monzo.endpoints.transaction
 from monzo.exceptions import MonzoAuthenticationError, MonzoServerError, MonzoHTTPError, MonzoPermissionsError
 from monzo_utils.lib.db import DB
+from monzo_utils.lib.log import Log
 from monzo_utils.model.provider import Provider
 from monzo_utils.model.account import Account
 from monzo_utils.model.merchant import Merchant
@@ -255,13 +256,14 @@ class Monzo:
     def test_db_access(self, db_config):
         try:
             db = DB(db_config)
-        except:
-            print("failed")
+        except Exception as e:
+            Log().error(f"failed to initialise the database: {str(e)}")
+            sys.exit(1)
 
         try:
             resp = db.query("show tables")
         except Exception as e:
-            sys.stderr.write(f"\nFailed to connect to the database: {str(e)}\n\n")
+            Log().error(f"Failed to connect to the database: {str(e)}")
             sys.exit(1)
 
 
@@ -275,7 +277,7 @@ class Monzo:
         if not sys.stdout.isatty():
             if 'email' in self.config:
                 os.system("echo '%s'| mail -s 'Monzo auth required' '%s'" % (client.authentication_url, self.config['email']))
-            sys.stderr.write('Authentication required, unable to sync.\n')
+            Log().error('Authentication required, unable to sync.')
             sys.exit(1)
 
         print("\nAuthentication required, check email or visit:\n")
@@ -294,10 +296,10 @@ class Monzo:
         try:
             client.authenticate(authorization_token=data['token'], state_token=data['state'])
         except MonzoAuthenticationError:
-            print('State code does not match')
+            Log().error('State code does not match')
             exit(1)
         except MonzoServerError:
-            print('Monzo Server Error')
+            Log().error('Monzo Server Error')
             exit(1)
 
         with open(self.token_file,'w') as f:
@@ -313,7 +315,7 @@ class Monzo:
 
         self.client = self.get_client()
 
-        print("\n waiting for authorisation...")
+        print("\nwaiting for authorisation...")
 
         while 1:
             time.sleep(1)
@@ -337,10 +339,13 @@ class Monzo:
 
 
     def account(self, account_id):
+        Log().info(f"getting account by id: {account_id}")
         return monzo.endpoints.account.Account.fetch(self.client, account_id=account_id)
 
 
     def accounts(self, first=True):
+        Log().info(f"retrieving accounts from API")
+
         try:
             accounts = monzo.endpoints.account.Account.fetch(self.client)
         except MonzoHTTPError:
@@ -352,7 +357,7 @@ class Monzo:
 
                 return self.accounts(False)
 
-            print("auth failed")
+            Log().error('auth failed')
             sys.exit(1)
         except MonzoAuthenticationError:
             if first:
@@ -360,13 +365,13 @@ class Monzo:
 
                 return self.accounts(False)
 
-            print("auth failed")
+            Log().error("auth failed")
             sys.exit(1)
         except MonzoServerError:
-            print("server error")
+            Log().error("server error")
             sys.exit(1)
         except TimeoutError:
-            print("timeout")
+            Log().error("timeout")
             sys.exit(1)
 
         self.update_tokens()
@@ -406,7 +411,7 @@ class Monzo:
                 if i != 2:
                     time.sleep(5)
 
-        print("failed to retrieve transactions: %s" % (error))
+        Log().error("failed to retrieve transactions: %s" % (error))
         sys.exit(1)
 
 
@@ -423,7 +428,7 @@ class Monzo:
 
                 return self.pots(account_id, False)
 
-            print("auth failed")
+            Log().error("auth failed")
             sys.exit(1)
         except MonzoAuthenticationError:
             if first:
@@ -432,10 +437,10 @@ class Monzo:
 
                 return self.pots(account_id, False)
 
-            print("auth failed")
+            Log().error("auth failed")
             sys.exit(1)
         except TimeoutError:
-            print("timeout")
+            Log().error("timeout")
             sys.exit(1)
 
         return pots
@@ -456,6 +461,7 @@ class Monzo:
         merchant = Merchant().find_by_merchant_id(merchant_id)
 
         if not merchant:
+            Log().info(f"creating merchant: {mo_merchant['name']} ({mo_merchant['merchant_id']})")
             merchant = Merchant()
 
         merchant.update(mo_merchant)
@@ -521,6 +527,8 @@ class Monzo:
         )
 
         if not transaction:
+            Log().info(f"creating transaction: {account.name} {date} -{money_in} +{money_out} {description}")
+
             transaction = Transaction()
 
         if pot_id is None and mo_transaction.metadata and 'pot_account_id' in mo_transaction.metadata and mo_transaction.metadata['pot_account_id'] not in pot_account_ids:
@@ -600,6 +608,7 @@ class Monzo:
         counterparty = Counterparty().find_by_user_id(mo_counterparty['user_id'])
 
         if not counterparty:
+            Log().info(f"creating counterparty: {mo_counterparty['name']} ({mo_counterparty['user_id']})")
             counterparty = Counterparty()
 
         counterparty.update(mo_counterparty)
@@ -613,6 +622,8 @@ class Monzo:
         provider = Provider().find_by_name(PROVIDER)
 
         if not provider:
+            Log().info(f"creating provider: {PROVIDER}")
+
             provider = Provider()
             provider.name = PROVIDER
             provider.save()
@@ -631,12 +642,9 @@ class Monzo:
 
             account = self.get_or_create_account(mo_account, self.config['accounts'][mo_account.account_id])
 
-            try:
-                mo_transactions = self.transactions(account.account_id)
-            except MonzoPermissionsError:
-                continue
-            except MonzoServerError:
-                continue
+            Log().info(f"syncing account: {account.name}")
+
+            Log().info(f"getting pots for account: {account.name}")
 
             mo_pots = self.pots(account_id=account.account_id)
 
@@ -646,6 +654,7 @@ class Monzo:
                 pot = Pot().find_by_account_id_and_pot_id(account.id, mo_pot.pot_id)
 
                 if not pot:
+                    Log().info(f"creating pot: {mo_pot.name}")
                     pot = Pot()
 
                 pot.account_id = account.id
@@ -656,9 +665,21 @@ class Monzo:
 
                 pot.save()
 
-                pot_lookup[pot.pot_id] = pot.id
+                pot_lookup[pot.pot_id] = pot
+ 
+            try:
+                Log().info(f'syncing transactions for account: {account.name}')
+
+                mo_transactions = self.transactions(account.account_id)
+            except MonzoPermissionsError as e:
+                Log().error(f"permissions error: {str(e)}")
+                continue
+            except MonzoServerError as e:
+                Log().error(f"server error: {str(e)}")
+                continue
 
             seen = {}
+            total = 0
 
             pot_account_ids = {}
 
@@ -666,16 +687,25 @@ class Monzo:
                 transaction = self.add_transaction(account, mo_transaction, pot_account_ids)
 
                 seen[transaction.id] = 1
+                total += 1
 
             seen = {}
 
             for pot_account_id in pot_account_ids:
+                if pot_lookup[pot_account_ids[pot_account_id]].deleted:
+                    continue
+
+                Log().info(f"syncing transactions for pot: {pot_lookup[pot_account_ids[pot_account_id]].name}")
+
                 mo_pot_transactions = self.transactions(pot_account_id)
 
                 for mo_pot_transaction in mo_pot_transactions:
-                    transaction = self.add_transaction(account, mo_pot_transaction, pot_account_ids, pot_lookup[pot_account_ids[pot_account_id]])
+                    transaction = self.add_transaction(account, mo_pot_transaction, pot_account_ids, pot_lookup[pot_account_ids[pot_account_id]].id)
 
                     seen[transaction.id] = 1
+                    total += 1
+
+            Log().info(f"account {account.name} synced {total} transactions")
 
         if 'touch_file' in self.config:
             Path(self.config['touch_file']).touch()
