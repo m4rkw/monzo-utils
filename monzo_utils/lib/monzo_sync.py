@@ -9,6 +9,7 @@ import re
 import datetime
 import pwd
 from pathlib import Path
+from monzo_utils.lib.config import Config
 from monzo_utils.lib.db import DB
 from monzo_utils.lib.log import Log
 from monzo_utils.lib.monzo_api import MonzoAPI
@@ -38,19 +39,11 @@ class MonzoSync:
         if no_init:
             return
 
-        if not os.path.exists(self.config_file):
-            sys.stderr.write(f"config file not found: {self.config_file}, run setup first.\n")
-            sys.exit(1)
+        Config()
 
-        try:
-            self.config = yaml.safe_load(open(self.config_file).read())
-        except Exception as e:
-            sys.stderr.write(f"could not read config file: {self.config_file}, {str(e)}\n")
-            sys.exit(1)
+        self.api = MonzoAPI()
 
-        self.api = MonzoAPI(self.config)
-
-        self.db = DB(self.config['db'])
+        self.db = DB()
 
         self.provider = self.get_provider()
 
@@ -109,16 +102,16 @@ class MonzoSync:
 
         email = self.prompt_input('Email', None, True)
 
-        self.config = {
+        Config({
             'oauth_token_file': token_path,
             'db': db,
             'client_id': client_id,
             'client_secret': client_secret,
             'redirect_url': redirect_url,
             'email': email
-        }
+        })
 
-        self.save_config()
+        Config().save()
 
         self.__init__()
 
@@ -132,11 +125,6 @@ class MonzoSync:
         sys.stdout.write("\nSetup complete!\n\n")
 
 
-    def save_config(self):
-        with open(self.config_file, 'w') as f:
-            f.write(yaml.dump(self.config))
-
-
     def scan_accounts(self):
         sys.stdout.write("\nFinding accounts...\n\n")
 
@@ -148,7 +136,7 @@ class MonzoSync:
             if account.balance is None:
                 continue
 
-            if 'accounts' in self.config and account.account_id in self.config['accounts']:
+            if Config().accounts and account.account_id in Config().accounts:
                 continue
 
             if 'Joint account between' in account.description:
@@ -170,18 +158,18 @@ class MonzoSync:
 
             account_name = self.prompt_input('name for this account')
 
-            if 'accounts' not in self.config:
-                self.config['accounts'] = {}
+            if Config().accounts is None:
+                Config().accounts = {}
 
-            self.config['accounts'][account.account_id] = {
+            Config().accounts[account.account_id] = {
                 'name': account_name
             }
 
             if account_type == 'Flex':
-                self.config['accounts'][account.account_id]['credit_limit'] = self.prompt_input('credit limit', None, False, 'int')
+                Config().accounts[account.account_id]['credit_limit'] = self.prompt_input('credit limit', None, False, 'int')
             else:
-                self.config['accounts'][account.account_id]['sortcode'] = self.prompt_input('sort code')
-                self.config['accounts'][account.account_id]['account_no'] = self.prompt_input('account no')
+                Config().accounts[account.account_id]['sortcode'] = self.prompt_input('sort code')
+                Config().accounts[account.account_id]['account_no'] = self.prompt_input('account no')
 
             sys.stdout.write("\n")
 
@@ -446,7 +434,7 @@ class MonzoSync:
             if 'monzoflexbackingloan' in mo_account.description:
                 continue
 
-            account = self.get_or_create_account(mo_account, self.config['accounts'][mo_account.account_id])
+            account = self.get_or_create_account(mo_account, Config().accounts[mo_account.account_id])
 
             Log().info(f"syncing account: {account.name}")
 
@@ -513,8 +501,8 @@ class MonzoSync:
 
             Log().info(f"account {account.name} synced {total} transactions")
 
-        if 'touch_file' in self.config:
-            Path(self.config['touch_file']).touch()
+        if Config().touch_file:
+            Path(Config().touch_file).touch()
 
 
     def get_or_create_account(self, mo_account, account_config):

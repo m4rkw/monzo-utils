@@ -11,6 +11,7 @@ import pwd
 import warnings
 import dateparser
 import calendar
+from monzo_utils.lib.config import Config
 from monzo_utils.lib.db import DB
 from monzo_utils.model.transaction import Transaction
 
@@ -27,17 +28,7 @@ FIELD_MAP = {
 class Monzo:
 
     def __init__(self, args):
-        homedir = pwd.getpwuid(os.getuid()).pw_dir
-        monzo_dir = f"{homedir}/.monzo"
-
-        if not os.path.exists(monzo_dir):
-            os.mkdir(monzo_dir, 0o755)
-
-        config_file = f"{monzo_dir}/config.yaml"
-
-        self.config = yaml.safe_load(open(config_file).read())
-
-        self.db = DB(self.config['db'])
+        self.db = DB()
 
         include_pots = False
         show_declined = False

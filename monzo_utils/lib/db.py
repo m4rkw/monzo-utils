@@ -5,8 +5,15 @@ import os
 import json
 import datetime
 from monzo_utils.lib.singleton import Singleton
+from monzo_utils.lib.config import Config
 
 class DB(metaclass=Singleton):
+
+    def __init__(self):
+        self.config = Config()
+        self.columns = {}
+        self.connect()
+
 
     def __getattr__(self, name):
         match = re.match('^find_([\w]+)_by_(.*?)$', name)
@@ -82,19 +89,13 @@ class DB(metaclass=Singleton):
             sys.exit(1)
 
 
-    def __init__(self, config):
-        self.config = config
-        self.columns = {}
-        self.connect()
-
-
     def connect(self):
         self.db = MySQLdb.connect(
-            host=self.config['host'],
-            port=self.config['port'],
-            user=self.config['user'],
-            passwd=self.config['password'],
-            db=self.config['database'],
+            host=self.config.db['host'],
+            port=self.config.db['port'],
+            user=self.config.db['user'],
+            passwd=self.config.db['password'],
+            db=self.config.db['database'],
             charset='utf8',
             use_unicode=True,
             ssl={}
@@ -344,7 +345,7 @@ class DB(metaclass=Singleton):
     def get_columns(self, table):
         columns = []
 
-        for row in self.query("select column_name from information_schema.columns where table_schema = %s and table_name = %s", [self.config['database'], table]):
+        for row in self.query("select column_name from information_schema.columns where table_schema = %s and table_name = %s", [self.config.db['database'], table]):
             if row['column_name'] != 'id':
                 columns.append(row['column_name'])
 

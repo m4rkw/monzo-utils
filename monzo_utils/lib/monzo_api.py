@@ -15,18 +15,13 @@ import monzo.endpoints.pot
 import monzo.endpoints.transaction
 from monzo.exceptions import MonzoAuthenticationError, MonzoServerError, MonzoHTTPError, MonzoPermissionsError
 from monzo_utils.lib.log import Log
+from monzo_utils.lib.config import Config
 
 class MonzoAPI:
 
-    def __init__(self, config):
-        self.config = config
-
+    def __init__(self):
         homedir = pwd.getpwuid(os.getuid()).pw_dir
         monzo_dir = f"{homedir}/.monzo"
-
-        if not os.path.exists(monzo_dir):
-            os.mkdir(monzo_dir, 0o755)
-
         self.token_file = f"{monzo_dir}/tokens"
 
         self.load_tokens()
@@ -47,29 +42,29 @@ class MonzoAPI:
  
     def authenticate(self):
         client = Authentication(
-            client_id=self.config['client_id'],
-            client_secret=self.config['client_secret'],
-            redirect_url=self.config['redirect_url']
+            client_id=Config().client_id,
+            client_secret=Config().client_secret,
+            redirect_url=Config().redirect_url
         )
 
         if not sys.stdout.isatty():
-            if 'email' in self.config:
-                os.system("echo '%s'| mail -s 'Monzo auth required' '%s'" % (client.authentication_url, self.config['email']))
+            if Config().email:
+                os.system("echo '%s'| mail -s 'Monzo auth required' '%s'" % (client.authentication_url, Config().email))
             Log().error('Authentication required, unable to sync.')
             sys.exit(1)
 
         print("\nAuthentication required, check email or visit:\n")
         print(client.authentication_url)
 
-        if os.path.exists(self.config['oauth_token_file']):
-            os.remove(self.config['oauth_token_file'])
+        if os.path.exists(Config().oauth_token_file):
+            os.remove(Config().oauth_token_file)
 
-        while not os.path.exists(self.config['oauth_token_file']):
+        while not os.path.exists(Config().oauth_token_file):
             time.sleep(1)
 
-        data = json.loads(open(self.config['oauth_token_file']).read().rstrip())
+        data = json.loads(open(Config().oauth_token_file).read().rstrip())
 
-        os.remove(self.config['oauth_token_file'])
+        os.remove(Config().oauth_token_file)
 
         try:
             client.authenticate(authorization_token=data['token'], state_token=data['state'])
@@ -107,9 +102,9 @@ class MonzoAPI:
 
     def get_client(self):
         return Authentication(
-            client_id=self.config['client_id'],
-            client_secret=self.config['client_secret'],
-            redirect_url=self.config['redirect_url'],
+            client_id=Config().client_id,
+            client_secret=Config().client_secret,
+            redirect_url=Config().redirect_url,
             access_token=self.access_token,
             access_token_expiry=self.access_token_expiry,
             refresh_token=self.refresh_token

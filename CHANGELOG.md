@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.23 - 12/11/2023
+
+- Refactoring
+
 ## 0.0.22 - 12/11/2023
 
 - Refactored monzo-payments

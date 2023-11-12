@@ -1,5 +1,6 @@
 import re
 import datetime
+from monzo_utils.lib.config import Config
 from monzo_utils.model.transaction import Transaction
 from monzo_utils.lib.transactions import Transactions
 
@@ -101,11 +102,11 @@ class Payment:
 
     @property
     def display_amount(self):
-        if 'last_amount_overrides' in self.config and \
-            self.payment_config['name'] in self.config['last_amount_overrides'] and \
-            self.last_salary_amount in self.config['last_amount_overrides'][self.payment_config['name']]:
+        if Config().last_amount_overrides and \
+            self.payment_config['name'] in Config().last_amount_overrides and \
+            self.last_salary_amount in Config().last_amount_overrides[self.payment_config['name']]:
 
-            amount = self.config['last_amount_overrides'][self.payment_config['name']][self.last_salary_amount]
+            amount = Config().last_amount_overrides[self.payment_config['name']][self.last_salary_amount]
         elif self.last_payment:
             amount = float(getattr(self.last_payment, self.transaction_type))
         else:
@@ -122,11 +123,11 @@ class Payment:
         if 'last_date' in self.cache:
             return self.cache['last_date']
 
-        if 'last_date_overrides' in self.config and \
-            self.payment_config['name'] in self.config['last_date_overrides'] and \
-            self.last_salary_date in self.config['last_date_overrides'][self.payment_config['name']]:
+        if Config().last_date_overrides and \
+            self.payment_config['name'] in Config().last_date_overrides and \
+            self.last_salary_date in Config().last_date_overrides[self.payment_config['name']]:
 
-            self.cache['last_date'] = self.config['last_date_overrides'][self.payment_config['name']][self.last_salary_date]
+            self.cache['last_date'] = Config().last_date_overrides[self.payment_config['name']][self.last_salary_date]
 
             return self.cache['last_date']
 
