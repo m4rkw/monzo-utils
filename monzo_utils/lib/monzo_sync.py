@@ -78,6 +78,7 @@ class MonzoSync:
         mysql_password = self.prompt_input('MySQL password', 'monzo')
 
         db = {
+            'driver': 'mysql',
             'host': mysql_host,
             'port': mysql_port,
             'user': mysql_user,
