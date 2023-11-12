@@ -3,7 +3,7 @@
 1. A database is required, this can currently be either MySQL or
 SQLite3. If using MySQL you'll need to install that first.
 
-2. If you using MySQL create the database and import the schema:
+2. If using MySQL create the database and import the schema:
 
 ````
 $ mysql
