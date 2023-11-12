@@ -1,11 +1,7 @@
 import MySQLdb
-import re
 import sys
 import os
 import json
-import datetime
-from monzo_utils.lib.singleton import Singleton
-from monzo_utils.lib.config import Config
 
 class mysql:
 
