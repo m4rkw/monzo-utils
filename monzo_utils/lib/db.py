@@ -110,6 +110,10 @@ class DB(metaclass=Singleton):
 
 
     def query(self, sql, params=[]):
+        if 'DEBUG' in os.environ and os.environ['DEBUG'] == '1':
+            print("SQL: %s" % (sql))
+            print("PARAMS: %s" % (json.dumps(self.json_params(params),indent=4)))
+
         return self.driver.query(sql, params)
 
 

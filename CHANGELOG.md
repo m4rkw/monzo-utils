@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.26 - 12/11/2023
+
+- Bugfixes
+
 ## 0.0.25 - 12/11/2023
 
 - Decoupled the MySQL code from the DB layer

@@ -1,7 +1,6 @@
 import MySQLdb
 import sys
 import os
-import json
 
 class mysql:
 
@@ -26,10 +25,6 @@ class mysql:
 
 
     def query(self, sql, params=[]):
-        if 'DEBUG' in os.environ and os.environ['DEBUG'] == '1':
-            print("SQL: %s" % (sql))
-            print("PARAMS: %s" % (json.dumps(self.json_params(params),indent=4)))
-
         self.cur.execute((sql), params)
 
         if sql[0:6].lower() == "select":
@@ -42,6 +37,20 @@ class mysql:
             return self.cur.lastrowid
 
         return None
+
+
+    def json_params(self, params):
+        json_params = []
+
+        for param in params:
+            if type(param) == datetime.date:
+                json_params.append(param.strftime('%Y-%M-%d'))
+            elif type(param) == datetime.datetime:
+                json_params.append(param.strftime('%Y-%M-%d %H:%M:%S'))
+            else:
+                json_params.append(param)
+
+        return json_params
 
 
     def build_row(self, data):
