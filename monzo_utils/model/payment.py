@@ -102,7 +102,7 @@ class Payment:
 
     @property
     def display_amount(self):
-        if Config().last_amount_overrides and \
+        if 'last_amount_overrides' in Config().keys and \
             self.payment_config['name'] in Config().last_amount_overrides and \
             self.last_salary_amount in Config().last_amount_overrides[self.payment_config['name']]:
 
@@ -123,7 +123,7 @@ class Payment:
         if 'last_date' in self.cache:
             return self.cache['last_date']
 
-        if Config().last_date_overrides and \
+        if 'last_date_overrides' in Config().keys and \
             self.payment_config['name'] in Config().last_date_overrides and \
             self.last_salary_date in Config().last_date_overrides[self.payment_config['name']]:
 

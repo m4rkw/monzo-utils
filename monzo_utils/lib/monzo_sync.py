@@ -136,7 +136,7 @@ class MonzoSync:
             if account.balance is None:
                 continue
 
-            if Config().accounts and account.account_id in Config().accounts:
+            if 'accounts' in Config().keys and account.account_id in Config().accounts:
                 continue
 
             if 'Joint account between' in account.description:
@@ -158,8 +158,8 @@ class MonzoSync:
 
             account_name = self.prompt_input('name for this account')
 
-            if Config().accounts is None:
-                Config().accounts = {}
+            if 'accounts' not in Config().keys:
+                Config().set('accounts', {})
 
             Config().accounts[account.account_id] = {
                 'name': account_name
@@ -173,7 +173,7 @@ class MonzoSync:
 
             sys.stdout.write("\n")
 
-            self.save_config()
+            Config().save()
 
 
     def prompt_continue(self, prompt='Continue? [y/N] ', boolean=False):
@@ -501,7 +501,7 @@ class MonzoSync:
 
             Log().info(f"account {account.name} synced {total} transactions")
 
-        if Config().touch_file:
+        if 'touch_file' in Config().keys:
             Path(Config().touch_file).touch()
 
 

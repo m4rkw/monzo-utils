@@ -9,7 +9,7 @@ class Finance(Payment):
         if 'display_amount' in self.cache:
             return self.cache['display_amount']
 
-        if Config().last_amount_overrides and \
+        if 'last_amount_overrides' in Config().keys and \
             self.payment_config['name'] in Config().last_amount_overrides and \
             self.last_salary_amount in Config().last_amount_overrides[self.payment_config['name']]:
 

@@ -48,7 +48,7 @@ class MonzoAPI:
         )
 
         if not sys.stdout.isatty():
-            if Config().email:
+            if 'email' in Config().keys:
                 os.system("echo '%s'| mail -s 'Monzo auth required' '%s'" % (client.authentication_url, Config().email))
             Log().error('Authentication required, unable to sync.')
             sys.exit(1)

@@ -9,8 +9,11 @@ from monzo_utils.lib.config import Config
 
 class DB(metaclass=Singleton):
 
-    def __init__(self):
-        self.config = Config()
+    def __init__(self, db_config=None):
+        if db_config:
+            self.config = db_config
+        else:
+            self.config = Config().db
         self.columns = {}
         self.connect()
 
@@ -91,11 +94,11 @@ class DB(metaclass=Singleton):
 
     def connect(self):
         self.db = MySQLdb.connect(
-            host=self.config.db['host'],
-            port=self.config.db['port'],
-            user=self.config.db['user'],
-            passwd=self.config.db['password'],
-            db=self.config.db['database'],
+            host=self.config['host'],
+            port=self.config['port'],
+            user=self.config['user'],
+            passwd=self.config['password'],
+            db=self.config['database'],
             charset='utf8',
             use_unicode=True,
             ssl={}
@@ -345,7 +348,7 @@ class DB(metaclass=Singleton):
     def get_columns(self, table):
         columns = []
 
-        for row in self.query("select column_name from information_schema.columns where table_schema = %s and table_name = %s", [self.config.db['database'], table]):
+        for row in self.query("select column_name from information_schema.columns where table_schema = %s and table_name = %s", [self.config['database'], table]):
             if row['column_name'] != 'id':
                 columns.append(row['column_name'])
 
