@@ -144,6 +144,10 @@ class Monzo:
             .where('declined = %s', [1 if show_declined else 0]) \
             .andWhere('money_in > %s or money_out > %s', [0,0])
 
+        if 'exclude_accounts' in Config().keys:
+            for exclude_account in Config().exclude_accounts:
+                query.andWhere('account.name != %s', [exclude_account])
+
         if len(query_args) >0:
             query_string = (' '.join(query_args))
             query_param = '%' + query_string + '%'

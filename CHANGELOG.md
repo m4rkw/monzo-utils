@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.24 - 12/11/2023
+
+- Add support for excluding accounts from search by config
+
 ## 0.0.23 - 12/11/2023
 
 - Refactoring
