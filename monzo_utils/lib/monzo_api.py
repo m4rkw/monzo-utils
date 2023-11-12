@@ -526,6 +526,8 @@ class Monzo:
             where=where
         )
 
+        date = mo_transaction.created.strftime('%Y-%m-%d')
+
         if not transaction:
             Log().info(f"creating transaction: {account.name} {date} -{money_in} +{money_out} {description}")
 
@@ -542,7 +544,7 @@ class Monzo:
         transaction.update({
             'account_id': account.id,
             'transaction_id': mo_transaction.transaction_id,
-            'date': mo_transaction.created.strftime('%Y-%m-%d'),
+            'date': date,
             'type': _type,
             'description': description,
             'ref': mo_transaction.description,

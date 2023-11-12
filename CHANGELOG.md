@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.21 - 12/11/2023
+
+- Bugfix in sync code
+
 ## 0.0.20 - 12/11/2023
 
 - Refactoring
