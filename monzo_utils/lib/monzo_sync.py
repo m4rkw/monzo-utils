@@ -129,7 +129,7 @@ class MonzoSync:
 
         self.sync()
 
-        sys.stdout.write("Setup complete!\n\n")
+        sys.stdout.write("\nSetup complete!\n\n")
 
 
     def save_config(self):
