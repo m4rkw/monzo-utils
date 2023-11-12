@@ -28,13 +28,13 @@ class MonzoSync:
 
     def __init__(self, no_init=False):
         homedir = pwd.getpwuid(os.getuid()).pw_dir
-        monzo_dir = f"{homedir}/.monzo"
+        self.monzo_dir = f"{homedir}/.monzo"
 
-        if not os.path.exists(monzo_dir):
-            os.mkdir(monzo_dir, 0o755)
+        if not os.path.exists(self.monzo_dir):
+            os.mkdir(self.monzo_dir, 0o755)
 
-        self.config_file = f"{monzo_dir}/config.yaml"
-        self.token_file = f"{monzo_dir}/tokens"
+        self.config_file = f"{self.monzo_dir}/config.yaml"
+        self.token_file = f"{self.monzo_dir}/tokens"
 
         if no_init:
             return
@@ -55,7 +55,7 @@ class MonzoSync:
         print("Requirements:\n")
         print("1) You must have created an OAuth client here: https://developers.monzo.com/apps/new")
         print("   Note: confidentiality must be set to Confidential\n")
-        print("2) The MySQL database must be ready (see README.md)\n")
+        print("2) The database (MySQL/MariaDB or SQLite3) must be created and ready (see README.md)\n")
         print("3) The machine we are running on must be reachable on a known port from the internet.")
         print("   The webserver must be configured with the CGI script to capture the oauth tokens.")
         print("   This is only required during setup for the initial oauth authentication flow.")
@@ -71,20 +71,36 @@ class MonzoSync:
 
         sys.stdout.write("\n")
 
-        mysql_host = self.prompt_input('MySQL host', '127.0.0.1')
-        mysql_port = self.prompt_input('MySQL port', '3306', False, 'int')
-        mysql_db = self.prompt_input('MySQL database', 'monzo')
-        mysql_user = self.prompt_input('MySQL username', 'monzo')
-        mysql_password = self.prompt_input('MySQL password', 'monzo')
+        sys.stdout.write("Which database do you want to use?\n\n")
+        sys.stdout.write("1. MySQL/MariaDB (recommended)\n")
+        sys.stdout.write("2. SQLite3\n\n")
 
-        db = {
-            'driver': 'mysql',
-            'host': mysql_host,
-            'port': mysql_port,
-            'user': mysql_user,
-            'password': mysql_password,
-            'database': mysql_db
-        }
+        while 1:
+            db_backend = self.prompt_input('DB choice')
+
+            if db_backend in ['1','2']:
+                break
+
+        if db_backend == '1':
+            mysql_host = self.prompt_input('MySQL host', '127.0.0.1')
+            mysql_port = self.prompt_input('MySQL port', '3306', False, 'int')
+            mysql_db = self.prompt_input('MySQL database', 'monzo')
+            mysql_user = self.prompt_input('MySQL username', 'monzo')
+            mysql_password = self.prompt_input('MySQL password', 'monzo')
+
+            db = {
+                'driver': 'mysql',
+                'host': mysql_host,
+                'port': mysql_port,
+                'user': mysql_user,
+                'password': mysql_password,
+                'database': mysql_db
+            }
+        else:
+            db = {
+                'driver': 'sqlite',
+                'path': f"{self.monzo_dir}/data.db"
+            }
 
         self.test_db_access(db)
 
@@ -233,7 +249,11 @@ class MonzoSync:
             sys.exit(1)
 
         try:
-            resp = db.query("show tables")
+            if db_config['driver'] == 'mysql':
+                resp = db.query("show tables")
+            else:
+                resp = db.query("pragma table_info(`provider`)")
+
         except Exception as e:
             Log().error(f"Failed to connect to the database: {str(e)}")
             sys.exit(1)
