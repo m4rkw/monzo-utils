@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.22 - 12/11/2023
+
+- Refactored monzo-payments
+
 ## 0.0.21 - 12/11/2023
 
 - Bugfix in sync code

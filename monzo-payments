@@ -26,38 +26,8 @@ class PaymentFundsCheck:
     def __init__(self, account_name):
         self.account_name = account_name
 
-        homedir = pwd.getpwuid(os.getuid()).pw_dir
-        monzo_dir = f"{homedir}/.monzo"
-
-        if not os.path.exists(monzo_dir):
-            os.mkdir(monzo_dir, 0o755)
-
-        config_file = f"{monzo_dir}/config.yaml"
-
-        self.monzo_config = yaml.safe_load(open(config_file).read())
-
-        account_config_file = f"{monzo_dir}/{account_name}.yaml"
-
-        if not os.path.exists(account_config_file):
-            sys.stderr.write(f"Cannot find account config file: {account_config_file}\n")
-            sys.exit(1)
-
-        try:
-            self.config = yaml.safe_load(open(account_config_file).read())
-        except Exception as e:
-            sys.stderr.write(f"Cannot read or parse account config file {account_config_file}: {str(e)}\n")
-            sys.exit(1)
-
-        for required in ['payments','salary_description','salary_payment_day']:
-            if required not in self.config or not self.config[required]:
-                sys.stderr.write(f"Missing config key: {required}\n")
-                sys.exit(1)
-
-        if ('notify_shortfall' in self.config and self.config['notify_shortfall']) or ('notify_credit' in self.config and self.config['notify_credit']):
-            for required in ['pushover_key','pushover_app']:
-                if required not in self.config or not self.config[required]:
-                    sys.stderr.write(f"Push is enabled but push config key is missing: {required}\n")
-                    sys.exit(1)
+        self.load_config()
+        self.validate_config()
 
         self.db = DB(self.monzo_config['db'])
 
@@ -72,6 +42,43 @@ class PaymentFundsCheck:
             sys.exit(1)
 
 
+    def load_config(self):
+        homedir = pwd.getpwuid(os.getuid()).pw_dir
+        monzo_dir = f"{homedir}/.monzo"
+
+        if not os.path.exists(monzo_dir):
+            os.mkdir(monzo_dir, 0o755)
+
+        config_file = f"{monzo_dir}/config.yaml"
+
+        self.monzo_config = yaml.safe_load(open(config_file).read())
+
+        account_config_file = f"{monzo_dir}/{self.account_name}.yaml"
+
+        if not os.path.exists(account_config_file):
+            sys.stderr.write(f"Cannot find account config file: {account_config_file}\n")
+            sys.exit(1)
+
+        try:
+            self.config = yaml.safe_load(open(account_config_file).read())
+        except Exception as e:
+            sys.stderr.write(f"Cannot read or parse account config file {account_config_file}: {str(e)}\n")
+            sys.exit(1)
+
+
+    def validate_config(self):
+        for required in ['payments','salary_description','salary_payment_day']:
+            if required not in self.config or not self.config[required]:
+                sys.stderr.write(f"Missing config key: {required}\n")
+                sys.exit(1)
+
+        if ('notify_shortfall' in self.config and self.config['notify_shortfall']) or ('notify_credit' in self.config and self.config['notify_credit']):
+            for required in ['pushover_key','pushover_app']:
+                if required not in self.config or not self.config[required]:
+                    sys.stderr.write(f"Push is enabled but push config key is missing: {required}\n")
+                    sys.exit(1)
+
+
     def main(self):
         self.last_salary_date = self.get_last_salary_date()
         self.next_salary_date = self.get_next_salary_date(self.last_salary_date)
@@ -82,6 +89,8 @@ class PaymentFundsCheck:
         self.next_month = 0
         self.next_month_bills_pot = 0
 
+        self.display_columns()
+
         for payment_list in self.config['payments']:
             if not payment_list['payments']:
                 continue
@@ -89,7 +98,6 @@ class PaymentFundsCheck:
             self.display_payment_list(payment_list['type'], payment_list['payments'])
 
         if 'refunds_due' in self.config and self.config['refunds_due']:
-
             self.display_payment_list('Refund', self.config['refunds_due'])
 
         if 'pot' in self.config:
@@ -122,54 +130,7 @@ class PaymentFundsCheck:
             print("  balance: £%.2f" % (pot.balance))
             print("shortfall: £%.2f" % (shortfall))
 
-            if 'pot' in self.config:
-                deposit = False
-                notify = False
-
-                if 'pot' in self.config and 'auto_deposit' in self.config and self.config['auto_deposit']:
-                    deposit = True
-                elif not sys.stdout.isatty():
-                    if 'notify_shortfall' in self.config and self.config['notify_shortfall']:
-                        notify = True
-                else:
-                    if 'pot' in self.config and 'prompt_deposit' in self.config and self.config['prompt_deposit']:
-                        while 1:
-                            sys.stdout.write("\ndeposit shortfall? [y/N] ")
-                            sys.stdout.flush()
-
-                            i = sys.stdin.readline().rstrip().lower()
-
-                            if i in ['y','n']:
-                                break
-
-                        deposit = (i == 'y')
-                    elif 'notify_shortfall' in self.config and self.config['notify_shortfall']:
-                        notify = True
-
-                if deposit:
-                    m = Monzo()
-
-                    result = m.deposit_to_pot(self.account.account_id, pot, shortfall)
-
-                    if 'notify_deposit' in self.config and self.config['notify_deposit']:
-                        self.notify(
-                            '%s - pot topped up' % (self.account.name),
-                            "£%.2f\n£%.2f due, £%.2f available" % (
-                                shortfall,
-                                self.due / 100,
-                                pot.balance
-                            )
-                        )
- 
-                elif notify:
-                    self.notify(
-                        '%s - shortfall' % (self.account.name),
-                        "£%.2f\n£%.2f due, £%.2f available" % (
-                            shortfall,
-                            self.due / 100,
-                            pot.balance
-                        )
-                    )
+            self.handle_shortfall(pot, shortfall)
 
         else:
             credit = (round(pot.balance * 100) - self.due) / 100
@@ -182,56 +143,37 @@ class PaymentFundsCheck:
             else:
                 print(" credit: £%.2f" % (credit))
 
-                withdraw = False
-                notify = False
+                self.handle_credit(pot, credit)
 
-                if 'pot' in self.config and 'auto_withdraw' in self.config and self.config['auto_withdraw']:
-                    withdraw = True
-                elif not sys.stdout.isatty():
-                    if 'notify_credit' in self.config and self.config['notify_credit']:
-                        notify = True
-                else:
-                    if 'pot' in self.config and 'prompt_withdraw' in self.config and self.config['prompt_withdraw']:
-                        while 1:
-                            sys.stdout.write("\nwithdraw credit? [y/N] ")
-                            sys.stdout.flush()
 
-                            i = sys.stdin.readline().rstrip().lower()
+    def display_columns(self):
+        print("%s %s %s %s %s %s %s %s" % (
+            'Status'.rjust(8),
+            'Type'.ljust(15),
+            'Name'.ljust(25),
+            ''.ljust(4),
+            'Amount'.ljust(8),
+            'Left'.ljust(8),
+            'Last date'.ljust(12),
+            'Due date'.ljust(10)
+        ))
 
-                            if i in ['y','n']:
-                                break
+        print("-" * 97)
 
-                        withdraw = (i == 'y')
-                    elif 'notify_credit' in self.config and self.config['notify_credit']:
-                        notify = True
 
-                if withdraw:
-                    m = Monzo()
+    def prompt_action(self, prompt):
+        while 1:
+            sys.stdout.write(prompt)
+            sys.stdout.flush()
 
-                    if not m.withdraw_credit(self.account.account_id, pot, credit):
-                        sys.stderr.write("ERROR: failed to withdraw credit\n")
+            i = sys.stdin.readline().rstrip().lower()
 
-                    if 'notify_withdraw' in self.config and self.config['notify_withdraw']:
-                        self.notify(
-                            '%s - pot credit withdrawn' % (self.account.name),
-                            "£%.2f\n£%.2f due, £%.2f available" % (
-                                credit,
-                                self.due / 100,
-                                pot.balance
-                            )
-                        )
+            if i in ['y','n']:
+                break
+
+        return i == 'y'
+
  
-                elif notify:
-                    self.notify(
-                        '%s - credit' % (self.account.name),
-                        "£%.2f\n£%.2f due, £%.2f available" % (
-                            credit,
-                            self.due / 100,
-                            pot.balance
-                        )
-                    )
-
-
     def display_payment_list(self, payment_type, payment_list):
         payments = self.get_payments(payment_type, payment_list)
 
@@ -341,6 +283,91 @@ class PaymentFundsCheck:
             next_salary_date = datetime.date(next_salary_date.year, next_salary_date.month, next_salary_date.day-1)
 
         return next_salary_date
+
+
+    def handle_shortfall(self, pot, shortfall):
+        deposit = False
+        notify = False
+
+        if 'pot' in self.config and 'auto_deposit' in self.config and self.config['auto_deposit']:
+            deposit = True
+        elif not sys.stdout.isatty():
+            if 'notify_shortfall' in self.config and self.config['notify_shortfall']:
+                notify = True
+        else:
+            if 'pot' in self.config and 'prompt_deposit' in self.config and self.config['prompt_deposit']:
+                deposit = self.prompt_action("\ndeposit shortfall? [y/N] ")
+
+            elif 'notify_shortfall' in self.config and self.config['notify_shortfall']:
+                notify = True
+
+        if deposit:
+            m = Monzo()
+
+            result = m.deposit_to_pot(self.account.account_id, pot, shortfall)
+
+            if 'notify_deposit' in self.config and self.config['notify_deposit']:
+                self.notify(
+                    '%s - pot topped up' % (self.account.name),
+                    "£%.2f\n£%.2f due, £%.2f available" % (
+                        shortfall,
+                        self.due / 100,
+                        pot.balance
+                    )
+                )
+
+        elif notify:
+            self.notify(
+                '%s - shortfall' % (self.account.name),
+                "£%.2f\n£%.2f due, £%.2f available" % (
+                    shortfall,
+                    self.due / 100,
+                    pot.balance
+                )
+            )
+
+
+    def handle_credit(self, pot, credit):
+        withdraw = False
+        notify = False
+
+        if 'pot' in self.config and 'auto_withdraw' in self.config and self.config['auto_withdraw']:
+            withdraw = True
+        elif not sys.stdout.isatty():
+            if 'notify_credit' in self.config and self.config['notify_credit']:
+                notify = True
+        else:
+            if 'pot' in self.config and 'prompt_withdraw' in self.config and self.config['prompt_withdraw']:
+                withdraw = self.prompt_action("\nwithdraw credit? [y/N] ")
+
+            elif 'notify_credit' in self.config and self.config['notify_credit']:
+                notify = True
+
+        if withdraw:
+            m = Monzo()
+
+            if not m.withdraw_credit(self.account.account_id, pot, credit):
+                sys.stderr.write("ERROR: failed to withdraw credit\n")
+
+            if 'notify_withdraw' in self.config and self.config['notify_withdraw']:
+                self.notify(
+                    '%s - pot credit withdrawn' % (self.account.name),
+                    "£%.2f\n£%.2f due, £%.2f available" % (
+                        credit,
+                        self.due / 100,
+                        pot.balance
+                    )
+                )
+
+        elif notify:
+            self.notify(
+                '%s - credit' % (self.account.name),
+                "£%.2f\n£%.2f due, £%.2f available" % (
+                    credit,
+                    self.due / 100,
+                    pot.balance
+                )
+            )
 
 
 if len(sys.argv) <2:
