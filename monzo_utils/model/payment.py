@@ -5,6 +5,9 @@ from monzo_utils.lib.transactions import Transactions
 
 class Payment:
 
+    transaction_type = 'money_out'
+    always_fixed = False
+
     def __init__(self, config, payment_list_config, payment_config, last_salary_date, next_salary_date, following_salary_date):
         self.config = config
         self.payment_list_config = payment_list_config
@@ -102,12 +105,16 @@ class Payment:
             self.payment_config['name'] in self.config['last_amount_overrides'] and \
             self.last_salary_amount in self.config['last_amount_overrides'][self.payment_config['name']]:
 
-            return self.config['last_amount_overrides'][self.payment_config['name']][self.last_salary_amount]
- 
-        if self.last_payment:
-            return float(self.last_payment.money_out)
+            amount = self.config['last_amount_overrides'][self.payment_config['name']][self.last_salary_amount]
+        elif self.last_payment:
+            amount = float(getattr(self.last_payment, self.transaction_type))
+        else:
+            amount = self.payment_config['amount']
 
-        return self.payment_config['amount']
+        if self.transaction_type == 'money_in':
+            return 0 - amount
+
+        return amount
 
 
     @property
@@ -147,7 +154,7 @@ class Payment:
         if 'desc' not in self.payment_config:
             self.payment_config['desc'] = type(self).__name__
 
-        where=[{'clause': 'money_out > %s', 'params': [0]}]
+        where=[{'clause': self.transaction_type + ' > %s', 'params': [0]}]
 
         if 'start_date' in self.payment_config:
             where.append({
@@ -155,8 +162,10 @@ class Payment:
                 'params': [self.payment_config['start_date']]
             })
 
-        if 'fixed' in self.payment_config and self.payment_config['fixed']:
-            transactions = Transaction().find_all_by_declined_and_money_out_and_description(
+        if self.always_fixed or 'fixed' in self.payment_config and self.payment_config['fixed']:
+            method_name = f"find_all_by_declined_and_{self.transaction_type}_and_description"
+
+            transactions = getattr(Transaction(), method_name)(
                 0,
                 self.payment_config['amount'],
                 self.payment_config['desc'],
@@ -197,10 +206,12 @@ class Payment:
         if 'desc' not in self.payment_config:
             self.payment_config['desc'] = type(self).__name__
 
-        where=[{'clause': 'money_out > %s', 'params': [0]}]
+        where=[{'clause': self.transaction_type + ' > %s', 'params': [0]}]
 
-        if 'fixed' in self.payment_config and self.payment_config['fixed']:
-            transactions = Transaction().find_all_by_declined_and_money_out_and_description(
+        if self.always_fixed or 'fixed' in self.payment_config and self.payment_config['fixed']:
+            method_name = f"find_all_by_declined_and_{self.transaction_type}_and_description"
+
+            transactions = getattr(Transaction(), method_name)(
                 0,
                 self.payment_config['amount'],
                 self.payment_config['desc'],

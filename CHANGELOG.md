@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.20 - 12/11/2023
+
+- Refactoring
+
 ## 0.0.19 - 12/11/2023
 
 - Added logging
