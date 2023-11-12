@@ -71,10 +71,11 @@ class mysql:
         return rows
 
 
-    def get_columns(self, table):
+    def get_columns(self, table, exclude=None):
         columns = []
 
         for row in self.query("select column_name from information_schema.columns where table_schema = %s and table_name = %s", [self.config['database'], table]):
-            columns.append(row['column_name'])
+            if exclude is None or row['column_name'] not in exclude:
+                columns.append(row['column_name'])
 
         return columns
