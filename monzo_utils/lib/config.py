@@ -19,7 +19,7 @@ class Config(metaclass=Singleton):
             self.config = config
         else:
             if not os.path.exists(config_file):
-                sys.stderr.write(f"config file not found: {self.config_file}, run setup first.\n")
+                sys.stderr.write(f"config file not found: {config_file}, run setup first.\n")
                 sys.exit(1)
 
             self.config = yaml.safe_load(open(config_file).read())
