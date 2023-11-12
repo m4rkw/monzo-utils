@@ -21,13 +21,13 @@ Monzo Utils comprises of:
 
 - A public webserver to receive the oauth token response
 - Python 3 + pip
-- MySQL or MariaDB
+- MySQL/MariaDB or SQLite3
 - A [pushover.net](https://pushover.net) account if notifications are required when using monzo-payments (free)
 
 From pip:
 
 - [monzo-api](https://github.com/petermcd/monzo-api) (thanks to Peter McDonald for writing this)
-- mysqlclient
+- mysqlclient (if using mysql)
 - PyYAML
 - requests
 - python-pushover

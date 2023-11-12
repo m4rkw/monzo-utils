@@ -1,8 +1,9 @@
 # Installation
 
-1. MySQL is required so you'll need to install that first.
+1. A database is required, this can currently be either MySQL or
+SQLite3. If using MySQL you'll need to install that first.
 
-2. Create a database and a user to access it with:
+2. If you using MySQL create the database and import the schema:
 
 ````
 $ mysql
@@ -11,11 +12,16 @@ mysql> grant all privileges on monzo.* to monzo@localhost identified by 'databas
 mysql> flush privileges;
 ````
 
-3. Import the schema:
+````
+$ cat schema_mysql.sql | mysql -umonzo -p -D monzo
 
 ````
-$ cat schema.sql | mysql -umonzo -p -D monzo
 
+3. If using SQLite you can create the database with:
+
+````
+$ mkdir ~/.monzo
+$ cat schema_sqlite3.sql | sqlite3 ~/.monzo/data.db
 ````
 
 4. Install the pip package:

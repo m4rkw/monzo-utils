@@ -134,7 +134,7 @@ class Monzo:
             query_args.append(args[i])
 
         query = Transaction() \
-            .select('transaction.*') \
+            .select('`transaction`.*') \
             .select('transaction_metadata.value as mastercard_lifecycle_id') \
             .select('account.name as account') \
             .select('pot.name as pot') \
@@ -178,14 +178,14 @@ class Monzo:
             query.andWhere('description not like %s', ['pot_0000%'])
 
         if on_date:
-            query.andWhere('transaction.`date` = %s', [on_date])
+            query.andWhere('`transaction`.`date` = %s', [on_date])
         else:
             if date_from:
-                query.andWhere('transaction.`date` >= %s', [date_from])
+                query.andWhere('`transaction`.`date` >= %s', [date_from])
             if date_to:
-                query.andWhere('transaction.`date` <= %s', [date_to])
+                query.andWhere('`transaction`.`date` <= %s', [date_to])
 
-        transactions = query.groupBy('transaction.id') \
+        transactions = query.groupBy('`transaction`.id') \
             .orderBy('date, created_at', 'asc') \
             .getall()
 

@@ -114,7 +114,39 @@ class DB(metaclass=Singleton):
             print("SQL: %s" % (sql))
             print("PARAMS: %s" % (json.dumps(self.json_params(params),indent=4)))
 
-        return self.driver.query(sql, params)
+        result = self.driver.query(sql, params)
+
+        if type(result) == list:
+            rows = []
+
+            for row in result:
+                rows.append(self.fix_dates(row))
+
+            result = rows
+
+        return result
+
+
+    def fix_dates(self, row):
+        fixed_row = {}
+
+        for key in row:
+            if type(row[key]) == str:
+                m = re.match('^([\d]{4})-([\d]{2})-([\d]{2})$', row[key])
+
+                if m:
+                    fixed_row[key] = datetime.date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+                    continue
+
+                m = re.match('^([\d]{4})-([\d]{2})-([\d]{2}) ([\d]{2}):([\d]{2}):([\d]{2})$', row[key])
+
+                if m:
+                    fixed_row[key] = datetime.datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)))
+                    continue
+
+            fixed_row[key] = row[key]
+
+        return fixed_row
 
 
     def one(self, sql, params=[]):
