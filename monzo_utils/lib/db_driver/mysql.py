@@ -39,20 +39,6 @@ class mysql:
         return None
 
 
-    def json_params(self, params):
-        json_params = []
-
-        for param in params:
-            if type(param) == datetime.date:
-                json_params.append(param.strftime('%Y-%M-%d'))
-            elif type(param) == datetime.datetime:
-                json_params.append(param.strftime('%Y-%M-%d %H:%M:%S'))
-            else:
-                json_params.append(param)
-
-        return json_params
-
-
     def build_row(self, data):
         row = {}
 
