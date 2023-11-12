@@ -303,7 +303,7 @@ class DB(metaclass=Singleton):
 
     def update(self, table, _id, data):
         if table not in self.columns:
-            self.columns[table] = self.driver.get_columns(table)
+            self.columns[table] = self.driver.get_columns(table, exclude=['id'])
 
         sql = f"update `{table}` set"
         params = []
@@ -323,7 +323,7 @@ class DB(metaclass=Singleton):
 
     def create(self, table, data):
         if table not in self.columns:
-            self.columns[table] = self.driver.get_columns(table)
+            self.columns[table] = self.driver.get_columns(table, exclude=['id'])
 
         sql = f"insert into `{table}` ("
         params = []

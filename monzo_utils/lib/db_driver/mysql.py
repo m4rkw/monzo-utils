@@ -66,7 +66,6 @@ class mysql:
         columns = []
 
         for row in self.query("select column_name from information_schema.columns where table_schema = %s and table_name = %s", [self.config['database'], table]):
-            if row['column_name'] != 'id':
-                columns.append(row['column_name'])
+            columns.append(row['column_name'])
 
         return columns
