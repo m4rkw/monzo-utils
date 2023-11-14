@@ -117,9 +117,9 @@ class PaymentFundsCheck:
         sys.stdout.write("TOTAL NEXT MONTH:".ljust(31))
         print("£%.2f" % (self.next_month / 100))
 
-        if round(shortfall * 100) <0:
-            credit = (round(pot.balance * 100) - self.due) / 100
+        credit = (round(pot.balance * 100) - self.due) / 100
 
+        if round(shortfall * 100) <0:
             sys.stdout.write(" " * 25)
             sys.stdout.write("LESS CREDIT BALANCE:".ljust(31))
             print("£%.2f" % ((self.next_month / 100) - credit))
