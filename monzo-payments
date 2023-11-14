@@ -280,7 +280,10 @@ class PaymentFundsCheck:
             try:
                 next_salary_date = datetime.date(next_salary_date.year, next_salary_date.month, next_salary_date.day+1)
             except:
-                next_salary_date = datetime.date(next_salary_date.year, next_salary_date.month+1, 1)
+                if next_salary_date.month == 12:
+                    next_salary_date = datetime.date(next_salary_date.year+1, 1, 1)
+                else:
+                    next_salary_date = datetime.date(next_salary_date.year, next_salary_date.month+1, 1)
 
         while next_salary_date.weekday() in [5,6]:
             next_salary_date = datetime.date(next_salary_date.year, next_salary_date.month, next_salary_date.day-1)
