@@ -117,6 +117,13 @@ class PaymentFundsCheck:
         sys.stdout.write("TOTAL NEXT MONTH:".ljust(31))
         print("£%.2f" % (self.next_month / 100))
 
+        if round(shortfall * 100) <0:
+            credit = (round(pot.balance * 100) - self.due) / 100
+
+            sys.stdout.write(" " * 25)
+            sys.stdout.write("LESS CREDIT BALANCE:".ljust(31))
+            print("£%.2f" % ((self.next_month / 100) - credit))
+
         if 'exclude_yearly_from_bills' in self.config and self.config['exclude_yearly_from_bills']:
             sys.stdout.write(" " * 25)
             sys.stdout.write("Bills pot payment:".ljust(31))
@@ -130,7 +137,6 @@ class PaymentFundsCheck:
             self.handle_shortfall(pot, shortfall)
 
         else:
-            credit = (round(pot.balance * 100) - self.due) / 100
 
             print("    due: £%.2f" % (self.due / 100))
             print("balance: £%.2f" % (pot.balance))

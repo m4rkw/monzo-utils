@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.29 - 14/11/2023
+
+- Show next month total after credit balance adjustment
+
 ## 0.0.28 - 12/11/2023
 
 - Added support for SQLite3
