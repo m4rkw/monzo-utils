@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.38 - 15/11/2023
+
+- Fixed display issue with pending incoming transactions
+
 ## 0.0.37 - 15/11/2023
 
 - Fixed sync on withdraw/deposit

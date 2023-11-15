@@ -251,8 +251,11 @@ class Monzo:
                 if key == 'date':
                     data[i][key] = self.adjust_timestamp(data[i][key])
 
-                if key == 'money_out' and data[i]['pending'] and type(data[i]['money_out']) != str:
+                if key == 'money_out' and data[i]['pending'] and data[i]['money_out'] is not None:
                     data[i]['money_out'] = '*' + str(data[i]['money_out']) + '*'
+
+                if key == 'money_in' and data[i]['pending'] and data[i]['money_in'] is not None:
+                    data[i]['money_in'] = '*' + str(data[i]['money_in']) + '*'
 
                 if key == 'date':
                     pattern = '%d/%m' if data[i][key].year == today.year else '%d/%m/%y'
