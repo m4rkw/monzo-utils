@@ -21,6 +21,7 @@ from monzo_utils.model.pot import Pot
 from monzo_utils.model.transaction import Transaction
 from monzo_utils.model.counterparty import Counterparty
 from monzo_utils.model.transaction_metadata import TransactionMetadata
+from monzo.exceptions import MonzoAuthenticationError, MonzoServerError, MonzoHTTPError, MonzoPermissionsError
 
 PROVIDER = 'Monzo'
 
