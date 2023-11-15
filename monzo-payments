@@ -309,7 +309,7 @@ class PaymentFundsCheck:
                 notify = True
 
         if deposit:
-            m = Monzo()
+            m = MonzoAPI()
 
             result = m.deposit_to_pot(self.account.account_id, pot, shortfall)
 
@@ -351,7 +351,7 @@ class PaymentFundsCheck:
                 notify = True
 
         if withdraw:
-            m = Monzo()
+            m = MonzoAPI()
 
             if not m.withdraw_credit(self.account.account_id, pot, credit):
                 sys.stderr.write("ERROR: failed to withdraw credit\n")

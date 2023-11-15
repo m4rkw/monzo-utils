@@ -246,7 +246,7 @@ class MonzoAPI:
         for i in range(0, 3):
             try:
                 monzo.endpoints.pot.Pot.withdraw(self.client, pot=pot, account_id=account_id, amount=amount, dedupe_id=dedupe_code)
-                self.sync()
+                os.system("monzo-sync")
                 return True
             except Exception as e:
                 print("failed to withdraw pot money: %s" % (str(e)))
@@ -274,7 +274,7 @@ class MonzoAPI:
         for i in range(0, 3):
             try:
                 monzo.endpoints.pot.Pot.deposit(self.client, pot=pot, account_id=account_id, amount=amount, dedupe_id=dedupe_code)
-                self.sync()
+                os.system("monzo-sync")
                 return True
             except Exception as e:
                 print("failed to withdraw pot money: %s" % (str(e)))
