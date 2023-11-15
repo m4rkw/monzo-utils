@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.36 - 15/11/2023
+
+- Fixed sync on withdraw/deposit
+- Notify if deposit/withdraw fails
+
 ## 0.0.35 - 15/11/2023
 
 - Typo
