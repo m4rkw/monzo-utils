@@ -28,7 +28,12 @@ class FlexSummary(Payment):
 
     @property
     def last_date(self):
-        return None
+        last_date = datetime.datetime.now()
+
+        while last_date.day != self.config['flex_payment_date']:
+            last_date -= datetime.timedelta(days=1)
+
+        return last_date
 
 
     @property

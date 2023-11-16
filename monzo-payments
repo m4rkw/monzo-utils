@@ -301,7 +301,7 @@ class PaymentFundsCheck:
         deposit = False
         notify = False
 
-        if 'pot' in self.config and 'auto_deposit' in self.config and self.config['auto_deposit']:
+        if 'pot' in self.config and 'auto_deposit' in self.config and self.config['auto_deposit'] and not sys.stdout.isatty():
             deposit = True
         elif not sys.stdout.isatty():
             if 'notify_shortfall' in self.config and self.config['notify_shortfall']:
@@ -357,7 +357,7 @@ class PaymentFundsCheck:
         withdraw = False
         notify = False
 
-        if 'pot' in self.config and 'auto_withdraw' in self.config and self.config['auto_withdraw']:
+        if 'pot' in self.config and 'auto_withdraw' in self.config and self.config['auto_withdraw'] and not sys.stdout.isatty():
             withdraw = True
         elif not sys.stdout.isatty():
             if 'notify_credit' in self.config and self.config['notify_credit']:

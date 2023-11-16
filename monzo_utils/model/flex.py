@@ -13,6 +13,23 @@ class Flex(Payment):
 
     @property
     def last_date(self):
+        last_date = self.today + datetime.timedelta(days=1)
+
+        if 'start_date' in self.payment_config:
+            last_date = self.payment_config['start_date']
+
+        previous_last_date = None
+
+        for i in range(0, self.payment_config['months']):
+            while last_date.day != self.config['flex_payment_date']:
+                last_date += datetime.timedelta(days=1)
+
+            if last_date > datetime.date(self.today.year, self.today.month, self.today.day):
+                return previous_last_date
+
+            previous_last_date = last_date
+            last_date += datetime.timedelta(days=1)
+
         return None
 
 
