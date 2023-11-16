@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.39 - 16/11/2023
+
+- Fixed invalid references
+
 ## 0.0.38 - 15/11/2023
 
 - Fixed display issue with pending incoming transactions

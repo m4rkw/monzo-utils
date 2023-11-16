@@ -75,7 +75,6 @@ class Flex(Payment):
                 date += datetime.timedelta(days=1)
 
             if date <= datetime.date(self.today.year, self.today.month, self.today.day):
-                num_paid + 1
                 total_paid += amount
             else:
                 break
@@ -99,7 +98,6 @@ class Flex(Payment):
                 date += datetime.timedelta(days=1)
 
             if date <= datetime.date(self.today.year, self.today.month, self.today.day):
-                num_paid + 1
                 total_paid += amount
             else:
                 break
