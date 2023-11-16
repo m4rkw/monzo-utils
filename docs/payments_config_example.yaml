@@ -31,6 +31,9 @@ salary_description:
 # so in the case of weekends or bank holidays it may be earlier
 salary_payment_day: 15
 
+# name of the Flex account
+flex_account: Flex
+
 # the day of the month that your Flex card payment is made
 flex_payment_date: 16
 

@@ -1,6 +1,8 @@
 import datetime
 import math
 from monzo_utils.model.payment import Payment
+from monzo_utils.model.account import Account
+from monzo_utils.model.transaction import Transaction
 
 class Flex(Payment):
 
@@ -35,13 +37,21 @@ class Flex(Payment):
 
     @property
     def status(self):
-        if self.due_date:
-            if self.due_date < self.next_salary_date:
-                return 'DUE'
-            else:
-                return 'SKIPPED'
-        else:
-            return 'DONE'
+        if self.payment_config['start_date'] >= self.next_salary_date:
+            return 'SKIPPED'
+
+        today = datetime.datetime.now()
+        today = datetime.date(today.year, today.month, today.day)
+
+        date = self.last_salary_date
+
+        while date.day != self.config['flex_payment_date']:
+            date += datetime.timedelta(days=1)
+
+        if date > today:
+            return 'DUE'
+
+        return 'PAID'
 
 
     @property
@@ -54,7 +64,9 @@ class Flex(Payment):
                 date += datetime.timedelta(days=1)
 
             if date <= datetime.date(self.today.year, self.today.month, self.today.day):
-                num_paid + 1
+                num_paid += 1
+
+            date += datetime.timedelta(days=1)
 
         return num_paid
 
@@ -79,6 +91,8 @@ class Flex(Payment):
             else:
                 break
 
+            date += datetime.timedelta(days=1)
+
         return amount
 
 
@@ -102,4 +116,40 @@ class Flex(Payment):
             else:
                 break
 
+            date += datetime.timedelta(days=1)
+
         return self.payment_config['amount'] - total_paid
+
+
+    def amount_for_date(self, for_date):
+        total = self.payment_config['amount']
+
+        date = self.payment_config['start_date']
+
+        if date > for_date:
+            return 0
+
+        paid = 0
+        found = False
+
+        for i in range(0, self.payment_config['months']):
+            while date.day != self.config['flex_payment_date']:
+                date += datetime.timedelta(days=1)
+
+            amount = int(math.ceil(self.payment_config['amount'] / self.payment_config['months']))
+
+            if paid + amount > total:
+                amount = total - paid
+
+            paid += amount
+
+            if for_date < date:
+                found = True
+                break
+
+            date += datetime.timedelta(days=1)
+
+        if not found:
+            return 0
+
+        return amount

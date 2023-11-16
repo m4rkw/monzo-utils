@@ -182,25 +182,29 @@ class PaymentFundsCheck:
         payments = self.get_payments(payment_type, payment_list)
 
         if payment_type == 'Flex':
-            flex_status = 'SKIPPED'
-            flex_total = 0
+            total_this_month = 0
+            today = datetime.datetime.now()
+            today = datetime.date(today.year, today.month, today.day)
+
+            for payment in payments:
+                total_this_month += payment.amount_for_date(self.last_salary_date)
+
+            date = self.last_salary_date
+
+            while date.day != self.config['flex_payment_date']:
+                date += datetime.timedelta(days=1)
+
+            if date > today:
+                flex_status = 'DUE'
+            else:
+                flex_status = 'PAID'
+
             flex_remaining = 0
 
             for payment in payments:
                 flex_remaining += payment.remaining
 
-                if payment.status == 'DUE' and flex_status in ['PAID','SKIPPED']:
-                    flex_status = 'DUE'
-                elif payment.status == 'PAID' and flex_status in ['SKIPPED']:
-                    flex_status = 'PAID'
-
-            for payment in payments:
-                if flex_status == 'DUE' and payment.status == 'DUE' and payment.due_date < self.next_salary_date:
-                    flex_total += payment.display_amount
-                elif flex_status == 'SKIPPED' and payment.due_date < self.following_salary_date:
-                    flex_total += payment.display_amount
-
-            summary = FlexSummary(self.config, flex_status, flex_total, flex_remaining)
+            summary = FlexSummary(self.config, flex_status, total_this_month, flex_remaining)
             summary.display()
 
         for payment in payments:

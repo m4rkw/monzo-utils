@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.40 - 16/11/2023
+
+- Fixed flex payment calculation
+
 ## 0.0.39 - 16/11/2023
 
 - Fixed invalid references
