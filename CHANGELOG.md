@@ -2,6 +2,7 @@
 
 ## 0.0.43 - 18/11/2023
 
+- Changes to support json output for a webservice
 
 ## 0.0.42 - 18/11/2023
 
