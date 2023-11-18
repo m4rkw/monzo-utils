@@ -22,7 +22,7 @@ class Payment:
         self.cache = {}
 
 
-    def display(self):
+    def data(self, abbreviate=False):
         if self.num_paid is not None:
             suffix = '%d/%d' % (
                 self.num_paid,
@@ -32,19 +32,51 @@ class Payment:
             suffix = ''
 
         if self.remaining is not None:
-            remaining = '£%.2f' % (self.remaining)
+            remaining = self.remaining
         else:
-            remaining = ''
+            remaining = None
+
+        return {
+            'status': self.status,
+            'payment_type': self.payment_type if abbreviate is False else self.abbreviate(self.payment_type),
+            'name': self.name,
+            'suffix': suffix,
+            'amount': self.display_amount,
+            'remaining': remaining,
+            'last_date': self.short_date(self.last_date) if abbreviate else self.last_date,
+            'due_date': self.short_date(self.due_date) if abbreviate else self.due_date
+        }
+
+
+    def abbreviate(self, string):
+        abbreviated = ''
+
+        for i in range(0, len(string)):
+            if string[i].isupper():
+                abbreviated += string[i]
+
+        return abbreviated
+
+
+    def short_date(self, date):
+        if not date:
+            return None
+
+        return date.strftime('%d/%m/%y')
+
+
+    def display(self):
+        data = self.data()
 
         print("%s: %s %s %s %s %s %s %s" % (
-            self.status.rjust(7),
-            self.payment_type.ljust(15),
-            self.name.ljust(25),
-            suffix.ljust(4),
-            ('£%.2f' % (self.display_amount)).ljust(8),
-            remaining.ljust(8),
-            self.last_date.strftime('%Y-%m-%d').ljust(12) if self.last_date else ''.ljust(12),
-            self.due_date.strftime('%Y-%m-%d').ljust(10) if self.due_date else ''
+            data['status'].rjust(7),
+            data['payment_type'].ljust(15),
+            data['name'].ljust(25),
+            data['suffix'].ljust(4),
+            ('£%.2f' % (data['amount'])).ljust(8),
+            ('£%.2f' % (data['remaining'])).ljust(8) if data['remaining'] else ''.ljust(8),
+            data['last_date'].strftime('%Y-%m-%d').ljust(12) if data['last_date'] else ''.ljust(12),
+            data['due_date'].strftime('%Y-%m-%d').ljust(10) if data['due_date'] else ''
         ))
 
 

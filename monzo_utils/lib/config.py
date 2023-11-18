@@ -6,14 +6,15 @@ from monzo_utils.lib.singleton import Singleton
 
 class Config(metaclass=Singleton):
 
-    def __init__(self, config=None):
-        homedir = pwd.getpwuid(os.getuid()).pw_dir
-        monzo_dir = f"{homedir}/.monzo"
+    def __init__(self, config=None, config_path=None):
+        if config_path is None:
+            homedir = pwd.getpwuid(os.getuid()).pw_dir
+            config_path = f"{homedir}/.monzo"
 
-        if not os.path.exists(monzo_dir):
-            os.mkdir(monzo_dir, 0o755)
+        if not os.path.exists(config_path):
+            os.mkdir(config_path, 0o755)
 
-        self.config_file = f"{monzo_dir}/config.yaml"
+        self.config_file = f"{config_path}/config.yaml"
 
         if config:
             self.config = config

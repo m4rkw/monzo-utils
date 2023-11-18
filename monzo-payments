@@ -11,6 +11,7 @@ import requests
 import math
 import pwd
 import importlib
+import decimal
 from pushover import Client
 from monzo_utils.lib.monzo_api import MonzoAPI
 from monzo_utils.lib.config import Config
@@ -25,13 +26,16 @@ from monzo_utils.model.flex_summary import FlexSummary
 PROVIDER = 'Monzo'
 
 class PaymentFundsCheck:
-    def __init__(self, account_name):
+    def __init__(self, account_name, output_json, abbreviate=False):
         self.account_name = account_name
+        self.json = output_json
+        self.abbreviate = abbreviate
+        self.output = []
 
         self.load_config()
         self.validate_config()
 
-        self.db = DB()
+        self.db = DB(None, self.config_path)
 
         self.seen = []
         self.exchange_rates = {}
@@ -45,13 +49,17 @@ class PaymentFundsCheck:
 
 
     def load_config(self):
-        homedir = pwd.getpwuid(os.getuid()).pw_dir
-        monzo_dir = f"{homedir}/.monzo"
+        if os.path.exists(self.account_name):
+            account_config_file = self.account_name
+            self.config_path = os.path.dirname(account_config_file)
+        else:
+            homedir = pwd.getpwuid(os.getuid()).pw_dir
+            self.config_path = f"{homedir}/.monzo"
 
-        if not os.path.exists(monzo_dir):
-            os.mkdir(monzo_dir, 0o755)
+            if not os.path.exists(self.config_path):
+                os.mkdir(self.config_path, 0o755)
 
-        account_config_file = f"{monzo_dir}/{self.account_name}.yaml"
+            account_config_file = f"{self.config_path}/{self.account_name}.yaml"
 
         if not os.path.exists(account_config_file):
             sys.stderr.write(f"Cannot find account config file: {account_config_file}\n")
@@ -59,6 +67,7 @@ class PaymentFundsCheck:
 
         try:
             self.config = yaml.safe_load(open(account_config_file).read())
+            self.account_name = self.config['account']
         except Exception as e:
             sys.stderr.write(f"Cannot read or parse account config file {account_config_file}: {str(e)}\n")
             sys.exit(1)
@@ -87,7 +96,8 @@ class PaymentFundsCheck:
         self.next_month = 0
         self.next_month_bills_pot = 0
 
-        self.display_columns()
+        if self.json is False:
+            self.display_columns()
 
         for payment_list in self.config['payments']:
             if not payment_list['payments']:
@@ -104,6 +114,25 @@ class PaymentFundsCheck:
             pot = self.account
 
         shortfall = (self.due - (round(pot.balance * 100))) / 100
+
+        if self.json:
+            data = {
+                'balance': float(pot.balance),
+                'due': float(self.due) / 100,
+                'total_this_month': self.total_this_month / 100,
+                'total_next_month': self.next_month / 100,
+                'payments': self.sanitise(self.output)
+            }
+
+            if shortfall * 100 <0:
+                data['credit'] = (round(pot.balance * 100) - self.due) / 100
+                data['shortfall'] = 0
+            else:
+                data['shortfall'] = shortfall
+                data['credit'] = 0
+
+            print(json.dumps(data,indent=4))
+            return
 
         sys.stdout.write("\n")
 
@@ -205,7 +234,11 @@ class PaymentFundsCheck:
                 flex_remaining += payment.remaining
 
             summary = FlexSummary(self.config, flex_status, total_this_month, flex_remaining)
-            summary.display()
+
+            if self.json:
+                self.output.append(summary.data(self.abbreviate))
+            else:
+                summary.display()
 
         for payment in payments:
             if payment.status in ['DUE','PAID']:
@@ -221,7 +254,10 @@ class PaymentFundsCheck:
                     if 'exclude_yearly_from_bills' not in self.config or self.config['exclude_yearly_from_bills'] is False or 'yearly_month' not in payment_config:
                         self.next_month_bills_pot += payment.display_amount * 100
 
-            payment.display()
+            if self.json:
+                self.output.append(payment.data(self.abbreviate))
+            else:
+                payment.display()
 
 
     def get_payments(self, payment_type, payment_list):
@@ -248,6 +284,16 @@ class PaymentFundsCheck:
     def notify(self, event, message):
         pushover = Client(self.config['pushover_key'], api_token=self.config['pushover_app'])
         pushover.send_message(message, title=event)
+
+
+    def abbreviate_string(self, string):
+        abbreviated = ''
+        
+        for i in range(0, len(string)):
+            if string[i].isupper():
+                abbreviated += string[i]
+
+        return abbreviated
 
 
     def get_last_salary_date(self):
@@ -301,10 +347,10 @@ class PaymentFundsCheck:
         deposit = False
         notify = False
 
-        if 'pot' in self.config and 'auto_deposit' in self.config and self.config['auto_deposit'] and not sys.stdout.isatty():
+        if 'pot' in self.config and 'auto_deposit' in self.config and self.config['auto_deposit'] and not sys.stdout.isatty() and not self.abbreviate:
             deposit = True
         elif not sys.stdout.isatty():
-            if 'notify_shortfall' in self.config and self.config['notify_shortfall']:
+            if 'notify_shortfall' in self.config and self.config['notify_shortfall'] and not self.abbreviate:
                 notify = True
         else:
             if 'pot' in self.config and 'prompt_deposit' in self.config and self.config['prompt_deposit']:
@@ -357,10 +403,10 @@ class PaymentFundsCheck:
         withdraw = False
         notify = False
 
-        if 'pot' in self.config and 'auto_withdraw' in self.config and self.config['auto_withdraw'] and not sys.stdout.isatty():
+        if 'pot' in self.config and 'auto_withdraw' in self.config and self.config['auto_withdraw'] and not sys.stdout.isatty() and not self.abbreviate:
             withdraw = True
         elif not sys.stdout.isatty():
-            if 'notify_credit' in self.config and self.config['notify_credit']:
+            if 'notify_credit' in self.config and self.config['notify_credit'] and not self.abbreviate:
                 notify = True
         else:
             if 'pot' in self.config and 'prompt_withdraw' in self.config and self.config['prompt_withdraw']:
@@ -409,9 +455,52 @@ class PaymentFundsCheck:
             )
 
 
+    def sanitise(self, output):
+        new_output = []
+
+        for item in output:
+            obj = {}
+            
+            for key in item:
+                if type(item[key]) == datetime.date:
+                    obj[key] = item[key].strftime('%Y-%m-%d')
+                elif type(item[key]) == datetime.datetime:
+                    obj[key] = item[key].strftime('%Y-%m-%d %H:%M:%S')
+                elif type(item[key]) == decimal.Decimal:
+                    obj[key] = float(item[key])
+                else:
+                    obj[key] = item[key]
+
+            new_output.append(obj)
+
+        return new_output
+
+
 if len(sys.argv) <2:
-    print("usage: %s <account_name>" % (sys.argv[0].split('/')[-1]))
+    print("usage: %s [-o json] <account_name>" % (sys.argv[0].split('/')[-1]))
     sys.exit(1)
 
-p = PaymentFundsCheck(sys.argv[1])
+output_json = False
+account = None
+abbreviate = False
+
+for i in range(1, len(sys.argv)):
+    if sys.argv[i] == '-o' and i+1 < len(sys.argv) and sys.argv[i+1] == 'json':
+        output_json = True
+        continue
+    else:
+        if sys.argv[i] == '-a':
+            abbreviate = True
+            continue
+
+        if sys.argv[i-1] == '-o':
+            continue
+
+        account = sys.argv[i]
+
+if account is None:
+    print("usage: %s [-o json] [-a] <account_name>" % (sys.argv[0].split('/')[-1]))
+    sys.exit(1)
+
+p = PaymentFundsCheck(account, output_json, abbreviate)
 p.main()

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.43 - 18/11/2023
+
+
 ## 0.0.42 - 18/11/2023
 
 - Fixed incorrect finance payment calculation

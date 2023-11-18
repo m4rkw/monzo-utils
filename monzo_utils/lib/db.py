@@ -10,11 +10,11 @@ from monzo_utils.lib.config import Config
 
 class DB(metaclass=Singleton):
 
-    def __init__(self, db_config=None):
+    def __init__(self, db_config=None, config_path=None):
         if db_config:
             self.config = db_config
         else:
-            self.config = Config().db
+            self.config = Config(None, config_path).db
 
         self.driver = getattr(importlib.import_module(f"monzo_utils.lib.db_driver.{self.config['driver']}"), self.config['driver'])(self.config)
 
