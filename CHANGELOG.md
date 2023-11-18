@@ -7,6 +7,7 @@
 ## 0.0.41 - 16/11/2023
 
 - Don't auto withdraw/deposit if we have a tty
+- Fixed flex output
 
 ## 0.0.40 - 16/11/2023
 
