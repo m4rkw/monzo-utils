@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.42 - 18/11/2023
+
+- Fixed incorrect finance payment calculation
+
 ## 0.0.41 - 16/11/2023
 
 - Don't auto withdraw/deposit if we have a tty

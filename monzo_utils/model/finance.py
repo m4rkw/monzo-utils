@@ -22,7 +22,7 @@ class Finance(Payment):
 
             return self.cache['display_amount']
 
-        return int(self.payment_config['amount'] / self.payment_config['months'] * 100) / 100
+        return int(round(self.payment_config['amount'] / self.payment_config['months'], 2) * 100) / 100
 
 
     @property
