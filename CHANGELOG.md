@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.44 - 21/11/2023
+
+- Fixed crash during sync when a new account is returned
+
 ## 0.0.43 - 18/11/2023
 
 - Changes to support json output for a webservice

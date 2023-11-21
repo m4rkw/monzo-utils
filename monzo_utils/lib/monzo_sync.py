@@ -456,6 +456,9 @@ class MonzoSync:
             if 'monzoflexbackingloan' in mo_account.description:
                 continue
 
+            if mo_account.account_id not in Config().accounts:
+                continue
+
             account = self.get_or_create_account(mo_account, Config().accounts[mo_account.account_id])
 
             Log().info(f"syncing account: {account.name}")
