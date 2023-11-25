@@ -212,11 +212,13 @@ class PaymentFundsCheck:
 
         if payment_type == 'Flex':
             total_this_month = 0
+            total_next_month = 0
             today = datetime.datetime.now()
             today = datetime.date(today.year, today.month, today.day)
 
             for payment in payments:
                 total_this_month += payment.amount_for_date(self.last_salary_date)
+                total_next_month += payment.amount_for_date(self.next_salary_date)
 
             date = self.last_salary_date
 
@@ -233,7 +235,7 @@ class PaymentFundsCheck:
             for payment in payments:
                 flex_remaining += payment.remaining
 
-            summary = FlexSummary(self.config, flex_status, total_this_month, flex_remaining)
+            summary = FlexSummary(self.config, flex_status, total_this_month, total_next_month, flex_remaining)
 
             if self.json:
                 self.output.append(summary.data(self.abbreviate))

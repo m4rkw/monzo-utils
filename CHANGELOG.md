@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.45 - 25/11/2023
+
+- Display next month's Flex payment in the monzo-payments summary
+
 ## 0.0.44 - 21/11/2023
 
 - Fixed crash during sync when a new account is returned

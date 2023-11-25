@@ -4,10 +4,11 @@ from monzo_utils.model.payment import Payment
 
 class FlexSummary(Payment):
 
-    def __init__(self, config, status, total, remaining):
+    def __init__(self, config, status, total, total_next_month, remaining):
         self.config = config
         self.flex_status = status
         self.flex_total = total
+        self.flex_total_next_month = total_next_month
         self.flex_remaining = remaining
 
 
@@ -49,3 +50,20 @@ class FlexSummary(Payment):
     @property
     def remaining(self):
         return self.flex_remaining
+
+
+    def display(self):
+        super().display()
+
+        data = self.data()
+
+        print("%s: %s %s %s %s %s %s %s" % (
+            'SKIPPED'.rjust(7),
+            data['payment_type'].ljust(15),
+            'Flex Payment next month'.ljust(25),
+            data['suffix'].ljust(4),
+            ('£%.2f' % (self.flex_total_next_month)).ljust(8),
+            ('£%.2f' % (data['remaining'] - self.flex_total_next_month)).ljust(8) if data['remaining'] else ''.ljust(8),
+            data['last_date'].strftime('%Y-%m-%d').ljust(12) if data['last_date'] else ''.ljust(12),
+            data['due_date'].strftime('%Y-%m-%d').ljust(10) if data['due_date'] else ''
+        ))
