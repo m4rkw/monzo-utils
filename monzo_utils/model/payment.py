@@ -136,7 +136,6 @@ class Payment:
     def display_amount(self):
         today = datetime.datetime.now()
         today = datetime.date(today.year, today.month, today.day)
-        today = datetime.date(2024,1,16)
 
         if 'last_amount_overrides' in Config().keys and \
             self.payment_config['name'] in Config().last_amount_overrides and \
