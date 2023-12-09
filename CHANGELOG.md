@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.47 - 09/12/2023
+
+- When finding an older payment for display purposes this cannot be before the start date
+
 ## 0.0.46 - 09/12/2023
 
 - Add support for renewals where the price is changing

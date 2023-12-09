@@ -256,6 +256,9 @@ class Payment:
 
         where=[{'clause': self.transaction_type + ' > %s', 'params': [0]}]
 
+        if 'start_date' in self.payment_config:
+            where.append({'clause': 'created_at >= %s', 'params': [self.payment_config['start_date']]})
+
         if self.always_fixed or 'fixed' in self.payment_config and self.payment_config['fixed']:
             method_name = f"find_all_by_declined_and_{self.transaction_type}_and_description"
 
