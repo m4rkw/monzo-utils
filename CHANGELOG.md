@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.46 - 09/12/2023
+
+- Add support for renewals where the price is changing
+
 ## 0.0.45 - 25/11/2023
 
 - Display next month's Flex payment in the monzo-payments summary

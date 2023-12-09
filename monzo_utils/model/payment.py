@@ -134,11 +134,24 @@ class Payment:
 
     @property
     def display_amount(self):
+        today = datetime.datetime.now()
+        today = datetime.date(today.year, today.month, today.day)
+        today = datetime.date(2024,1,16)
+
         if 'last_amount_overrides' in Config().keys and \
             self.payment_config['name'] in Config().last_amount_overrides and \
             self.last_salary_amount in Config().last_amount_overrides[self.payment_config['name']]:
 
             amount = Config().last_amount_overrides[self.payment_config['name']][self.last_salary_amount]
+        elif 'renewal' in self.payment_config and today >= self.payment_config['renewal']['date']:
+            if 'first_payment' in self.payment_config and today == self.payment_config['renewal']['date']:
+                amount = self.payment_config['first_payment']
+            else:
+                if self.last_date >= self.payment_config['renewal']['date']:
+                    amount = float(getattr(self.last_payment, self.transaction_type))
+                else:
+                    amount = self.payment_config['renewal']['amount']
+
         elif self.last_payment:
             amount = float(getattr(self.last_payment, self.transaction_type))
         else:
@@ -218,6 +231,9 @@ class Payment:
             )
 
         for transaction in transactions:
+            if 'start_date' in self.payment_config and transaction.date < self.payment_config['start_date']:
+                continue
+
             if transaction.id not in Transactions().seen:
                 Transactions().seen[transaction.id] = 1
 

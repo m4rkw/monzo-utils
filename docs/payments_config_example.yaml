@@ -131,6 +131,12 @@ refunds_due:
       # Feb/Mar
       # exclude_months: [2,3]
 
+      # for renewals where the price is changing you can append a renewal block to indicate this
+      # renewal:
+        # date: 2024-01-16        # date of renewal taking effect
+        # first_payment: 168.76   # set this if the first payment on the renewal date is different
+        # amount: 166.65          # new regular amount
+
 # config for Amazon Payments purchases (not Barclays Partner Finance for Amazon)
 # this is intended for Amazon's own financing where you pay over 5 monthly payments
 # with 0% interest
