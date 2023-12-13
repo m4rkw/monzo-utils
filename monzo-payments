@@ -35,7 +35,11 @@ class PaymentFundsCheck:
         self.load_config()
         self.validate_config()
 
-        self.db = DB(None, self.config_path)
+        try:
+            self.db = DB(None, self.config_path)
+        except Exception as e:
+            print(f"failed to connect to the database: {str(e)}")
+            sys.exit(1)
 
         self.seen = []
         self.exchange_rates = {}

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.48 - 13/12/2023
+
+- Indicate when we can't connect to the database
+
 ## 0.0.47 - 09/12/2023
 
 - When finding an older payment for display purposes this cannot be before the start date
