@@ -2,6 +2,8 @@ import re
 import sys
 import json
 import importlib
+import datetime
+import decimal
 from monzo_utils.lib.db import DB
 
 class BaseModel:
@@ -70,7 +72,19 @@ class BaseModel:
 
 
     def __str__(self):
-        return json.dumps(self.attrs,indent=4)
+        for_display = {}
+
+        for key in self.attrs:
+            if type(self.attrs[key]) == datetime.date:
+                for_display[key] = self.attrs[key].strftime('%Y-%m-%d')
+            elif type(self.attrs[key]) == datetime.datetime:
+                for_display[key] = self.attrs[key].strftime('%Y-%m-%d %H:%M:%S')
+            elif type(self.attrs[key]) == decimal.Decimal:
+                for_display[key] = float(self.attrs[key])
+            else:
+                for_display[key] = self.attrs[key]
+
+        return json.dumps(for_display,indent=4)
 
 
     def related(self, model, key_field, parent_id, orderby, orderdir, limit, deleted=None):

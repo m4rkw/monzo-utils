@@ -275,7 +275,7 @@ class MonzoAPI:
                 monzo.endpoints.pot.Pot.deposit(self.client, pot=pot, account_id=account_id, amount=amount, dedupe_id=dedupe_code)
                 return True
             except Exception as e:
-                print("failed to withdraw pot money: %s" % (str(e)))
+                print("failed to deposit pot money: %s" % (str(e)))
 
                 if i <2:
                     time.sleep(3)

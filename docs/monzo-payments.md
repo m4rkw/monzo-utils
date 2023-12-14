@@ -37,6 +37,7 @@ cover the expenses.
    arbitrary date in the future
  - Supports skipping payments on specific months for bills that are only charged
    during certain months of the year
+ - Supports regular monthly transfers to pots when salary is received
 
 ## Example
 

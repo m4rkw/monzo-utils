@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.49 - 14/12/2023
+
+- Added support for monthly transfers to pots when salary is paid
+
 ## 0.0.48 - 13/12/2023
 
 - Indicate when we can't connect to the database

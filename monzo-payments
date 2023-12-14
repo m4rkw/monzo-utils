@@ -163,12 +163,14 @@ class PaymentFundsCheck:
             sys.stdout.write("Bills pot payment:".ljust(31))
             print("£%.2f" % (self.next_month_bills_pot / 100))
 
+        sync_required = False
+
         if round(shortfall * 100) >0:
             print("      due: £%.2f" % (self.due / 100))
             print("  balance: £%.2f" % (pot.balance))
             print("shortfall: £%.2f" % (shortfall))
 
-            self.handle_shortfall(pot, shortfall)
+            sync_required = self.handle_shortfall(pot, shortfall)
 
         else:
 
@@ -180,7 +182,17 @@ class PaymentFundsCheck:
             else:
                 print(" credit: £%.2f" % (credit))
 
-                self.handle_credit(pot, credit)
+                sync_required = self.handle_credit(pot, credit)
+
+        today = datetime.datetime.now()
+
+        if today.strftime('%Y%m%d') == self.last_salary_date.strftime('%Y%m%d'):
+            if self.check_pot_payments():
+                sync_required = True
+
+        if sync_required:
+            ms = MonzoSync()
+            ms.sync()
 
 
     def display_columns(self):
@@ -381,9 +393,6 @@ class PaymentFundsCheck:
                         )
                     )
             else:
-                ms = MonzoSync()
-                ms.sync()
-
                 if 'notify_deposit' in self.config and self.config['notify_deposit']:
                     self.notify(
                         '%s - pot topped up' % (self.account.name),
@@ -394,6 +403,8 @@ class PaymentFundsCheck:
                         )
                     )
 
+                return True
+
         elif notify:
             self.notify(
                 '%s - shortfall' % (self.account.name),
@@ -403,6 +414,8 @@ class PaymentFundsCheck:
                     pot.balance
                 )
             )
+
+        return False
 
 
     def handle_credit(self, pot, credit):
@@ -437,9 +450,6 @@ class PaymentFundsCheck:
                         )
                     )
             else:
-                ms = MonzoSync()
-                ms.sync()
-
                 if 'notify_withdraw' in self.config and self.config['notify_withdraw']:
                     self.notify(
                         '%s - pot credit withdrawn' % (self.account.name),
@@ -450,6 +460,8 @@ class PaymentFundsCheck:
                         )
                     )
 
+                return True
+
         elif notify:
             self.notify(
                 '%s - credit' % (self.account.name),
@@ -459,6 +471,8 @@ class PaymentFundsCheck:
                     pot.balance
                 )
             )
+
+        return False
 
 
     def sanitise(self, output):
@@ -480,6 +494,54 @@ class PaymentFundsCheck:
             new_output.append(obj)
 
         return new_output
+
+
+    def check_pot_payments(self):
+        m = None
+        sync_required = False
+
+        if 'payments_to_pots' in self.config and type(self.config['payments_to_pots']) == list:
+            for payment in self.config['payments_to_pots']:
+                pot = Pot().find_by_name_and_deleted(payment['name'], 0)
+
+                if pot.last_monthly_transfer_date != self.last_salary_date:
+                    amount_to_transfer = self.get_transfer_amount(pot, payment)
+
+                    if amount_to_transfer == 0:
+                        continue
+
+                    if not m:
+                        m = MonzoAPI()
+                        sys.stdout.write("\n")
+
+                    sys.stdout.write("Transferring £%.2f to pot: %s ... " % (amount_to_transfer / 100, pot.name))
+                    sys.stdout.flush()
+
+                    if m.deposit_to_pot(self.account.account_id, pot, amount_to_transfer / 100):
+                        sys.stdout.write("OK\n")
+
+                        pot.last_monthly_transfer_date = self.last_salary_date
+                        pot.save()
+
+                        sync_required = True
+                    else:
+                        sys.stdout.write("FAILED\n\n")
+
+                        sys.stderr.write("ERROR: failed to transfer £%.2f to pot: %s\n" % (amount_to_transfer / 100, pot.name))
+
+        return sync_required
+
+
+    def get_transfer_amount(self, pot, payment):
+        amount = round(payment['amount'] * 100)
+
+        if 'topup' in payment and payment['topup']:
+            pot_balance = round(pot.balance * 100)
+            to_transfer = max([0, amount - pot_balance])
+        else:
+            to_transfer = amount
+
+        return to_transfer
 
 
 if len(sys.argv) <2:

@@ -76,6 +76,16 @@ payments:
 #
 # See below for examples
 
+# regular payments to pots
+# these will be made automatically once a month when your salary payment is received
+payments_to_pots:
+
+  - name: Petrol
+    amount: 100 # transfer a fixed amount to the pot every month
+  - name: Travel
+    amount: 50
+    topup: true # if this is set top up the pot to the specified value
+
 # indicate when a refund is pending
 # this amount will be deducted from the total due in the salary period
 # immediately after its due_after date
