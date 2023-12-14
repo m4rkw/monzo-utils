@@ -233,8 +233,8 @@ class PaymentFundsCheck:
             today = datetime.date(today.year, today.month, today.day)
 
             for payment in payments:
-                total_this_month += payment.amount_for_date(self.last_salary_date)
-                total_next_month += payment.amount_for_date(self.next_salary_date)
+                total_this_month += payment.amount_for_period(self.last_salary_date, self.next_salary_date)
+                total_next_month += payment.amount_for_period(self.next_salary_date, self.following_salary_date)
 
             date = self.last_salary_date
 

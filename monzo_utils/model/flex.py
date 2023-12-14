@@ -138,12 +138,12 @@ class Flex(Payment):
         return self.payment_config['amount'] - total_paid
 
 
-    def amount_for_date(self, for_date):
+    def amount_for_period(self, salary_from_date, salary_to_date):
         total = self.payment_config['amount']
 
         date = self.payment_config['start_date']
 
-        if date > for_date:
+        if date >= salary_to_date:
             return 0
 
         paid = 0
@@ -160,7 +160,7 @@ class Flex(Payment):
 
             paid += amount
 
-            if for_date < date:
+            if salary_from_date < date:
                 found = True
                 break
 
