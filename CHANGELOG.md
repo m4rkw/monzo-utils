@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.51 - 22/12/2023
+
+- Fixed column alignment bug
+
 ## 0.0.50 - 14/12/2023
 
 - Fixed incorrect calculation of monthly flex payment

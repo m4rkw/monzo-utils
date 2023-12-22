@@ -61,7 +61,7 @@ class FlexSummary(Payment):
             'SKIPPED'.rjust(7),
             data['payment_type'].ljust(15),
             'Flex Payment next month'.ljust(25),
-            data['suffix'].ljust(4),
+            data['suffix'].ljust(5),
             ('£%.2f' % (self.flex_total_next_month)).ljust(8),
             ('£%.2f' % (data['remaining'] - self.flex_total_next_month)).ljust(8) if data['remaining'] else ''.ljust(8),
             data['last_date'].strftime('%Y-%m-%d').ljust(12) if data['last_date'] else ''.ljust(12),

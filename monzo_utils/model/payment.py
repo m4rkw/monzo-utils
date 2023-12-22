@@ -72,7 +72,7 @@ class Payment:
             data['status'].rjust(7),
             data['payment_type'].ljust(15),
             data['name'].ljust(25),
-            data['suffix'].ljust(4),
+            data['suffix'].ljust(5),
             ('£%.2f' % (data['amount'])).ljust(8),
             ('£%.2f' % (data['remaining'])).ljust(8) if data['remaining'] else ''.ljust(8),
             data['last_date'].strftime('%Y-%m-%d').ljust(12) if data['last_date'] else ''.ljust(12),
