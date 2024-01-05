@@ -142,9 +142,9 @@ class Payment:
             self.last_salary_amount in Config().last_amount_overrides[self.payment_config['name']]:
 
             amount = Config().last_amount_overrides[self.payment_config['name']][self.last_salary_amount]
-        elif 'renewal' in self.payment_config and today >= self.payment_config['renewal']['date']:
-            if 'first_payment' in self.payment_config and today == self.payment_config['renewal']['date']:
-                amount = self.payment_config['first_payment']
+        elif 'renewal' in self.payment_config and (today >= self.payment_config['renewal']['date'] or self.status == 'PAID'):
+            if 'first_payment' in self.payment_config['renewal'] and today <= self.payment_config['renewal']['date']:
+                amount = self.payment_config['renewal']['first_payment']
             else:
                 if self.last_date >= self.payment_config['renewal']['date']:
                     amount = float(getattr(self.last_payment, self.transaction_type))
@@ -320,6 +320,14 @@ class Payment:
 
         if 'start_date' in self.payment_config and due_date < self.payment_config['start_date']:
             return self.payment_config['start_date']
+
+        if 'yearly_month' not in self.payment_config:
+            if 'exclude_months' in self.payment_config:
+                while due_date.month in self.payment_config['exclude_months']:
+                    if self.last_date.month == 12:
+                        due_date = datetime.date(due_date.year+1, 1, due_date.day)
+                    else:
+                        due_date = datetime.date(due_date.year, due_date.month+1, due_date.day)
 
         return due_date
 

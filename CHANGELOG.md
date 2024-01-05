@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.52 - 05/01/2024
+
+- Minor bugfixes
+
 ## 0.0.51 - 22/12/2023
 
 - Fixed column alignment bug

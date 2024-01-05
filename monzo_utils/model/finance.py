@@ -37,18 +37,31 @@ class Finance(Payment):
         if final_payment not in amounts:
             amounts.append(final_payment)
 
-        self.cache['all_finance_transactions'] = Transaction().find_all_by_declined_and_money_out_and_description(
-                0,
-                amounts,
-                self.payment_config['desc'],
-                search=['description'],
-                where=[{
-                    'clause': '`date` >= %s',
-                    'params': [self.payment_config['start_date']]
-                }],
-                orderby='created_at',
-                orderdir='asc'
-            )
+        if 'single_payment' in self.payment_config and self.payment_config['single_payment']:
+            self.cache['all_finance_transactions'] = Transaction().find_all_by_declined_and_description(
+                    0,
+                    self.payment_config['desc'],
+                    search=['description'],
+                    where=[{
+                        'clause': '`date` >= %s',
+                        'params': [self.payment_config['start_date']]
+                    }],
+                    orderby='created_at',
+                    orderdir='asc'
+                )
+        else:
+            self.cache['all_finance_transactions'] = Transaction().find_all_by_declined_and_money_out_and_description(
+                    0,
+                    amounts,
+                    self.payment_config['desc'],
+                    search=['description'],
+                    where=[{
+                        'clause': '`date` >= %s',
+                        'params': [self.payment_config['start_date']]
+                    }],
+                    orderby='created_at',
+                    orderdir='asc'
+                )
 
         return self.cache['all_finance_transactions']
 
@@ -78,6 +91,6 @@ class Finance(Payment):
         remaining = self.payment_config['amount']
 
         for transaction in self.all_finance_transactions:
-            remaining -= transaction.money_out
+            remaining -= float(transaction.money_out)
 
         return remaining
