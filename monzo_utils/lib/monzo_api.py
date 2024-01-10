@@ -8,6 +8,7 @@ import yaml
 import re
 import datetime
 import pwd
+import requests
 from pathlib import Path
 from monzo.authentication import Authentication
 import monzo.endpoints.account
@@ -75,16 +76,11 @@ class MonzoAPI:
             Log().error('Monzo Server Error')
             exit(1)
 
-        with open(self.token_file,'w') as f:
-            f.write(json.dumps({
-                'access_token': client.access_token,
-                'expiry': client.access_token_expiry,
-                'refresh_token': client.refresh_token
-            }))
-
         self.access_token = client.access_token
         self.access_token_expiry = client.access_token_expiry
         self.refresh_token = client.refresh_token
+
+        self.save_tokens()
 
         self.client = self.get_client()
 
@@ -100,6 +96,15 @@ class MonzoAPI:
                 pass
 
 
+    def save_tokens(self):
+        with open(self.token_file,'w') as f:
+            f.write(json.dumps({
+                'access_token': self.access_token,
+                'expiry': self.access_token_expiry,
+                'refresh_token': self.refresh_token
+            }))
+
+
     def get_client(self):
         return Authentication(
             client_id=Config().client_id,
@@ -109,6 +114,33 @@ class MonzoAPI:
             access_token_expiry=self.access_token_expiry,
             refresh_token=self.refresh_token
         )
+
+
+    def refresh_tokens(self):
+        resp = requests.post('https://api.monzo.com/oauth2/token', {
+            'grant_type': 'refresh_token',
+            'client_id': Config().client_id,
+            'client_secret': Config().client_secret,
+            'refresh_token': self.refresh_token
+        })
+
+        try:
+            data = json.loads(resp.text)
+        except Exception as e:
+            Log().error('failed to refresh tokens')
+            sys.exit(1)
+
+        if 'access_token' not in data:
+            Log().error('failed to refresh tokens')
+            sys.exit(1)
+
+        self.access_token = data['access_token']
+        self.access_token_expiry = data['expires_in']
+        self.refresh_token = data['refresh_token']
+
+        self.save_tokens()
+
+        self.client = self.get_client()
 
 
     def account(self, account_id):
@@ -172,27 +204,24 @@ class MonzoAPI:
         self.access_token_expiry = self.client.access_token_expiry
         self.refresh_token = self.client.refresh_token
 
-        with open(self.token_file + '.new','w') as f:
-            f.write(json.dumps({
-                'access_token': self.client.access_token,
-                'expiry': self.client.access_token_expiry,
-                'refresh_token': self.client.refresh_token
-            }))
-
-        os.rename(self.token_file + '.new', self.token_file)
+        self.save_tokens()
 
 
-    def transactions(self, account_id):
+    def transactions(self, account_id, first=True):
         error = None
 
         for i in range(0, 3):
             try:
                 return monzo.endpoints.transaction.Transaction.fetch(self.client, account_id=account_id, expand=['merchant'])
+            except MonzoPermissionsError as e:
+                raise e
             except Exception as e:
                 error = str(e)
 
                 if i != 2:
                     time.sleep(5)
+                else:
+                    raise e
 
         Log().error("failed to retrieve transactions: %s" % (error))
         sys.exit(1)

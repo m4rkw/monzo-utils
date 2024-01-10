@@ -43,6 +43,7 @@ class MonzoSync:
         Config()
 
         self.api = MonzoAPI()
+        self.api.refresh_tokens()
 
         self.db = DB()
 
@@ -447,7 +448,7 @@ class MonzoSync:
         return provider
 
 
-    def sync(self):
+    def sync(self, first=True):
         mo_accounts = self.api.accounts()
 
         accounts = []
@@ -492,6 +493,12 @@ class MonzoSync:
                 mo_transactions = self.api.transactions(account.account_id)
             except MonzoPermissionsError as e:
                 Log().error(f"permissions error: {str(e)}")
+
+                if first:
+                    self.api = MonzoAPI()
+                    self.api.authenticate()
+                    return self.sync(False)
+
                 continue
             except MonzoServerError as e:
                 Log().error(f"server error: {str(e)}")

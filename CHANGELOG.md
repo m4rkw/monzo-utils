@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.53 - 10/01/2024
+
+- Prompt to reauth if token expired
+- Refresh the token on every sync
+
 ## 0.0.52 - 05/01/2024
 
 - Minor bugfixes
