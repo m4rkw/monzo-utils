@@ -43,7 +43,6 @@ class MonzoSync:
         Config()
 
         self.api = MonzoAPI()
-        self.api.refresh_tokens()
 
         self.db = DB()
 

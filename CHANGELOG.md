@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.55 - 10/01/2024
+
+- Removed unnecessary token refresh
+
 ## 0.0.54 - 10/01/2024
 
 - Notify when permission refresh required

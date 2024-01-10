@@ -8,7 +8,6 @@ import yaml
 import re
 import datetime
 import pwd
-import requests
 from pathlib import Path
 from monzo.authentication import Authentication
 import monzo.endpoints.account
@@ -114,33 +113,6 @@ class MonzoAPI:
             access_token_expiry=self.access_token_expiry,
             refresh_token=self.refresh_token
         )
-
-
-    def refresh_tokens(self):
-        resp = requests.post('https://api.monzo.com/oauth2/token', {
-            'grant_type': 'refresh_token',
-            'client_id': Config().client_id,
-            'client_secret': Config().client_secret,
-            'refresh_token': self.refresh_token
-        })
-
-        try:
-            data = json.loads(resp.text)
-        except Exception as e:
-            Log().error('failed to refresh tokens')
-            sys.exit(1)
-
-        if 'access_token' not in data:
-            Log().error('failed to refresh tokens')
-            sys.exit(1)
-
-        self.access_token = data['access_token']
-        self.access_token_expiry = data['expires_in']
-        self.refresh_token = data['refresh_token']
-
-        self.save_tokens()
-
-        self.client = self.get_client()
 
 
     def account(self, account_id):
