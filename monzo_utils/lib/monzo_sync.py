@@ -448,7 +448,7 @@ class MonzoSync:
         return provider
 
 
-    def sync(self, first=True):
+    def sync(self):
         mo_accounts = self.api.accounts()
 
         accounts = []
@@ -494,12 +494,13 @@ class MonzoSync:
             except MonzoPermissionsError as e:
                 Log().error(f"permissions error: {str(e)}")
 
-                if first:
-                    self.api = MonzoAPI()
-                    self.api.authenticate()
-                    return self.sync(False)
+                if sys.stdin.isatty():
+                    Log().info("Need to refresh permissions in the app, Settings -> Privacy & Security -> Manage Apps")
+                else:
+                    os.system("echo 'Need to refresh permissions in the app, Settings -> Privacy & Security -> Manage Apps'| mail -s 'Monzo permission refresh required' '%s'" % (Config().email))
 
-                continue
+                sys.exit(1)
+
             except MonzoServerError as e:
                 Log().error(f"server error: {str(e)}")
                 continue

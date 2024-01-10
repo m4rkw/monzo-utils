@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.54 - 10/01/2024
+
+- Notify when permission refresh required
+
 ## 0.0.53 - 10/01/2024
 
 - Prompt to reauth if token expired
