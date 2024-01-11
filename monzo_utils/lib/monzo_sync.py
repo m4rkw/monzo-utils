@@ -523,7 +523,10 @@ class MonzoSync:
 
                 Log().info(f"syncing transactions for pot: {pot_lookup[pot_account_ids[pot_account_id]].name}")
 
-                mo_pot_transactions = self.api.transactions(pot_account_id)
+                try:
+                    mo_pot_transactions = self.api.transactions(pot_account_id)
+                except MonzoPermissionsError:
+                    continue
 
                 for mo_pot_transaction in mo_pot_transactions:
                     transaction = self.add_transaction(account, mo_pot_transaction, pot_account_ids, pot_lookup[pot_account_ids[pot_account_id]].id)

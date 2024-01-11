@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.56 - 11/01/2024
+
+- Bugfix
+
 ## 0.0.55 - 10/01/2024
 
 - Removed unnecessary token refresh
