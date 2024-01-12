@@ -113,7 +113,7 @@ class PaymentFundsCheck:
             self.display_payment_list('Refund', self.config['refunds_due'])
 
         if 'pot' in self.config:
-            pot = Pot().find_by_account_id_and_name(self.account.id, self.config['pot'])
+            pot = Pot().find_by_account_id_and_name_and_deleted(self.account.id, self.config['pot'], 0)
         else:
             pot = self.account
 

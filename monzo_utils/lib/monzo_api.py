@@ -179,12 +179,15 @@ class MonzoAPI:
         self.save_tokens()
 
 
-    def transactions(self, account_id, first=True):
+    def transactions(self, account_id, days=3):
         error = None
+
+        now = datetime.datetime.utcnow()
+        since = now - datetime.timedelta(days=days)
 
         for i in range(0, 3):
             try:
-                return monzo.endpoints.transaction.Transaction.fetch(self.client, account_id=account_id, expand=['merchant'])
+                return monzo.endpoints.transaction.Transaction.fetch(self.client, account_id=account_id, expand=['merchant'], since=since)
             except MonzoPermissionsError as e:
                 raise e
             except Exception as e:

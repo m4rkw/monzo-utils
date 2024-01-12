@@ -138,7 +138,7 @@ class MonzoSync:
         sys.stdout.write("Performing initial transaction sync ...\n\n")
         sys.stdout.flush()
 
-        self.sync()
+        self.sync(days=89)
 
         sys.stdout.write("\nSetup complete!\n\n")
 
@@ -447,7 +447,7 @@ class MonzoSync:
         return provider
 
 
-    def sync(self):
+    def sync(self, days=3):
         mo_accounts = self.api.accounts()
 
         accounts = []
@@ -489,7 +489,7 @@ class MonzoSync:
             try:
                 Log().info(f'syncing transactions for account: {account.name}')
 
-                mo_transactions = self.api.transactions(account.account_id)
+                mo_transactions = self.api.transactions(account.account_id, days=days)
             except MonzoPermissionsError as e:
                 Log().error(f"permissions error: {str(e)}")
 
@@ -523,10 +523,7 @@ class MonzoSync:
 
                 Log().info(f"syncing transactions for pot: {pot_lookup[pot_account_ids[pot_account_id]].name}")
 
-                try:
-                    mo_pot_transactions = self.api.transactions(pot_account_id)
-                except MonzoPermissionsError:
-                    continue
+                mo_pot_transactions = self.api.transactions(pot_account_id, days=days)
 
                 for mo_pot_transaction in mo_pot_transactions:
                     transaction = self.add_transaction(account, mo_pot_transaction, pot_account_ids, pot_lookup[pot_account_ids[pot_account_id]].id)

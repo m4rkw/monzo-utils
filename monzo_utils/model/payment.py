@@ -167,11 +167,11 @@ class Payment:
         if 'last_date' in self.cache:
             return self.cache['last_date']
 
-        if 'last_date_overrides' in Config().keys and \
-            self.payment_config['name'] in Config().last_date_overrides and \
-            self.last_salary_date in Config().last_date_overrides[self.payment_config['name']]:
+        if 'last_date_overrides' in self.config and \
+            self.payment_config['name'] in self.config['last_date_overrides'] and \
+            self.last_salary_date in self.config['last_date_overrides'][self.payment_config['name']]:
 
-            self.cache['last_date'] = Config().last_date_overrides[self.payment_config['name']][self.last_salary_date]
+            self.cache['last_date'] = self.config['last_date_overrides'][self.payment_config['name']][self.last_salary_date]
 
             return self.cache['last_date']
 

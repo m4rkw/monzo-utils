@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.0.57 - 12/01/2024
+
+- Fixed issue where if there are transactions over 90 days
+the sync results in a permissions error
+- Sync 3 days of transactions by default after initial sync of 89 days
+- Fixed pot lookup bug in monzo-payments
+- Fixed mapping of last date overrides
+
 ## 0.0.56 - 11/01/2024
 
 - Bugfix
