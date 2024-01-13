@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.58 - 13/01/2024
+
+- Handle Flex payments being paid early in monzo-payments
+
 ## 0.0.57 - 12/01/2024
 
 - Fixed issue where if there are transactions over 90 days

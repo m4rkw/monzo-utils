@@ -6,6 +6,8 @@ from monzo_utils.model.transaction import Transaction
 
 class Flex(Payment):
 
+    last_flex_payment = None
+
     @property
     def name(self):
         return '- ' + self.payment_config['name']
@@ -13,6 +15,10 @@ class Flex(Payment):
 
     @property
     def last_date(self):
+        if self.last_flex_payment:
+            if 'start_date' not in self.payment_config or self.last_flex_payment.date >= self.payment_config['start_date']:
+                return self.last_flex_payment.date
+
         last_date = self.today + datetime.timedelta(days=1)
 
         if 'start_date' in self.payment_config:
@@ -45,6 +51,13 @@ class Flex(Payment):
                 date_due += datetime.timedelta(days=1)
 
             if date_due > datetime.date(self.today.year, self.today.month, self.today.day):
+
+                if self.last_flex_payment and self.last_flex_payment.date.day != self.config['flex_payment_date'] and self.last_flex_payment.date >= self.payment_config['start_date']:
+                    date_due += datetime.timedelta(days=1)
+
+                    while date_due.day != self.config['flex_payment_date']:
+                        date_due += datetime.timedelta(days=1)
+
                 return datetime.date(date_due.year, date_due.month, date_due.day)
 
             date_due += datetime.timedelta(days=1)
@@ -57,18 +70,10 @@ class Flex(Payment):
         if self.payment_config['start_date'] >= self.next_salary_date:
             return 'SKIPPED'
 
-        today = datetime.datetime.now()
-        today = datetime.date(today.year, today.month, today.day)
+        if self.due_date >= self.next_salary_date:
+            return 'PAID'
 
-        date = self.last_salary_date
-
-        while date.day != self.config['flex_payment_date']:
-            date += datetime.timedelta(days=1)
-
-        if date > today:
-            return 'DUE'
-
-        return 'PAID'
+        return 'DUE'
 
 
     @property
@@ -84,6 +89,9 @@ class Flex(Payment):
                 num_paid += 1
 
             date += datetime.timedelta(days=1)
+
+        if self.last_flex_payment and self.last_flex_payment.date.day != self.config['flex_payment_date'] and self.last_flex_payment.date >= self.payment_config['start_date']:
+            num_paid += 1
 
         return num_paid
 

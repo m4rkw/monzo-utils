@@ -226,6 +226,8 @@ class PaymentFundsCheck:
     def display_payment_list(self, payment_type, payment_list):
         payments = self.get_payments(payment_type, payment_list)
 
+        summary = None
+
         if payment_type == 'Flex':
             total_this_month = 0
             total_next_month = 0
@@ -236,22 +238,12 @@ class PaymentFundsCheck:
                 total_this_month += payment.amount_for_period(self.last_salary_date, self.next_salary_date)
                 total_next_month += payment.amount_for_period(self.next_salary_date, self.following_salary_date)
 
-            date = self.last_salary_date
-
-            while date.day != self.config['flex_payment_date']:
-                date += datetime.timedelta(days=1)
-
-            if date > today:
-                flex_status = 'DUE'
-            else:
-                flex_status = 'PAID'
-
             flex_remaining = 0
 
             for payment in payments:
                 flex_remaining += payment.remaining
 
-            summary = FlexSummary(self.config, flex_status, total_this_month, total_next_month, flex_remaining)
+            summary = FlexSummary(self.config, total_this_month, total_next_month, flex_remaining, self.last_salary_date)
 
             if self.json:
                 self.output.append(summary.data(self.abbreviate))
@@ -259,6 +251,9 @@ class PaymentFundsCheck:
                 summary.display()
 
         for payment in payments:
+            if summary:
+                payment.last_flex_payment = summary.last_payment
+
             if payment.status in ['DUE','PAID']:
                 self.total_this_month += payment.display_amount * 100
 
