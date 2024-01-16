@@ -91,7 +91,16 @@ class Flex(Payment):
             date += datetime.timedelta(days=1)
 
         if self.last_flex_payment and self.last_flex_payment.date.day != self.config['flex_payment_date'] and self.last_flex_payment.date >= self.payment_config['start_date']:
-            num_paid += 1
+            date = self.last_salary_date
+
+            while date.day != self.config['flex_payment_date']:
+                date += datetime.timedelta(days=1)
+
+            today = datetime.datetime.now()
+            today = datetime.date(today.year, today.month, today.day)
+
+            if today < date:
+                num_paid += 1
 
         return num_paid
 

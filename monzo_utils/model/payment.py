@@ -68,12 +68,31 @@ class Payment:
     def display(self):
         data = self.data()
 
+        if self.__class__.__name__ == 'Flex':
+            amount = ('£%.2f' % (data['amount'])).ljust(19)
+        elif self.__class__.__name__ == 'FlexSummary':
+            amount = ('£%.2f' % (data['amount'])).ljust(9) + \
+                ('->£%.2f' % (self.flex_total_next_month)).ljust(10)
+        else:
+            if self.last_payment and self.last_payment.money_out:
+                last_amount = self.last_payment.money_out
+            else:
+                last_amount = data['amount']
+
+            if last_amount == None:
+                amount = ''
+            elif ('%.2f' % (last_amount)) == ('%.2f' % (self.next_month_amount)):
+                amount = ('£%.2f' % (last_amount)).ljust(19)
+            else:
+                amount = ('£%.2f' % (last_amount)).ljust(9) + \
+                    ('->£%.2f' % (self.next_month_amount)).ljust(10)
+
         print("%s: %s %s %s %s %s %s %s" % (
             data['status'].rjust(7),
             data['payment_type'].ljust(15),
             data['name'].ljust(25),
             data['suffix'].ljust(5),
-            ('£%.2f' % (data['amount'])).ljust(8),
+            amount,
             ('£%.2f' % (data['remaining'])).ljust(8) if data['remaining'] else ''.ljust(8),
             data['last_date'].strftime('%Y-%m-%d').ljust(12) if data['last_date'] else ''.ljust(12),
             data['due_date'].strftime('%Y-%m-%d').ljust(10) if data['due_date'] else ''

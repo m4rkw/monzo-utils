@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.62 - 16/01/2024
+
+- Fixed incorrect number of payments indicated when Flex monthly payment
+  was sent early
+- Cleaned up monzo-payments output, next months payment is now indicated inline
+
 ## 0.0.61 - 16/01/2024
 
 - Minor bugfix in previous release

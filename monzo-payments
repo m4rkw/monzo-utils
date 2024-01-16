@@ -145,14 +145,14 @@ class PaymentFundsCheck:
         sys.stdout.write("\n")
 
         sys.stdout.write(" " * 25)
-        sys.stdout.write("TOTAL THIS MONTH:".ljust(31))
+        sys.stdout.write("TOTAL THIS MONTH:".ljust(32))
         print("£%.2f" % (self.total_this_month / 100))
 
         if 'exclude_yearly_from_bills' in self.config and self.config['exclude_yearly_from_bills']:
             sys.stdout.write("\n")
 
         sys.stdout.write(" " * 25)
-        sys.stdout.write("TOTAL NEXT MONTH:".ljust(31))
+        sys.stdout.write("TOTAL NEXT MONTH:".ljust(32))
         print("£%.2f" % (self.next_month / 100))
 
         credit = (round(pot.balance * 100) - self.due) / 100
@@ -211,14 +211,14 @@ class PaymentFundsCheck:
             'Status'.rjust(8),
             'Type'.ljust(15),
             'Name'.ljust(25),
-            ''.ljust(4),
-            'Amount'.ljust(8),
+            ''.ljust(5),
+            'Amount'.ljust(19),
             'Left'.ljust(8),
             'Last date'.ljust(12),
             'Due date'.ljust(10)
         ))
 
-        print("-" * 97)
+        print("-" * 109)
 
 
     def prompt_action(self, prompt):
