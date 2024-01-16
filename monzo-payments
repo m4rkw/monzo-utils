@@ -51,6 +51,10 @@ class PaymentFundsCheck:
             sys.stderr.write(f"account {self.account_name} not found in the database\n")
             sys.exit(1)
 
+        homedir = pwd.getpwuid(os.getuid()).pw_dir
+        self.credit_tracker = f"{homedir}/{self.config['account']}.credit"
+        self.shortfall_tracker = f"{homedir}/{self.config['account']}.shortfall"
+
 
     def load_config(self):
         if os.path.exists(self.account_name):
@@ -361,7 +365,11 @@ class PaymentFundsCheck:
         notify = False
 
         if 'pot' in self.config and 'auto_deposit' in self.config and self.config['auto_deposit'] and not sys.stdout.isatty() and not self.abbreviate:
-            deposit = True
+            if 'auto_deposit_delay_mins' in self.config:
+                withdraw = self.handle_deposit_delay(credit)
+            else:
+                withdraw = True
+
         elif not sys.stdout.isatty():
             if 'notify_shortfall' in self.config and self.config['notify_shortfall'] and not self.abbreviate:
                 notify = True
@@ -388,6 +396,9 @@ class PaymentFundsCheck:
                         )
                     )
             else:
+                if os.path.exists(self.shortfall_tracker):
+                    os.remove(shortfall_tracker)
+
                 if 'notify_deposit' in self.config and self.config['notify_deposit']:
                     self.notify(
                         '%s - pot topped up' % (self.account.name),
@@ -418,7 +429,10 @@ class PaymentFundsCheck:
         notify = False
 
         if 'pot' in self.config and 'auto_withdraw' in self.config and self.config['auto_withdraw'] and not sys.stdout.isatty() and not self.abbreviate:
-            withdraw = True
+            if 'auto_withdraw_delay_mins' in self.config:
+                withdraw = self.handle_withdrawal_delay(credit)
+            else:
+                withdraw = True
         elif not sys.stdout.isatty():
             if 'notify_credit' in self.config and self.config['notify_credit'] and not self.abbreviate:
                 notify = True
@@ -445,6 +459,9 @@ class PaymentFundsCheck:
                         )
                     )
             else:
+                if os.path.exists(self.credit_tracker):
+                    os.remove(credit_tracker)
+
                 if 'notify_withdraw' in self.config and self.config['notify_withdraw']:
                     self.notify(
                         '%s - pot credit withdrawn' % (self.account.name),
@@ -468,6 +485,36 @@ class PaymentFundsCheck:
             )
 
         return False
+
+
+    def handle_withdrawal_delay(self, credit):
+        credit_s = str(int(credit * 100))
+
+        if not os.path.exists(self.credit_tracker) or open(self.credit_tracker).read().rstrip() != credit_s:
+            with open(self.credit_tracker,'w') as f:
+                f.write(credit_s)
+
+            return False
+
+        elapsed = time.time() - os.stat(self.credit_tracker).st_mtime
+
+        return elapsed >= self.config['auto_withdraw_delay_mins']
+
+
+    def handle_deposit_delay(self, shortfall):
+        homedir = pwd.getpwuid(os.getuid()).pw_dir
+
+        shortfall_s = str(int(shortfall * 100))
+
+        if not os.path.exists(self.shortfall_tracker) or open(self.shortfall_tracker).read().rstrip() != shortfall_s:
+            with open(self.shortfall_tracker,'w') as f:
+                f.write(shortfall_s)
+
+            return False
+
+        elapsed = time.time() - os.stat(self.shortfall_tracker).st_mtime
+
+        return elapsed >= self.config['auto_deposit_delay_mins']
 
 
     def sanitise(self, output):

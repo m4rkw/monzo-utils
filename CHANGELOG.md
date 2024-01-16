@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.60 - 16/01/2024
+
+- Added support for auto deposit/withdrawal delays to avoid money bouncing between pot and account
+
 ## 0.0.59 - 16/01/2024
 
 - Fixed calculation of next month payments taking renewals into account
