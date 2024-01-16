@@ -262,10 +262,10 @@ class PaymentFundsCheck:
 
             if payment.due_next_month:
                 if payment.status == 'SKIPPED' or payment_type != 'Refund':
-                    self.next_month += payment.display_amount * 100
+                    self.next_month += payment.next_month_amount * 100
 
                     if 'exclude_yearly_from_bills' not in self.config or self.config['exclude_yearly_from_bills'] is False or 'yearly_month' not in payment_config:
-                        self.next_month_bills_pot += payment.display_amount * 100
+                        self.next_month_bills_pot += payment.next_month_amount * 100
 
             if self.json:
                 self.output.append(payment.data(self.abbreviate))

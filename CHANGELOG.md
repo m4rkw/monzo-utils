@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.59 - 16/01/2024
+
+- Fixed calculation of next month payments taking renewals into account
+
 ## 0.0.58 - 13/01/2024
 
 - Handle Flex payments being paid early in monzo-payments

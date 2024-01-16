@@ -163,6 +163,17 @@ class Payment:
 
 
     @property
+    def next_month_amount(self):
+        if 'renewal' in self.payment_config:
+            if 'first_payment' in self.payment_config['renewal'] and self.payment_config['renewal']['date'] >= self.next_salary_date:
+                return self.payment_config['renewal']['first_payment']
+
+            return self.payment_config['renewal']['amount']
+
+        return self.display_amount
+
+
+    @property
     def last_date(self):
         if 'last_date' in self.cache:
             return self.cache['last_date']
