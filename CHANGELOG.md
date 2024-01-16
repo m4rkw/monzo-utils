@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.61 - 16/01/2024
+
+- Minor bugfix in previous release
+
 ## 0.0.60 - 16/01/2024
 
 - Added support for auto deposit/withdrawal delays to avoid money bouncing between pot and account

@@ -178,11 +178,18 @@ class PaymentFundsCheck:
 
         else:
 
+            if os.path.exists(self.shortfall_tracker):
+                os.remove(self.shortfall_tracker)
+
             print("    due: £%.2f" % (self.due / 100))
             print("balance: £%.2f" % (pot.balance))
 
             if round(credit * 100) == 0:
                 credit = 0
+
+                if os.path.exists(self.credit_tracker):
+                    os.remove(self.credit_tracker)
+
             else:
                 print(" credit: £%.2f" % (credit))
 
