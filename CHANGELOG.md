@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.63 - 17/01/2024
+
+- Bugfixes
+
 ## 0.0.62 - 16/01/2024
 
 - Fixed incorrect number of payments indicated when Flex monthly payment

@@ -52,8 +52,8 @@ class PaymentFundsCheck:
             sys.exit(1)
 
         homedir = pwd.getpwuid(os.getuid()).pw_dir
-        self.credit_tracker = f"{homedir}/{self.config['account']}.credit"
-        self.shortfall_tracker = f"{homedir}/{self.config['account']}.shortfall"
+        self.credit_tracker = f"{homedir}/.monzo/{self.config['account']}.credit"
+        self.shortfall_tracker = f"{homedir}/.monzo/{self.config['account']}.shortfall"
 
 
     def load_config(self):
@@ -373,7 +373,7 @@ class PaymentFundsCheck:
 
         if 'pot' in self.config and 'auto_deposit' in self.config and self.config['auto_deposit'] and not sys.stdout.isatty() and not self.abbreviate:
             if 'auto_deposit_delay_mins' in self.config:
-                withdraw = self.handle_deposit_delay(credit)
+                withdraw = self.handle_deposit_delay(shortfall)
             else:
                 withdraw = True
 
