@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.64 - 17/01/2024
+
+- Bugfixes
+
 ## 0.0.63 - 17/01/2024
 
 - Bugfixes

@@ -373,9 +373,9 @@ class PaymentFundsCheck:
 
         if 'pot' in self.config and 'auto_deposit' in self.config and self.config['auto_deposit'] and not sys.stdout.isatty() and not self.abbreviate:
             if 'auto_deposit_delay_mins' in self.config:
-                withdraw = self.handle_deposit_delay(shortfall)
+                deposit = self.handle_deposit_delay(shortfall)
             else:
-                withdraw = True
+                deposit = True
 
         elif not sys.stdout.isatty():
             if 'notify_shortfall' in self.config and self.config['notify_shortfall'] and not self.abbreviate:
@@ -505,7 +505,7 @@ class PaymentFundsCheck:
 
         elapsed = time.time() - os.stat(self.credit_tracker).st_mtime
 
-        return elapsed >= self.config['auto_withdraw_delay_mins']
+        return elapsed >= self.config['auto_withdraw_delay_mins'] * 60
 
 
     def handle_deposit_delay(self, shortfall):
@@ -521,7 +521,9 @@ class PaymentFundsCheck:
 
         elapsed = time.time() - os.stat(self.shortfall_tracker).st_mtime
 
-        return elapsed >= self.config['auto_deposit_delay_mins']
+        print(elapsed)
+
+        return elapsed >= self.config['auto_deposit_delay_mins'] * 60
 
 
     def sanitise(self, output):

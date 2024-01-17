@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(name='monzo-utils',
-    version='0.0.63',
+    version='0.0.64',
     description='Monzo Utils',
     author='Mark Wadham',
     url='https://github.com/m4rkw/monzo-utils',
