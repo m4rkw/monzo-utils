@@ -75,7 +75,13 @@ class Payment:
                 ('->£%.2f' % (self.flex_total_next_month)).ljust(10)
         else:
             if self.last_payment and self.last_payment.money_out:
-                last_amount = self.last_payment.money_out
+                if 'last_amount_overrides' in self.config and \
+                    self.payment_config['name'] in self.config['last_amount_overrides'] and \
+                    self.last_salary_date in self.config['last_amount_overrides'][self.payment_config['name']]:
+
+                    last_amount = self.config['last_amount_overrides'][self.payment_config['name']][self.last_salary_date]
+                else:
+                    last_amount = self.last_payment.money_out
             else:
                 last_amount = data['amount']
 

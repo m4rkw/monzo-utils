@@ -159,7 +159,7 @@ class PaymentFundsCheck:
 
         if round(shortfall * 100) <0:
             sys.stdout.write(" " * 25)
-            sys.stdout.write("LESS CREDIT BALANCE:".ljust(31))
+            sys.stdout.write("LESS CREDIT BALANCE:".ljust(32))
             print("£%.2f" % ((self.next_month / 100) - credit))
 
         if 'exclude_yearly_from_bills' in self.config and self.config['exclude_yearly_from_bills']:
