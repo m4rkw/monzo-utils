@@ -26,9 +26,9 @@ class DB(metaclass=Singleton):
 
         for param in params:
             if type(param) == datetime.date:
-                json_params.append(param.strftime('%Y-%M-%d'))
+                json_params.append(param.strftime('%Y-%m-%d'))
             elif type(param) == datetime.datetime:
-                json_params.append(param.strftime('%Y-%M-%d %H:%M:%S'))
+                json_params.append(param.strftime('%Y-%m-%d %H:%M:%S'))
             else:
                 json_params.append(param)
 
@@ -58,13 +58,13 @@ class DB(metaclass=Singleton):
 
         for key in row:
             if type(row[key]) == str:
-                m = re.match('^([\d]{4})-([\d]{2})-([\d]{2})$', row[key])
+                m = re.match(r'^([\d]{4})-([\d]{2})-([\d]{2})$', row[key])
 
                 if m:
                     fixed_row[key] = datetime.date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
                     continue
 
-                m = re.match('^([\d]{4})-([\d]{2})-([\d]{2}) ([\d]{2}):([\d]{2}):([\d]{2})$', row[key])
+                m = re.match(r'^([\d]{4})-([\d]{2})-([\d]{2}) ([\d]{2}):([\d]{2}):([\d]{2})$', row[key])
 
                 if m:
                     fixed_row[key] = datetime.datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)))
@@ -254,7 +254,10 @@ class DB(metaclass=Singleton):
                 continue
 
             if sql[i:i+2] == '%s':
-                raw_sql += "'" + self.whereParams[n] + "'"
+                if type(self.whereParams[n]) in [int,float]:
+                    raw_sql += str(self.whereParams[n])
+                else:
+                    raw_sql += "'" + str(self.whereParams[n]) + "'"
                 n += 1
                 skip = True
             else:

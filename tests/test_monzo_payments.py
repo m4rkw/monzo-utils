@@ -6,6 +6,7 @@ from unittest.mock import patch
 from unittest.mock import MagicMock
 from monzo_utils.lib.singleton import Singleton
 from monzo_utils.lib.db import DB
+from monzo_utils.lib.config import Config
 from monzo_utils.model.account import Account
 from monzo_utils.model.pot import Pot
 from monzo_utils.model.card_payment import CardPayment
@@ -27,6 +28,7 @@ class TestMonzoPayments(BaseTest):
 
     def setUp(self):
         self.db = MagicMock()
+        Config._instances = {}
         DB._instances[DB] = self.db
 
         self.config = {
