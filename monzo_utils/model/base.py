@@ -58,7 +58,10 @@ class BaseModel:
 
 
     def __delattr__(self, name):
-        self.attributes.pop(name)
+        try:
+            self.attributes.pop(name)
+        except KeyError:
+            pass
 
 
     def __str__(self):
@@ -108,7 +111,7 @@ class BaseModel:
         if self.id:
             DB().update(self.table, self.id, self.attributes)
         else:
-            self.id = DB().create(self.table, self.attributes)
+            self.id = DB().create(self.table, self.attributes.copy())
 
 
     def delete(self):
