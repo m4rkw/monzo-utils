@@ -48,7 +48,7 @@ class Account(BaseModel):
         return keys
 
 
-    def last_salary_transaction(self, description, payment_day, salary_minimum):
+    def last_salary_transaction(self, description, salary_minimum):
         if type(description) == list:
             salary_desc = description
         else:
