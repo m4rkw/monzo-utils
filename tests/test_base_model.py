@@ -449,6 +449,3 @@ class TestBaseModel(BaseTest):
 
         mock_factory.assert_called()
         mock_getone.assert_called_with()
-
-
-
