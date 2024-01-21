@@ -2,6 +2,8 @@ from base_test import BaseTest
 from unittest.mock import patch
 from unittest.mock import MagicMock
 from monzo_utils.model.base import BaseModel
+from monzo_utils.lib.db import DB
+from monzo_utils.lib.config import Config
 import pytest
 import datetime
 import decimal
@@ -10,7 +12,8 @@ import json
 class TestBaseModel(BaseTest):
 
     def setUp(self):
-        pass
+        Config._instances = {}
+        DB._instances = {}
 
 
     def test_constructor(self):

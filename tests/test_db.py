@@ -1,6 +1,7 @@
 from base_test import BaseTest
 from unittest.mock import patch
 from unittest.mock import MagicMock
+from monzo_utils.lib.config import Config
 from monzo_utils.lib.db import DB
 from monzo_utils.lib.db_driver.mysql import mysql
 import datetime
@@ -8,6 +9,7 @@ import datetime
 class TestDB(BaseTest):
 
     def setUp(self):
+        Config._instances = {}
         DB._instances = {}
 
 

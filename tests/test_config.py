@@ -2,12 +2,13 @@ from base_test import BaseTest
 from unittest.mock import patch
 from unittest.mock import MagicMock
 from monzo_utils.lib.config import Config
+from monzo_utils.lib.db import DB
 
 class TestConfig(BaseTest):
 
     def setUp(self):
         Config._instances = {}
-
+        DB._instances = {}
 
     @patch('os.path.exists')
     @patch('monzo_utils.lib.config.Config.get_file_contents')
