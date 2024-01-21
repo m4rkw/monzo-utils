@@ -2,7 +2,7 @@ import re
 import datetime
 from monzo_utils.lib.config import Config
 from monzo_utils.model.transaction import Transaction
-from monzo_utils.lib.transactions import Transactions
+from monzo_utils.lib.transactions_seen import TransactionsSeen
 
 class Payment:
 
@@ -227,50 +227,67 @@ class Payment:
         return self.cache['last_date']
 
 
+    def get_transaction_where_condition(self, amounts=True):
+        if 'desc' not in self.payment_config:
+            self.payment_config['desc'] = type(self).__name__
+
+        where = f"{self.transaction_type} > %s and declined = %s"
+        params = [0, 0]
+
+        if type(self.payment_config['desc']) == list:
+            desc_list = self.payment_config['desc']
+        else:
+            desc_list = [self.payment_config['desc']]
+
+        where += " and ( "
+
+        for i in range(0, len(desc_list)):
+            if i >0:
+                where += " or "
+            where += " description like %s "
+            params.append('%' + desc_list[i] + '%')
+
+        where += ")"
+
+        if 'start_date' in self.payment_config:
+            where += f" and `date` >= %s"
+            params.append(self.payment_config['start_date'].strftime('%Y-%m-%d'))
+
+        if amounts is True and self.always_fixed or 'fixed' in self.payment_config and self.payment_config['fixed']:
+            where += f" and {self.transaction_type} = %s"
+            params.append(self.payment_config['amount'])
+        elif amounts is not False and amounts is not True and amounts is not None:
+            if type(amounts) != list:
+                amounts = [amounts]
+
+            where += ' and ('
+
+            for i in range(0, len(amounts)):
+                if i >0:
+                    where += ' or '
+                where += f' {self.transaction_type} = %s'
+                params.append(amounts[i])
+
+            where += ')'
+
+        return where, params
+
+
     @property
     def last_payment(self):
         if 'last_payment' in self.cache:
             return self.cache['last_payment']
 
-        if 'desc' not in self.payment_config:
-            self.payment_config['desc'] = type(self).__name__
+        where, params = self.get_transaction_where_condition()
 
-        where=[{'clause': self.transaction_type + ' > %s', 'params': [0]}]
-
-        if 'start_date' in self.payment_config:
-            where.append({
-                'clause': '`date` >= %s',
-                'params': [self.payment_config['start_date']]
-            })
-
-        if self.always_fixed or 'fixed' in self.payment_config and self.payment_config['fixed']:
-            method_name = f"find_all_by_declined_and_{self.transaction_type}_and_description"
-
-            transactions = getattr(Transaction(), method_name)(
-                0,
-                self.payment_config['amount'],
-                self.payment_config['desc'],
-                orderby='created_at',
-                orderdir='desc',
-                search=['description'],
-                where=where
-            )
-        else:
-            transactions = Transaction().find_all_by_declined_and_description(
-                0,
-                self.payment_config['desc'],
-                orderby='created_at',
-                orderdir='desc',
-                search=['description'],
-                where=where
-            )
+        transactions = Transaction().find(f"select * from transaction where {where} order by created_at desc", params)
 
         for transaction in transactions:
             if 'start_date' in self.payment_config and transaction.date < self.payment_config['start_date']:
                 continue
 
-            if transaction.id not in Transactions().seen:
-                Transactions().seen[transaction.id] = 1
+            if transaction.id not in TransactionsSeen().seen:
+                TransactionsSeen().seen[transaction.id] = 1
 
                 self.cache['last_payment'] = transaction
 
@@ -287,39 +304,16 @@ class Payment:
         if 'older_last_payment' in self.cache:
             return self.cache['older_last_payment']
 
-        if 'desc' not in self.payment_config:
-            self.payment_config['desc'] = type(self).__name__
+        where, params = self.get_transaction_where_condition()
 
-        where=[{'clause': self.transaction_type + ' > %s', 'params': [0]}]
-
-        if 'start_date' in self.payment_config:
-            where.append({'clause': 'created_at >= %s', 'params': [self.payment_config['start_date']]})
-
-        if self.always_fixed or 'fixed' in self.payment_config and self.payment_config['fixed']:
-            method_name = f"find_all_by_declined_and_{self.transaction_type}_and_description"
-
-            transactions = getattr(Transaction(), method_name)(
-                0,
-                self.payment_config['amount'],
-                self.payment_config['desc'],
-                orderby='created_at',
-                orderdir='desc',
-                search=['description'],
-                where=where
-            )
-        else:
-            transactions = Transaction().find_all_by_declined_and_description(
-                0,
-                self.payment_config['desc'],
-                orderby='created_at',
-                orderdir='desc',
-                search=['description'],
-                where=where
-            )
+        transactions = Transaction().find(
+            f"select * from transaction where {where} order by created_at desc",
+            params
+        )
 
         for transaction in transactions:
-            if transaction.id not in Transactions().seen:
-                Transactions().seen[transaction.id] = 1
+            if transaction.id not in TransactionsSeen().seen:
+                TransactionsSeen().seen[transaction.id] = 1
 
                 self.cache['older_last_payment'] = transaction
 

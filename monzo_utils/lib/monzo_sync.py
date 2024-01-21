@@ -272,7 +272,7 @@ class MonzoSync:
         mo_merchant.pop('id')
         mo_address = mo_merchant.pop('address')
 
-        merchant = Merchant().find_by_merchant_id(merchant_id)
+        merchant = Merchant("select * from merchant where merchant_id = %s", [merchant_id])
 
         if not merchant:
             Log().info(f"creating merchant: {mo_merchant['name']} ({mo_merchant['merchant_id']})")
@@ -283,7 +283,7 @@ class MonzoSync:
 
         mo_address['merchant_id'] = merchant.id
 
-        address = MerchantAddress().find_by_merchant_id(merchant.id)
+        address = MerchantAddress("select * from merchant_address where merchant_id = %s", [merchant.id])
 
         if not address:
             address = MerchantAddress()
@@ -325,20 +325,16 @@ class MonzoSync:
             _type = 'debit'
 
         if pot_id:
-            where = [{
-                'clause': 'pot_id = %s',
-                'params': [pot_id]
-            }]
+            where = "pot_id = %s"
+            params = [pot_id]
         else:
-            where = [{
-                'clause': 'pot_id is null'
-            }]
+            where = "pot_id is null"
+            params = []
 
-        transaction = Transaction().find_by_account_id_and_transaction_id(
-            account.id,
-            mo_transaction.transaction_id,
-            where=where
-        )
+        where += " and account_id = %s and transaction_id = %s"
+        params += [account.id, mo_transaction.transaction_id]
+
+        transaction = Transaction(f"select * from transaction where {where}", params)
 
         date = mo_transaction.created.strftime('%Y-%m-%d')
 
@@ -402,7 +398,7 @@ class MonzoSync:
                 metadata['metadata_%s' % (key)] = mo_transaction.metadata[key]
 
         for key in metadata:
-            transaction_metadata = TransactionMetadata().find_by_transaction_id_and_key(transaction.id, key)
+            transaction_metadata = TransactionMetadata("select * from transaction_metadata where transaction_id = %s and `key` = %s", [transaction.id, key])
 
             if not transaction_metadata:
                 transaction_metadata = TransactionMetadata()
@@ -413,7 +409,7 @@ class MonzoSync:
 
             transaction_metadata.save()
 
-        for transaction_metadata in TransactionMetadata().find_all_by_transaction_id(transaction.id):
+        for transaction_metadata in TransactionMetadata().find("select * from transaction_metadata where transaction_id = %s", [transaction.id]):
             if transaction_metadata.key not in metadata:
                 transaction_metadata.delete()
 
@@ -421,7 +417,7 @@ class MonzoSync:
 
 
     def get_or_create_counterparty(self, mo_counterparty):
-        counterparty = Counterparty().find_by_user_id(mo_counterparty['user_id'])
+        counterparty = Counterparty("select * from counterparty where user_id = %s", [mo_counterparty['user_id']])
 
         if not counterparty:
             Log().info(f"creating counterparty: {mo_counterparty['name']} ({mo_counterparty['user_id']})")
@@ -435,7 +431,7 @@ class MonzoSync:
 
 
     def get_provider(self):
-        provider = Provider().find_by_name(PROVIDER)
+        provider = Provider("select * from provider where name = %s", [PROVIDER])
 
         if not provider:
             Log().info(f"creating provider: {PROVIDER}")
@@ -470,7 +466,7 @@ class MonzoSync:
             pot_lookup = {}
 
             for mo_pot in mo_pots:
-                pot = Pot().find_by_account_id_and_pot_id(account.id, mo_pot.pot_id)
+                pot = Pot("select * from pot where account_id = %s and pot_id = %s", [account.id, mo_pot.pot_id])
 
                 if not pot:
                     Log().info(f"creating pot: {mo_pot.name}")
@@ -538,7 +534,7 @@ class MonzoSync:
 
 
     def get_or_create_account(self, mo_account, account_config):
-        account = Account().find_by_provider_id_and_account_id(self.provider.id, mo_account.account_id)
+        account = Account("select * from account where provider_id = %s and account_id = %s", [self.provider.id, mo_account.account_id])
 
         if not account:
             account = Account()

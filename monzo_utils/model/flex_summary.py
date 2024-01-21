@@ -84,19 +84,15 @@ class FlexSummary(Payment):
         if 'last_payment' in self.cache:
             return self.cache['last_payment']
 
-        account = Account().find_by_name(self.config['flex_account'])
+        account = Account("select * from account where name = %s", [self.config['flex_account']])
 
-        where = [{'clause': 'date > %s', 'params': [self.last_salary_date]}]
-
-        transaction = Transaction().find_by_account_id_and_declined_and_money_in_and_description(
+        transaction = Transaction("select * from transaction where account_id = %s and declined = %s and money_in = %s and description = %s and `date` > %s order by created_at asc limit 1", [
             account.id,
             0,
             self.display_amount,
             'Flex',
-            orderby='created_at',
-            orderdir='asc',
-            limit=1
-        )
+            self.last_salary_date
+        ])
 
         self.cache['last_payment'] = transaction
 

@@ -233,7 +233,7 @@ class MonzoAPI:
         return pots
 
 
-    def withdraw_credit(self, account_id, pot, credit):
+    def withdraw_from_pot(self, account_id, pot, credit):
         self.load_tokens()
 
         self.client = self.get_client()
