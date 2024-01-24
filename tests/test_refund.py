@@ -48,6 +48,9 @@ class TestRefund(BaseTest):
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
     def test_data_fields(self, mock_query, mock_db):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_db.return_value = None
 
         p = Refund(
@@ -87,6 +90,9 @@ class TestRefund(BaseTest):
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
     def test_data_abbreviated(self, mock_query, mock_db):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_db.return_value = None
 
         p = Refund(
@@ -168,6 +174,9 @@ class TestRefund(BaseTest):
     @patch('monzo_utils.lib.db.DB.query')
     @patch('builtins.print')
     def test_display(self, mock_print, mock_query, mock_db):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_db.return_value = None
 
         p = Refund(
@@ -391,6 +400,9 @@ class TestRefund(BaseTest):
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
     def test_display_amount_default(self, mock_query, mock_db):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_db.return_value = None
 
         p = Refund(
@@ -412,6 +424,9 @@ class TestRefund(BaseTest):
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
     def test_display_amount_money_in(self, mock_query, mock_db):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_db.return_value = None
 
         p = Refund(
@@ -486,6 +501,9 @@ class TestRefund(BaseTest):
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
     def test_next_month_amount(self, mock_query, mock_db):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_db.return_value = None
 
         p = Refund(

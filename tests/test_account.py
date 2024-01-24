@@ -97,7 +97,8 @@ class TestAccount(BaseTest):
             m.key3
 
 
-    def test_bool_false(self):
+    @patch('monzo_utils.model.account.Account.related')
+    def test_bool_false(self, mock_related):
         m = Account({
             'key1': 'blah',
             'key2': 'bloo'
@@ -106,7 +107,8 @@ class TestAccount(BaseTest):
         self.assertEqual(bool(m), False)
 
 
-    def test_bool_true(self):
+    @patch('monzo_utils.model.account.Account.related')
+    def test_bool_true(self, mock_related):
         m = Account({
             'key1': 'blah',
             'key2': 'bloo',

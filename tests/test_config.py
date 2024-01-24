@@ -3,6 +3,8 @@ from unittest.mock import patch
 from unittest.mock import MagicMock
 from monzo_utils.lib.config import Config
 from monzo_utils.lib.db import DB
+import os
+import pwd
 
 class TestConfig(BaseTest):
 
@@ -106,4 +108,6 @@ class TestConfig(BaseTest):
 
         config.save()
 
-        mock_file_write.assert_called_with('/home/mark/.monzo/config.yaml', 'key: config1\nkey2: config2\nkey3: blah\n')
+        homedir = pwd.getpwuid(os.getuid()).pw_dir
+
+        mock_file_write.assert_called_with(f'{homedir}/.monzo/config.yaml', 'key: config1\nkey2: config2\nkey3: blah\n')

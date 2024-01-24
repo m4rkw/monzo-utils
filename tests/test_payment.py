@@ -48,6 +48,9 @@ class TestPayment(BaseTest):
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
     def test_data_fields(self, mock_query, mock_db):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_db.return_value = None
 
         p = Payment(
@@ -87,6 +90,9 @@ class TestPayment(BaseTest):
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
     def test_data_abbreviated(self, mock_query, mock_db):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_db.return_value = None
 
         p = Payment(
@@ -168,6 +174,9 @@ class TestPayment(BaseTest):
     @patch('monzo_utils.lib.db.DB.query')
     @patch('builtins.print')
     def test_display(self, mock_print, mock_query, mock_db):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_db.return_value = None
 
         p = Payment(
@@ -191,6 +200,9 @@ class TestPayment(BaseTest):
     @patch('monzo_utils.lib.db.DB.query')
     @patch('builtins.print')
     def test_display_last_amount_override(self, mock_print, mock_query, mock_db):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_db.return_value = None
 
         with freeze_time('2024-01-22'):
@@ -536,6 +548,9 @@ class TestPayment(BaseTest):
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
     def test_display_amount_renewal_first_payment(self, mock_query, mock_db):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_db.return_value = None
 
         p = Payment(
@@ -562,6 +577,9 @@ class TestPayment(BaseTest):
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
     def test_display_amount_renewal_first_payment_before_renewal(self, mock_query, mock_db):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_db.return_value = None
 
         p = Payment(
@@ -588,6 +606,9 @@ class TestPayment(BaseTest):
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
     def test_display_amount_renewal_regular_payment(self, mock_query, mock_db):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_db.return_value = None
 
         p = Payment(
@@ -615,6 +636,9 @@ class TestPayment(BaseTest):
     @patch('monzo_utils.model.payment.Payment.last_date', new_callable=PropertyMock)
     @patch('monzo_utils.model.payment.Payment.last_payment', new_callable=PropertyMock)
     def test_display_amount_renewal_last_payment(self, mock_last_payment, mock_last_date, mock_query, mock_db):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_db.return_value = None
         last_payment = Transaction({"id": 12, "money_out": 234})
         mock_last_payment.return_value = last_payment
@@ -644,6 +668,9 @@ class TestPayment(BaseTest):
     @patch('monzo_utils.lib.db.DB.query')
     @patch('monzo_utils.model.payment.Payment.last_payment', new_callable=PropertyMock)
     def test_display_amount_last_payment(self, mock_last_payment, mock_query, mock_db):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_db.return_value = None
         last_payment = Transaction({"money_out": 234, "id":12})
         mock_last_payment.return_value = last_payment
@@ -667,6 +694,9 @@ class TestPayment(BaseTest):
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
     def test_display_amount_default(self, mock_query, mock_db):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_db.return_value = None
 
         p = Payment(
@@ -688,6 +718,9 @@ class TestPayment(BaseTest):
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
     def test_display_amount_money_in(self, mock_query, mock_db):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_db.return_value = None
 
         p = Payment(
@@ -762,6 +795,9 @@ class TestPayment(BaseTest):
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
     def test_next_month_amount(self, mock_query, mock_db):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_db.return_value = None
 
         p = Payment(

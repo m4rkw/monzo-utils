@@ -980,6 +980,9 @@ class TestMonzoPayments(BaseTest):
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
     @patch('sys.stdout.write')
     def test_display_payment_list_card_payment_summary(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_mp.return_value = None
 
         mp = MonzoPayments()
@@ -1021,6 +1024,9 @@ class TestMonzoPayments(BaseTest):
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
     @patch('sys.stdout.write')
     def test_display_payment_list_card_payment_json(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_mp.return_value = None
 
         mp = MonzoPayments()
@@ -1085,6 +1091,9 @@ class TestMonzoPayments(BaseTest):
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
     @patch('sys.stdout.write')
     def test_display_payment_list_card_payment_json_abbreviated(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_mp.return_value = None
 
         mp = MonzoPayments()
@@ -1149,6 +1158,9 @@ class TestMonzoPayments(BaseTest):
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
     @patch('sys.stdout.write')
     def test_display_payment_list_direct_debit_summary(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_mp.return_value = None
 
         mp = MonzoPayments()
@@ -1190,6 +1202,9 @@ class TestMonzoPayments(BaseTest):
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
     @patch('sys.stdout.write')
     def test_display_payment_list_direct_debit_json(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_mp.return_value = None
 
         mp = MonzoPayments()
@@ -1254,6 +1269,9 @@ class TestMonzoPayments(BaseTest):
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
     @patch('sys.stdout.write')
     def test_display_payment_list_direct_debit_json_abbreviated(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_mp.return_value = None
 
         mp = MonzoPayments()
@@ -1669,6 +1687,9 @@ class TestMonzoPayments(BaseTest):
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
     @patch('sys.stdout.write')
     def test_display_payment_list_refund_summary(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_mp.return_value = None
 
         mp = MonzoPayments()
@@ -1712,6 +1733,9 @@ class TestMonzoPayments(BaseTest):
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
     @patch('sys.stdout.write')
     def test_display_payment_list_refund_json(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_mp.return_value = None
 
         mp = MonzoPayments()
@@ -1779,6 +1803,9 @@ class TestMonzoPayments(BaseTest):
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
     @patch('sys.stdout.write')
     def test_display_payment_list_refund_json_abbreviated(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_mp.return_value = None
 
         mp = MonzoPayments()
@@ -1846,6 +1873,9 @@ class TestMonzoPayments(BaseTest):
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
     @patch('sys.stdout.write')
     def test_display_payment_list_standing_order_summary(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
         mock_mp.return_value = None
 
         mp = MonzoPayments()
@@ -2976,7 +3006,12 @@ class TestMonzoPayments(BaseTest):
 
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
     @patch('monzo_utils.lib.monzo_api.MonzoAPI.deposit_to_pot')
-    def test_check_pot_payments_no_config(self, mock_deposit_to_pot, mock_mp):
+    @patch('monzo_utils.lib.monzo_api.MonzoAPI.__init__')
+    def test_check_pot_payments_no_config(self, mock_init, mock_deposit_to_pot, mock_mp):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
+        mock_init.return_value = None
         mock_mp.return_value = None
 
         mp = MonzoPayments()
