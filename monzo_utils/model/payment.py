@@ -116,7 +116,7 @@ class Payment:
             return 'SKIPPED'
 
         if 'yearly_month' in self.payment_config:
-            if self.yearly_payment_due_this_month(self.payment_config, self.last_salary_date) is False:
+            if self.yearly_payment_due_this_month() is False:
                 return 'SKIPPED'
 
         if 'renew_date' in self.payment_config and self.payment_config['renew_date'] >= self.next_salary_date:
@@ -164,14 +164,14 @@ class Payment:
 
         if 'last_amount_overrides' in Config().keys and \
             self.payment_config['name'] in Config().last_amount_overrides and \
-            self.last_salary_amount in Config().last_amount_overrides[self.payment_config['name']]:
+            self.last_salary_date in Config().last_amount_overrides[self.payment_config['name']]:
 
-            amount = Config().last_amount_overrides[self.payment_config['name']][self.last_salary_amount]
+            amount = Config().last_amount_overrides[self.payment_config['name']][self.last_salary_date]
         elif 'renewal' in self.payment_config and (today >= self.payment_config['renewal']['date'] or self.status == 'PAID'):
             if 'first_payment' in self.payment_config['renewal'] and today <= self.payment_config['renewal']['date']:
                 amount = self.payment_config['renewal']['first_payment']
             else:
-                if self.last_date >= self.payment_config['renewal']['date']:
+                if self.last_date and self.last_date >= self.payment_config['renewal']['date']:
                     amount = float(getattr(self.last_payment, self.transaction_type))
                 else:
                     amount = self.payment_config['renewal']['amount']
@@ -253,7 +253,7 @@ class Payment:
             where += f" and `date` >= %s"
             params.append(self.payment_config['start_date'].strftime('%Y-%m-%d'))
 
-        if amounts is True and self.always_fixed or 'fixed' in self.payment_config and self.payment_config['fixed']:
+        if amounts is True and (self.always_fixed or ('fixed' in self.payment_config and self.payment_config['fixed'])):
             where += f" and {self.transaction_type} = %s"
             params.append(self.payment_config['amount'])
         elif amounts is not False and amounts is not True and amounts is not None:
@@ -354,7 +354,7 @@ class Payment:
         if 'yearly_month' not in self.payment_config:
             if 'exclude_months' in self.payment_config:
                 while due_date.month in self.payment_config['exclude_months']:
-                    if self.last_date.month == 12:
+                    if due_date.month == 12:
                         due_date = datetime.date(due_date.year+1, 1, due_date.day)
                     else:
                         due_date = datetime.date(due_date.year, due_date.month+1, due_date.day)
@@ -376,18 +376,18 @@ class Payment:
         return self.due_date < self.following_salary_date
 
 
-    def yearly_payment_due_this_month(self, payment, last_salary_date):
-        date_from = last_salary_date.strftime('%Y-%m-%d')
-        date = last_salary_date
+    def yearly_payment_due_this_month(self):
+        date_from = self.last_salary_date.strftime('%Y-%m-%d')
+        date = self.last_salary_date
 
-        while date.day <= 15:
+        while date.day <= self.config['salary_payment_day']:
             date += datetime.timedelta(days=1)
 
-        while date.day != 15:
+        while date.day != self.config['salary_payment_day']:
             date += datetime.timedelta(days=1)
 
         date_to = date.strftime('%Y-%m-%d')
 
-        due_date = str(last_salary_date.year) + '-' + (str(payment['yearly_month']).rjust(2,'0')) + '-' + (str(payment['yearly_day']).rjust(2,'0'))
+        due_date = str(self.last_salary_date.year) + '-' + (str(self.payment_config['yearly_month']).rjust(2,'0')) + '-' + (str(self.payment_config['yearly_day']).rjust(2,'0'))
 
         return due_date >= date_from and due_date <= date_to
