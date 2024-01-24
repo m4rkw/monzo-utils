@@ -2,7 +2,7 @@ from base_test import BaseTest
 from unittest.mock import patch
 from unittest.mock import MagicMock
 from unittest.mock import PropertyMock
-from monzo_utils.model.payment import Payment
+from monzo_utils.model.refund import Refund
 from monzo_utils.model.transaction import Transaction
 from monzo_utils.lib.db import DB
 from monzo_utils.lib.config import Config
@@ -13,7 +13,7 @@ import decimal
 import json
 from freezegun import freeze_time
 
-class TestPayment(BaseTest):
+class TestRefund(BaseTest):
 
     def setUp(self):
         Config._instances = {}
@@ -25,7 +25,7 @@ class TestPayment(BaseTest):
     @patch('monzo_utils.lib.db.DB.query')
     def test_constructor(self, mock_query, mock_init):
         with freeze_time("2024-01-01"):
-            p = Payment(
+            p = Refund(
                 'config',
                 'payment_list_config',
                 'payment_config',
@@ -50,7 +50,7 @@ class TestPayment(BaseTest):
     def test_data_fields(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             'config',
             'payment_list_config',
             {
@@ -74,13 +74,13 @@ class TestPayment(BaseTest):
         self.assertIn('status', data)
         self.assertIn('suffix', data)
 
-        self.assertEqual(data['amount'], 123)
+        self.assertEqual(data['amount'], -123)
         self.assertEqual(data['due_date'], datetime.date(2024, 2, 1))
         self.assertEqual(data['last_date'], datetime.date(2024, 1, 1))
         self.assertEqual(data['name'], 'payment')
-        self.assertEqual(data['payment_type'], 'Payment')
+        self.assertEqual(data['payment_type'], 'Refund')
         self.assertEqual(data['remaining'], None)
-        self.assertEqual(data['status'], 'PAID')
+        self.assertEqual(data['status'], 'SKIPPED')
         self.assertEqual(data['suffix'], '')
 
 
@@ -89,7 +89,7 @@ class TestPayment(BaseTest):
     def test_data_abbreviated(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             'config',
             'payment_list_config',
             {
@@ -113,13 +113,13 @@ class TestPayment(BaseTest):
         self.assertIn('status', data)
         self.assertIn('suffix', data)
 
-        self.assertEqual(data['amount'], 123)
+        self.assertEqual(data['amount'], -123)
         self.assertEqual(data['due_date'], '01/02/24')
         self.assertEqual(data['last_date'], '01/01/24')
         self.assertEqual(data['name'], 'payment')
-        self.assertEqual(data['payment_type'], 'P')
+        self.assertEqual(data['payment_type'], 'R')
         self.assertEqual(data['remaining'], None)
-        self.assertEqual(data['status'], 'PAID')
+        self.assertEqual(data['status'], 'SKIPPED')
         self.assertEqual(data['suffix'], '')
 
 
@@ -128,7 +128,7 @@ class TestPayment(BaseTest):
     def test_abbreviate(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             'config',
             'payment_list_config',
             {
@@ -148,7 +148,7 @@ class TestPayment(BaseTest):
     def test_short_date(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             'config',
             'payment_list_config',
             {
@@ -170,7 +170,7 @@ class TestPayment(BaseTest):
     def test_display(self, mock_print, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             'config',
             'payment_list_config',
             {
@@ -184,41 +184,7 @@ class TestPayment(BaseTest):
 
         p.display()
 
-        mock_print.assert_called_with('    DUE: Payment         payment                         £123.00                                   ')
-
-
-    @patch('monzo_utils.lib.db.DB.__init__')
-    @patch('monzo_utils.lib.db.DB.query')
-    @patch('builtins.print')
-    def test_display_last_amount_override(self, mock_print, mock_query, mock_db):
-        mock_db.return_value = None
-
-        with freeze_time('2024-01-22'):
-            p = Payment(
-                {
-                    'last_amount_overrides': {
-                        'payment': {
-                            datetime.date(2024,1,1): 2020
-                        }
-                    }
-                },
-                'payment_list_config',
-                {
-                    'name': 'payment',
-                    'amount': 123
-                },
-                datetime.date(2024,1,1),
-                datetime.date(2024,2,1),
-                datetime.date(2024,3,1),
-            )
-
-            p.cache['last_payment'] = Transaction()
-            p.cache['last_payment'].id = 123
-            p.cache['last_payment'].money_out = 123
-
-            p.display()
-
-            mock_print.assert_called_with('    DUE: Payment         payment                         £2020.00 ->£123.00                        ')
+        mock_print.assert_called_with('    DUE: Refund          payment                         £-123.00                                  ')
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
@@ -227,7 +193,7 @@ class TestPayment(BaseTest):
         mock_db.return_value = None
 
         with freeze_time('2024-01-22'):
-            p = Payment(
+            p = Refund(
                 'config',
                 'payment_list_config',
                 {
@@ -248,7 +214,7 @@ class TestPayment(BaseTest):
         mock_db.return_value = None
 
         with freeze_time('2024-01-22'):
-            p = Payment(
+            p = Refund(
                 {},
                 'payment_list_config',
                 {
@@ -269,7 +235,7 @@ class TestPayment(BaseTest):
         mock_db.return_value = None
 
         with freeze_time('2024-01-22'):
-            p = Payment(
+            p = Refund(
                 {},
                 'payment_list_config',
                 {
@@ -287,120 +253,13 @@ class TestPayment(BaseTest):
 
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
-    @patch('monzo_utils.model.payment.Payment.yearly_payment_due_this_month')
-    def test_status_yearly_month(self, mock_due_this_month, mock_query, mock_db):
-        mock_db.return_value = None
-
-        with freeze_time('2024-01-22'):
-            p = Payment(
-                {},
-                'payment_list_config',
-                {
-                    'name': 'payment',
-                    'amount': 123,
-                    'yearly_month': 2,
-                    'yearly_day': 1
-                },
-                datetime.date(2024,2,1),
-                datetime.date(2024,3,1),
-                datetime.date(2024,4,1),
-            )
-
-            mock_due_this_month.return_value = False
-
-            self.assertEqual(p.status, 'SKIPPED')
-
-            mock_due_this_month.return_value = True
-
-            self.assertEqual(p.status, 'DUE')
-
-
-    @patch('monzo_utils.lib.db.DB.__init__')
-    @patch('monzo_utils.lib.db.DB.query')
-    def test_status_renew_date(self, mock_query, mock_db):
-        mock_db.return_value = None
-
-        with freeze_time('2024-01-22'):
-            p = Payment(
-                {},
-                'payment_list_config',
-                {
-                    'name': 'payment',
-                    'amount': 123,
-                },
-                datetime.date(2024,2,1),
-                datetime.date(2024,3,1),
-                datetime.date(2024,4,1),
-            )
-
-            self.assertEqual(p.status, 'DUE')
-
-            p.payment_config['renew_date'] = datetime.date(2024,3,1)
-
-            self.assertEqual(p.status, 'SKIPPED')
-
-
-    @patch('monzo_utils.lib.db.DB.__init__')
-    @patch('monzo_utils.lib.db.DB.query')
-    def test_status_exclude_months(self, mock_query, mock_db):
-        mock_db.return_value = None
-
-        with freeze_time('2024-01-22'):
-            p = Payment(
-                {},
-                'payment_list_config',
-                {
-                    'name': 'payment',
-                    'amount': 123,
-                },
-                datetime.date(2024,2,1),
-                datetime.date(2024,3,1),
-                datetime.date(2024,4,1),
-            )
-
-            self.assertEqual(p.status, 'DUE')
-
-            p.payment_config['exclude_months'] = [1]
-
-            self.assertEqual(p.status, 'SKIPPED')
-
-
-    @patch('monzo_utils.lib.db.DB.__init__')
-    @patch('monzo_utils.lib.db.DB.query')
-    @patch('monzo_utils.model.payment.Payment.last_date', new_callable=PropertyMock)
-    def test_status_last_date(self, mock_last_date, mock_query, mock_db):
-        mock_db.return_value = None
-        mock_last_date.return_value = datetime.date(2024,1,1)
-
-        with freeze_time('2024-01-22'):
-            p = Payment(
-                {},
-                'payment_list_config',
-                {
-                    'name': 'payment',
-                    'amount': 123,
-                },
-                datetime.date(2024,2,1),
-                datetime.date(2024,3,1),
-                datetime.date(2024,4,1),
-            )
-
-            self.assertEqual(p.status, 'DUE')
-
-            mock_last_date.return_value = datetime.date(2024,2,1)
-
-            self.assertEqual(p.status, 'PAID')
-
-
-    @patch('monzo_utils.lib.db.DB.__init__')
-    @patch('monzo_utils.lib.db.DB.query')
-    @patch('monzo_utils.model.payment.Payment.due_date', new_callable=PropertyMock)
+    @patch('monzo_utils.model.refund.Refund.due_date', new_callable=PropertyMock)
     def test_status_due_date(self, mock_due_date, mock_query, mock_db):
         mock_db.return_value = None
         mock_due_date.return_value = datetime.date(2024,1,1)
 
         with freeze_time('2024-01-22'):
-            p = Payment(
+            p = Refund(
                 {},
                 'payment_list_config',
                 {
@@ -421,10 +280,36 @@ class TestPayment(BaseTest):
 
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
+    def test_status_due_after(self, mock_query, mock_db):
+        mock_db.return_value = None
+
+        with freeze_time('2024-01-22'):
+            p = Refund(
+                {},
+                'payment_list_config',
+                {
+                    'name': 'payment',
+                    'amount': 123,
+                    'due_after': datetime.date(2024,2,28)
+                },
+                datetime.date(2024,2,1),
+                datetime.date(2024,3,1),
+                datetime.date(2024,4,1),
+            )
+
+            self.assertEqual(p.status, 'DUE')
+
+            p.payment_config['due_after'] = datetime.date(2024,3,1)
+
+            self.assertEqual(p.status, 'SKIPPED')
+
+
+    @patch('monzo_utils.lib.db.DB.__init__')
+    @patch('monzo_utils.lib.db.DB.query')
     def test_payment_type(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -436,7 +321,7 @@ class TestPayment(BaseTest):
             datetime.date(2024,4,1),
         )
 
-        self.assertEqual(p.payment_type, 'Payment')
+        self.assertEqual(p.payment_type, 'Refund')
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
@@ -444,7 +329,7 @@ class TestPayment(BaseTest):
     def test_num_paid(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -464,7 +349,7 @@ class TestPayment(BaseTest):
     def test_num_total(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -488,7 +373,7 @@ class TestPayment(BaseTest):
     def test_remaining(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -505,171 +390,10 @@ class TestPayment(BaseTest):
 
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
-    def test_display_amount_override(self, mock_query, mock_db):
-        mock_db.return_value = None
-
-        config = Config({
-            'last_amount_overrides': {
-                'payment': {
-                    datetime.date(2024,2,1): 456
-                }
-            }
-        })
-
-        Config._instances = {Config: config}
-
-        p = Payment(
-            {},
-            'payment_list_config',
-            {
-                'name': 'payment',
-                'amount': 123,
-            },
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-            datetime.date(2024,4,1),
-        )
-
-        self.assertEqual(p.display_amount, 456)
-
-
-    @patch('monzo_utils.lib.db.DB.__init__')
-    @patch('monzo_utils.lib.db.DB.query')
-    def test_display_amount_renewal_first_payment(self, mock_query, mock_db):
-        mock_db.return_value = None
-
-        p = Payment(
-            {},
-            'payment_list_config',
-            {
-                'name': 'payment',
-                'amount': 123,
-                'renewal': {
-                    'date': datetime.date(2024,1,15),
-                    'amount': 456,
-                    'first_payment': 789
-                }
-            },
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-            datetime.date(2024,4,1),
-        )
-
-        with freeze_time("2024-01-15"):
-            self.assertEqual(p.display_amount, 789)
-
-
-    @patch('monzo_utils.lib.db.DB.__init__')
-    @patch('monzo_utils.lib.db.DB.query')
-    def test_display_amount_renewal_first_payment_before_renewal(self, mock_query, mock_db):
-        mock_db.return_value = None
-
-        p = Payment(
-            {},
-            'payment_list_config',
-            {
-                'name': 'payment',
-                'amount': 123,
-                'renewal': {
-                    'date': datetime.date(2024,1,15),
-                    'amount': 456,
-                    'first_payment': 789
-                }
-            },
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-            datetime.date(2024,4,1),
-        )
-
-        with freeze_time("2024-01-14"):
-            self.assertEqual(p.display_amount, 123)
-
-
-    @patch('monzo_utils.lib.db.DB.__init__')
-    @patch('monzo_utils.lib.db.DB.query')
-    def test_display_amount_renewal_regular_payment(self, mock_query, mock_db):
-        mock_db.return_value = None
-
-        p = Payment(
-            {},
-            'payment_list_config',
-            {
-                'name': 'payment',
-                'amount': 123,
-                'renewal': {
-                    'date': datetime.date(2024,1,15),
-                    'amount': 456,
-                }
-            },
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-            datetime.date(2024,4,1),
-        )
-
-        with freeze_time("2024-01-15"):
-            self.assertEqual(p.display_amount, 456)
-
-
-    @patch('monzo_utils.lib.db.DB.__init__')
-    @patch('monzo_utils.lib.db.DB.query')
-    @patch('monzo_utils.model.payment.Payment.last_date', new_callable=PropertyMock)
-    @patch('monzo_utils.model.payment.Payment.last_payment', new_callable=PropertyMock)
-    def test_display_amount_renewal_last_payment(self, mock_last_payment, mock_last_date, mock_query, mock_db):
-        mock_db.return_value = None
-        last_payment = Transaction({"id": 12, "money_out": 234})
-        mock_last_payment.return_value = last_payment
-        mock_last_date.return_value = datetime.date(2024,1,16)
-
-        p = Payment(
-            {},
-            'payment_list_config',
-            {
-                'name': 'payment',
-                'amount': 123,
-                'renewal': {
-                    'date': datetime.date(2024,1,15),
-                    'amount': 456,
-                }
-            },
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-            datetime.date(2024,4,1),
-        )
-
-        with freeze_time("2024-01-20"):
-            self.assertEqual(p.display_amount, 234)
-
-
-    @patch('monzo_utils.lib.db.DB.__init__')
-    @patch('monzo_utils.lib.db.DB.query')
-    @patch('monzo_utils.model.payment.Payment.last_payment', new_callable=PropertyMock)
-    def test_display_amount_last_payment(self, mock_last_payment, mock_query, mock_db):
-        mock_db.return_value = None
-        last_payment = Transaction({"money_out": 234, "id":12})
-        mock_last_payment.return_value = last_payment
-
-        p = Payment(
-            {},
-            'payment_list_config',
-            {
-                'name': 'payment',
-                'amount': 123,
-            },
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-            datetime.date(2024,4,1),
-        )
-
-        with freeze_time("2024-01-20"):
-            self.assertEqual(p.display_amount, 234)
-
-
-    @patch('monzo_utils.lib.db.DB.__init__')
-    @patch('monzo_utils.lib.db.DB.query')
     def test_display_amount_default(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -682,7 +406,7 @@ class TestPayment(BaseTest):
         )
 
         with freeze_time("2024-01-20"):
-            self.assertEqual(p.display_amount, 123)
+            self.assertEqual(p.display_amount, -123)
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
@@ -690,7 +414,7 @@ class TestPayment(BaseTest):
     def test_display_amount_money_in(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -712,7 +436,7 @@ class TestPayment(BaseTest):
     def test_next_month_amount_renewal_first_payment(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -738,7 +462,7 @@ class TestPayment(BaseTest):
     def test_next_month_amount_renewal_regular_amount(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -764,7 +488,7 @@ class TestPayment(BaseTest):
     def test_next_month_amount(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -777,7 +501,7 @@ class TestPayment(BaseTest):
         )
 
         with freeze_time("2024-01-20"):
-            self.assertEqual(p.next_month_amount, 123)
+            self.assertEqual(p.next_month_amount, -123)
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
@@ -785,7 +509,7 @@ class TestPayment(BaseTest):
     def test_last_date_overrides(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -810,11 +534,11 @@ class TestPayment(BaseTest):
 
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
-    @patch('monzo_utils.model.payment.Payment.last_payment', new_callable=PropertyMock)
+    @patch('monzo_utils.model.refund.Refund.last_payment', new_callable=PropertyMock)
     def test_last_date_no_desc(self, mock_last_payment, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -837,11 +561,11 @@ class TestPayment(BaseTest):
 
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
-    @patch('monzo_utils.model.payment.Payment.last_payment', new_callable=PropertyMock)
+    @patch('monzo_utils.model.refund.Refund.last_payment', new_callable=PropertyMock)
     def test_last_date_last_payment(self, mock_last_payment, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -865,12 +589,12 @@ class TestPayment(BaseTest):
 
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
-    @patch('monzo_utils.model.payment.Payment.last_payment', new_callable=PropertyMock)
-    @patch('monzo_utils.model.payment.Payment.older_last_payment', new_callable=PropertyMock)
+    @patch('monzo_utils.model.refund.Refund.last_payment', new_callable=PropertyMock)
+    @patch('monzo_utils.model.refund.Refund.older_last_payment', new_callable=PropertyMock)
     def test_last_date_older_last_payment(self, mock_older_last_payment, mock_last_payment, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -898,7 +622,7 @@ class TestPayment(BaseTest):
     def test_last_date_return_from_cache(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -921,7 +645,7 @@ class TestPayment(BaseTest):
     def test_get_transaction_where_condition__desc_list(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -937,8 +661,8 @@ class TestPayment(BaseTest):
         with freeze_time("2024-01-20"):
             where, params = p.get_transaction_where_condition()
 
-            self.assertEqual(where, 'money_out > %s and declined = %s and (  description like %s  or  description like %s )')
-            self.assertEqual(params, [0, 0, '%desc1%', '%desc2%'])
+            self.assertEqual(where, 'money_in > %s and declined = %s and (  description like %s  or  description like %s ) and money_in = %s')
+            self.assertEqual(params, [0, 0, '%desc1%', '%desc2%', 123])
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
@@ -946,7 +670,7 @@ class TestPayment(BaseTest):
     def test_get_transaction_where_condition__desc_single(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -962,8 +686,8 @@ class TestPayment(BaseTest):
         with freeze_time("2024-01-20"):
             where, params = p.get_transaction_where_condition()
 
-            self.assertEqual(where, 'money_out > %s and declined = %s and (  description like %s )')
-            self.assertEqual(params, [0, 0, '%desc1%'])
+            self.assertEqual(where, 'money_in > %s and declined = %s and (  description like %s ) and money_in = %s')
+            self.assertEqual(params, [0, 0, '%desc1%', 123])
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
@@ -971,7 +695,7 @@ class TestPayment(BaseTest):
     def test_get_transaction_where_condition__start_date(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -988,8 +712,8 @@ class TestPayment(BaseTest):
         with freeze_time("2024-01-20"):
             where, params = p.get_transaction_where_condition()
 
-            self.assertEqual(where, 'money_out > %s and declined = %s and (  description like %s ) and `date` >= %s')
-            self.assertEqual(params, [0, 0, '%desc1%', '2024-01-01'])
+            self.assertEqual(where, 'money_in > %s and declined = %s and (  description like %s ) and `date` >= %s and money_in = %s')
+            self.assertEqual(params, [0, 0, '%desc1%', '2024-01-01', 123])
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
@@ -997,7 +721,7 @@ class TestPayment(BaseTest):
     def test_get_transaction_where_condition__fixed(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -1015,7 +739,7 @@ class TestPayment(BaseTest):
         with freeze_time("2024-01-20"):
             where, params = p.get_transaction_where_condition()
 
-            self.assertEqual(where, 'money_out > %s and declined = %s and (  description like %s ) and `date` >= %s and money_out = %s')
+            self.assertEqual(where, 'money_in > %s and declined = %s and (  description like %s ) and `date` >= %s and money_in = %s')
             self.assertEqual(params, [0, 0, '%desc1%', '2024-01-01', 123])
 
 
@@ -1024,7 +748,7 @@ class TestPayment(BaseTest):
     def test_get_transaction_where_condition__fixed_amounts_list(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -1042,7 +766,7 @@ class TestPayment(BaseTest):
         with freeze_time("2024-01-20"):
             where, params = p.get_transaction_where_condition([123,234,456])
 
-            self.assertEqual(where, 'money_out > %s and declined = %s and (  description like %s ) and `date` >= %s and ( money_out = %s or  money_out = %s or  money_out = %s)')
+            self.assertEqual(where, 'money_in > %s and declined = %s and (  description like %s ) and `date` >= %s and ( money_in = %s or  money_in = %s or  money_in = %s)')
             self.assertEqual(params, [0, 0, '%desc1%', '2024-01-01', 123, 234, 456])
 
 
@@ -1051,7 +775,7 @@ class TestPayment(BaseTest):
     def test_get_transaction_where_condition__not_fixed_amounts_list(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -1069,20 +793,20 @@ class TestPayment(BaseTest):
         with freeze_time("2024-01-20"):
             where, params = p.get_transaction_where_condition([123,234,456])
 
-            self.assertEqual(where, 'money_out > %s and declined = %s and (  description like %s ) and `date` >= %s and ( money_out = %s or  money_out = %s or  money_out = %s)')
+            self.assertEqual(where, 'money_in > %s and declined = %s and (  description like %s ) and `date` >= %s and ( money_in = %s or  money_in = %s or  money_in = %s)')
             self.assertEqual(params, [0, 0, '%desc1%', '2024-01-01', 123, 234, 456])
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
     @patch('monzo_utils.model.transaction.Transaction.find')
-    @patch('monzo_utils.model.payment.Payment.get_transaction_where_condition')
+    @patch('monzo_utils.model.refund.Refund.get_transaction_where_condition')
     def test_last_payment_no_transactions(self, mock_get_transaction_where_condition, mock_find, mock_query, mock_db):
         mock_db.return_value = None
         mock_get_transaction_where_condition.return_value = 'blah = %s', [12]
         mock_find.return_value = []
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -1109,7 +833,7 @@ class TestPayment(BaseTest):
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
     @patch('monzo_utils.model.transaction.Transaction.find')
-    @patch('monzo_utils.model.payment.Payment.get_transaction_where_condition')
+    @patch('monzo_utils.model.refund.Refund.get_transaction_where_condition')
     def test_last_payment_skip_if_start_date_not_reached(self, mock_get_transaction_where_condition, mock_find, mock_query, mock_db):
         mock_db.return_value = None
         mock_get_transaction_where_condition.return_value = 'blah = %s', [12]
@@ -1121,7 +845,7 @@ class TestPayment(BaseTest):
 
         mock_find.return_value = [transaction]
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -1148,7 +872,7 @@ class TestPayment(BaseTest):
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
     @patch('monzo_utils.model.transaction.Transaction.find')
-    @patch('monzo_utils.model.payment.Payment.get_transaction_where_condition')
+    @patch('monzo_utils.model.refund.Refund.get_transaction_where_condition')
     def test_last_payment_return_first_matching_result(self, mock_get_transaction_where_condition, mock_find, mock_query, mock_db):
         mock_db.return_value = None
         mock_get_transaction_where_condition.return_value = 'blah = %s', [12]
@@ -1168,7 +892,7 @@ class TestPayment(BaseTest):
             })
         ]
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -1196,7 +920,7 @@ class TestPayment(BaseTest):
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
     @patch('monzo_utils.model.transaction.Transaction.find')
-    @patch('monzo_utils.model.payment.Payment.get_transaction_where_condition')
+    @patch('monzo_utils.model.refund.Refund.get_transaction_where_condition')
     def test_last_payment_return_from_cache(self, mock_get_transaction_where_condition, mock_find, mock_query, mock_db):
         mock_db.return_value = None
         mock_get_transaction_where_condition.return_value = 'blah = %s', [12]
@@ -1216,7 +940,7 @@ class TestPayment(BaseTest):
             })
         ]
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -1245,13 +969,13 @@ class TestPayment(BaseTest):
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
     @patch('monzo_utils.model.transaction.Transaction.find')
-    @patch('monzo_utils.model.payment.Payment.get_transaction_where_condition')
+    @patch('monzo_utils.model.refund.Refund.get_transaction_where_condition')
     def test_older_last_payment_no_transactions(self, mock_get_transaction_where_condition, mock_find, mock_query, mock_db):
         mock_db.return_value = None
         mock_get_transaction_where_condition.return_value = 'blah = %s', [12]
         mock_find.return_value = []
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -1278,7 +1002,7 @@ class TestPayment(BaseTest):
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
     @patch('monzo_utils.model.transaction.Transaction.find')
-    @patch('monzo_utils.model.payment.Payment.get_transaction_where_condition')
+    @patch('monzo_utils.model.refund.Refund.get_transaction_where_condition')
     def test_older_last_payment_dont_skip_if_start_date_not_reached(self, mock_get_transaction_where_condition, mock_find, mock_query, mock_db):
         mock_db.return_value = None
         mock_get_transaction_where_condition.return_value = 'blah = %s', [12]
@@ -1290,7 +1014,7 @@ class TestPayment(BaseTest):
 
         mock_find.return_value = [transaction]
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -1318,7 +1042,7 @@ class TestPayment(BaseTest):
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
     @patch('monzo_utils.model.transaction.Transaction.find')
-    @patch('monzo_utils.model.payment.Payment.get_transaction_where_condition')
+    @patch('monzo_utils.model.refund.Refund.get_transaction_where_condition')
     def test_older_last_payment_return_first_matching_result(self, mock_get_transaction_where_condition, mock_find, mock_query, mock_db):
         mock_db.return_value = None
         mock_get_transaction_where_condition.return_value = 'blah = %s', [12]
@@ -1338,7 +1062,7 @@ class TestPayment(BaseTest):
             })
         ]
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -1367,7 +1091,7 @@ class TestPayment(BaseTest):
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
     @patch('monzo_utils.model.transaction.Transaction.find')
-    @patch('monzo_utils.model.payment.Payment.get_transaction_where_condition')
+    @patch('monzo_utils.model.refund.Refund.get_transaction_where_condition')
     def test_older_last_payment_return_from_cache(self, mock_get_transaction_where_condition, mock_find, mock_query, mock_db):
         mock_db.return_value = None
         mock_get_transaction_where_condition.return_value = 'blah = %s', [12]
@@ -1387,7 +1111,7 @@ class TestPayment(BaseTest):
             })
         ]
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -1417,7 +1141,7 @@ class TestPayment(BaseTest):
     def test_due_date__yearly_month(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -1441,7 +1165,7 @@ class TestPayment(BaseTest):
     def test_due_date__renew_date(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -1464,7 +1188,7 @@ class TestPayment(BaseTest):
     def test_due_date__start_date(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -1487,7 +1211,7 @@ class TestPayment(BaseTest):
     def test_due_date__no_last_date_or_start_date(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -1506,13 +1230,13 @@ class TestPayment(BaseTest):
 
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
-    @patch('monzo_utils.model.payment.Payment.last_date', new_callable=PropertyMock)
+    @patch('monzo_utils.model.refund.Refund.last_date', new_callable=PropertyMock)
     def test_due_date__calculate_from_last_date(self, mock_last_date, mock_query, mock_db):
         mock_db.return_value = None
 
         mock_last_date.return_value = datetime.date(2024,4,1)
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -1534,13 +1258,13 @@ class TestPayment(BaseTest):
 
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
-    @patch('monzo_utils.model.payment.Payment.last_date', new_callable=PropertyMock)
+    @patch('monzo_utils.model.refund.Refund.last_date', new_callable=PropertyMock)
     def test_due_date__calculate_from_last_date_with_start_date(self, mock_last_date, mock_query, mock_db):
         mock_db.return_value = None
 
         mock_last_date.return_value = datetime.date(2023,12,28)
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -1559,13 +1283,13 @@ class TestPayment(BaseTest):
 
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
-    @patch('monzo_utils.model.payment.Payment.last_date', new_callable=PropertyMock)
+    @patch('monzo_utils.model.refund.Refund.last_date', new_callable=PropertyMock)
     def test_due_date__calculate_from_last_date_with_exclude_months(self, mock_last_date, mock_query, mock_db):
         mock_db.return_value = None
 
         mock_last_date.return_value = datetime.date(2023,12,28)
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -1593,7 +1317,7 @@ class TestPayment(BaseTest):
     def test_due_next_month_renew_date(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -1616,12 +1340,12 @@ class TestPayment(BaseTest):
 
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
-    @patch('monzo_utils.model.payment.Payment.due_date', new_callable=PropertyMock)
+    @patch('monzo_utils.model.refund.Refund.due_date', new_callable=PropertyMock)
     def test_due_next_month_start_date(self, mock_due_date, mock_query, mock_db):
         mock_db.return_value = None
         mock_due_date.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -1644,12 +1368,12 @@ class TestPayment(BaseTest):
 
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
-    @patch('monzo_utils.model.payment.Payment.due_date', new_callable=PropertyMock)
+    @patch('monzo_utils.model.refund.Refund.due_date', new_callable=PropertyMock)
     def test_due_next_month_due_date_null(self, mock_due_date, mock_query, mock_db):
         mock_db.return_value = None
         mock_due_date.return_value = None
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -1667,12 +1391,12 @@ class TestPayment(BaseTest):
 
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
-    @patch('monzo_utils.model.payment.Payment.due_date', new_callable=PropertyMock)
+    @patch('monzo_utils.model.refund.Refund.due_date', new_callable=PropertyMock)
     def test_due_next_month_final_condition(self, mock_due_date, mock_query, mock_db):
         mock_db.return_value = None
         mock_due_date.return_value = datetime.date(2024,3,31)
 
-        p = Payment(
+        p = Refund(
             {},
             'payment_list_config',
             {
@@ -1694,12 +1418,12 @@ class TestPayment(BaseTest):
 
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
-    @patch('monzo_utils.model.payment.Payment.due_date', new_callable=PropertyMock)
+    @patch('monzo_utils.model.refund.Refund.due_date', new_callable=PropertyMock)
     def test_yearly_payment_due_this_month(self, mock_due_date, mock_query, mock_db):
         mock_db.return_value = None
         mock_due_date.return_value = datetime.date(2024,3,31)
 
-        p = Payment(
+        p = Refund(
             {
                 'salary_payment_day': 1
             },

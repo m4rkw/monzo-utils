@@ -171,7 +171,7 @@ class Payment:
             if 'first_payment' in self.payment_config['renewal'] and today <= self.payment_config['renewal']['date']:
                 amount = self.payment_config['renewal']['first_payment']
             else:
-                if self.last_date and self.last_date >= self.payment_config['renewal']['date']:
+                if self.last_payment and self.last_date and self.last_date >= self.payment_config['renewal']['date']:
                     amount = float(getattr(self.last_payment, self.transaction_type))
                 else:
                     amount = self.payment_config['renewal']['amount']
