@@ -1,5 +1,6 @@
 import sys
 from monzo_utils.model.base import BaseModel
+from monzo_utils.model.pot import Pot
 from monzo_utils.lib.db import DB
 
 class Account(BaseModel):
@@ -7,26 +8,26 @@ class Account(BaseModel):
     DISPLAY_KEYS = ['name','sortcode','account_no','balance','available']
 
 
-    def __init__(self, attrs={}):
-        super().__init__(attrs)
-
-
     def transactions(self, orderby='created_at', orderdir='asc', limit=None):
         return super().related('Transaction', 'account_id', self.id, orderby, orderdir, limit)
 
 
     def pots(self, orderby='name', orderdir='asc', limit=None):
-        return super().related('Pot', 'account_id', self.id, orderby, orderdir, limit, deleted=0)
+        return self.related('Pot', 'account_id', self.id, orderby, orderdir, limit, deleted=0)
+
+
+    def get_pot(self, name):
+        return Pot("select * from pot where account_id = %s and name = %s and deleted = %s", [self.id, name, 0])
 
 
     @property
     def __dict__(self):
-        attrs = {'attrs': self.attrs}
+        attributes = {'attributes': self.attributes}
 
         for pot in self.pots(orderby='name'):
-            attrs['attrs'][pot.name] = pot.balance
+            attributes['attributes'][pot.name] = pot.balance
 
-        return attrs
+        return attributes
 
 
     @property
@@ -47,17 +48,21 @@ class Account(BaseModel):
         return keys
 
 
-    def last_salary_transaction(self, description, payment_day, salary_minimum):
-        return DB().find_transaction_by_account_id_and_declined_and_description(
-            self.id,
-            0,
-            description,
-            orderby='created_at',
-            orderdir='desc',
-            limit=1,
-            search=['description'],
-            where=[{
-                'clause': 'money_in >= %s',
-                'params': [salary_minimum]
-            }]
-        )
+    def last_salary_transaction(self, description, salary_minimum):
+        if type(description) == list:
+            salary_desc = description
+        else:
+            salary_desc = [description]
+
+        where = f"account_id = %s and declined = %s and money_in >= %s and ("
+        params = [self.id, 0, salary_minimum]
+
+        for i in range(0, len(salary_desc)):
+            if i >0:
+                where += ' or '
+            where += " description like %s"
+            params.append('%' + salary_desc[i] + '%')
+
+        where += ")"
+
+        return DB().one(f"select * from transaction where {where} order by created_at desc limit 1", params)

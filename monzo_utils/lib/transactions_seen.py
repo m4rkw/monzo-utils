@@ -1,4 +1,4 @@
 from monzo_utils.lib.singleton import Singleton
 
-class Transactions(metaclass=Singleton):
+class TransactionsSeen(metaclass=Singleton):
     seen = {}

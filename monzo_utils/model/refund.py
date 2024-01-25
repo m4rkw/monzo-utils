@@ -16,7 +16,7 @@ class Refund(Payment):
         if self.due_date and self.due_date >= self.next_salary_date:
             return 'SKIPPED'
 
-        if self.payment_config['due_after'] >= self.next_salary_date:
+        if 'due_after' in self.payment_config and self.payment_config['due_after'] >= self.next_salary_date:
             return 'SKIPPED'
 
         return 'DUE'

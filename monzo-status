@@ -34,7 +34,7 @@ class Monzo:
                 if i+1 < len(sys.argv) and sys.argv[i+1].isdigit():
                     n = int(sys.argv[i+1])
 
-        provider = Provider().find_by_name(PROVIDER)
+        provider = Provider("select * from provider where name = %s", [PROVIDER])
         accounts = provider.accounts(order=Config().account_order if 'account_order' in Config().keys else None)
 
         count = 0
@@ -64,7 +64,7 @@ class Monzo:
 
         for i in range(0, len(data)):
             if type(data[i]) != dict:
-                obj = data[i].__dict__['attrs']
+                obj = data[i].__dict__['attributes']
             else:
                 obj = data[i]
 
@@ -96,7 +96,7 @@ class Monzo:
 
         for i in range(0, len(data)):
             if type(data[i]) != dict:
-                obj = data[i].__dict__['attrs']
+                obj = data[i].__dict__['attributes']
             else:
                 obj = data[i]
 

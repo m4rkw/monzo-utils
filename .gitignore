@@ -5,3 +5,4 @@ dist/*
 *.pyc
 test.sh
 .DS_Store
+venv/*

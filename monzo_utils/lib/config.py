@@ -23,14 +23,20 @@ class Config(metaclass=Singleton):
                 sys.stderr.write(f"config file not found: {self.config_file}, run setup first.\n")
                 sys.exit(1)
 
-            self.config = yaml.safe_load(open(self.config_file).read())
+            self.config = yaml.safe_load(self.get_file_contents(self.config_file))
+
+
+    def get_file_contents(self, path):
+        return open(path).read()
 
 
     def __getattr__(self, name):
-        if name in self.config:
+        try:
             return self.config[name]
+        except:
+            pass
 
-        return object.__getattribute__(self, name)
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
 
     def set(self, key, value):
@@ -43,5 +49,9 @@ class Config(metaclass=Singleton):
 
 
     def save(self):
-        with open(self.config_file, 'w') as f:
-            f.write(yaml.dump(self.config))
+        self.set_file_contents(self.config_file, yaml.dump(self.config))
+
+
+    def set_file_contents(self, path, content):
+        with open(path, 'w') as f:
+            f.write(content)

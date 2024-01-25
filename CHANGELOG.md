@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.66 - 25/01/2024
+
+- Unit tests
+- Bugfixes
+
 ## 0.0.65 - 18/01/2024
 
 - Bugfixes

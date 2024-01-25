@@ -38,30 +38,19 @@ class Finance(Payment):
             amounts.append(final_payment)
 
         if 'single_payment' in self.payment_config and self.payment_config['single_payment']:
-            self.cache['all_finance_transactions'] = Transaction().find_all_by_declined_and_description(
-                    0,
-                    self.payment_config['desc'],
-                    search=['description'],
-                    where=[{
-                        'clause': '`date` >= %s',
-                        'params': [self.payment_config['start_date']]
-                    }],
-                    orderby='created_at',
-                    orderdir='asc'
-                )
+            where, params = self.get_transaction_where_condition(amounts=False)
+
+            self.cache['all_finance_transactions'] = Transaction().find(
+                f"select * from transaction where {where} order by created_at asc",
+                params
+            )
         else:
-            self.cache['all_finance_transactions'] = Transaction().find_all_by_declined_and_money_out_and_description(
-                    0,
-                    amounts,
-                    self.payment_config['desc'],
-                    search=['description'],
-                    where=[{
-                        'clause': '`date` >= %s',
-                        'params': [self.payment_config['start_date']]
-                    }],
-                    orderby='created_at',
-                    orderdir='asc'
-                )
+            where, params = self.get_transaction_where_condition(amounts)
+
+            self.cache['all_finance_transactions'] = Transaction().find(
+                f"select * from transaction where {where} order by created_at asc",
+                params
+            )
 
         return self.cache['all_finance_transactions']
 

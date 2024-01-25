@@ -21,88 +21,14 @@ class DB(metaclass=Singleton):
         self.columns = {}
 
 
-    def __getattr__(self, name):
-        match = re.match('^find_([\w]+)_by_(.*?)$', name)
-
-        if match:
-            table = match.group(1)
-
-            if table[0:4] == 'all_':
-                table = table[4:]
-                find_all = True
-            else:
-                find_all = False
-
-            fields = match.group(2).split('_and_')
-
-            def find_object_by_fields(*args, **kwargs):
-                sql = "select * from `" + table + "` where ("
-
-                sql_args = []
-
-                for i in range(0, len(fields)):
-                    if i >0:
-                        sql += " and "
-
-                    if type(args[i]) == list:
-                        sql += "("
-                        for j in range(0, len(args[i])):
-                            if j >0:
-                                sql += " or "
-
-                            if 'search' in kwargs and type(kwargs['search']) == list and fields[i] in kwargs['search']:
-                                sql += f"`{fields[i]}` like %s"
-                                sql_args.append('%' + args[i][j] + '%')
-                            else:
-                                sql += f"`{fields[i]}` = %s"
-                                sql_args.append(args[i][j])
-
-                        sql += ")"
-                    else:
-                        if 'search' in kwargs and type(kwargs['search']) == list and fields[i] in kwargs['search']:
-                            sql += "`" + fields[i] + "` like %s"
-                            sql_args.append('%' + args[i] + '%')
-                        else:
-                            sql += "`" + fields[i] + "` = %s"
-                            sql_args.append(args[i])
-
-                sql += ")"
-
-                if 'where' in kwargs:
-                    for where_clause in kwargs['where']:
-                        sql += f" and {where_clause['clause']}"
-
-                        if 'params' in where_clause:
-                            sql_args += where_clause['params']
-
-                if 'orderby' in kwargs:
-                    sql += f" order by {kwargs['orderby']}"
-
-                    if 'orderdir' in kwargs:
-                        sql += f" {kwargs['orderdir']}"
-
-                if 'limit' in kwargs:
-                    sql += f" limit {kwargs['limit']}"
-
-                if find_all:
-                    return self.query(sql, sql_args)
-                else:
-                    return self.one(sql, sql_args)
-
-            return find_object_by_fields
-        else:
-            print("DB class method missing: %s" % (name))
-            sys.exit(1)
-
-
     def json_params(self, params):
         json_params = []
 
         for param in params:
             if type(param) == datetime.date:
-                json_params.append(param.strftime('%Y-%M-%d'))
+                json_params.append(param.strftime('%Y-%m-%d'))
             elif type(param) == datetime.datetime:
-                json_params.append(param.strftime('%Y-%M-%d %H:%M:%S'))
+                json_params.append(param.strftime('%Y-%m-%d %H:%M:%S'))
             else:
                 json_params.append(param)
 
@@ -132,13 +58,13 @@ class DB(metaclass=Singleton):
 
         for key in row:
             if type(row[key]) == str:
-                m = re.match('^([\d]{4})-([\d]{2})-([\d]{2})$', row[key])
+                m = re.match(r'^([\d]{4})-([\d]{2})-([\d]{2})$', row[key])
 
                 if m:
                     fixed_row[key] = datetime.date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
                     continue
 
-                m = re.match('^([\d]{4})-([\d]{2})-([\d]{2}) ([\d]{2}):([\d]{2}):([\d]{2})$', row[key])
+                m = re.match(r'^([\d]{4})-([\d]{2})-([\d]{2}) ([\d]{2}):([\d]{2}):([\d]{2})$', row[key])
 
                 if m:
                     fixed_row[key] = datetime.datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)))
@@ -328,7 +254,10 @@ class DB(metaclass=Singleton):
                 continue
 
             if sql[i:i+2] == '%s':
-                raw_sql += "'" + self.whereParams[n] + "'"
+                if type(self.whereParams[n]) in [int,float]:
+                    raw_sql += str(self.whereParams[n])
+                else:
+                    raw_sql += "'" + str(self.whereParams[n]) + "'"
                 n += 1
                 skip = True
             else:

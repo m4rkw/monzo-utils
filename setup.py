@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(name='monzo-utils',
-    version='0.0.65',
+    version='0.0.66',
     description='Monzo Utils',
     author='Mark Wadham',
     url='https://github.com/m4rkw/monzo-utils',
@@ -16,10 +16,12 @@ setup(name='monzo-utils',
         'monzo-payments'
     ],
     install_requires=[
-        'mysqlclient',
+        'mysqlclient==2.1.1',
         'monzo-api',
         'requests',
         'python-pushover2==0.5',
-        'dateparser'
+        'dateparser',
+        'PyYAML',
+        'govuk-bank-holidays'
     ]
 )

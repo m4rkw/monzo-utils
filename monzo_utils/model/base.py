@@ -8,81 +8,74 @@ from monzo_utils.lib.db import DB
 
 class BaseModel:
 
-    def __init__(self, attrs=None):
+    def __init__(self, data=None, params=None):
+        self.attributes = {}
         self.table = re.sub(r'(?<!^)(?=[A-Z])', '_', type(self).__name__).lower()
-
-        if attrs:
-            self.attrs = attrs
-        else:
-            self.attrs = {}
-
-        if 'id' not in self.attrs:
-            self.attrs['id'] = None
-
         self.factory_query = False
+
+        if data:
+            if type(data) == dict:
+                self.attributes = data
+            else:
+                row = DB().one(data, params)
+
+                if row:
+                    self.attributes = row
+
+
+    def find(self, sql, params):
+        rows = DB().query(sql, params)
+
+        data = []
+
+        for row in rows:
+            data.append(getattr(importlib.import_module(f"monzo_utils.model.{self.table}"), self.__class__.__name__)(row))
+
+        return data
 
 
     def __getattr__(self, name):
-        if name in self.attrs:
-            return self.attrs[name]
+        try:
+            return self.attributes[name]
+        except:
+            pass
 
-        match = re.match('^find_by_(.*?)$', name)
+        if name == 'id':
+            return None
 
-        if match:
-            method_name = f"find_{self.table}_by_{match.group(1)}"
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
-            def find_object_by_fields(*args, **kwargs):
-                record = getattr(DB(), method_name)(*args, **kwargs)
 
-                if record:
-                    return type(self)(record)
-
-                return record
-
-            return find_object_by_fields
-
-        match = re.match('^find_all_by_(.*?)$', name)
-
-        if match:
-            method_name = f"find_all_{self.table}_by_{match.group(1)}"
-
-            def find_objects_by_fields(*args, **kwargs):
-                objects = []
-
-                for record in getattr(DB(), method_name)(*args, **kwargs):
-                    objects.append(type(self)(record))
-
-                return objects
-
-            return find_objects_by_fields
-
-        print("DB class method missing: %s" % (name))
-        sys.exit(1)
+    def __bool__(self):
+        return 'id' in self.__dict__.get('attributes', {})
 
 
     def __setattr__(self, name, value):
-        if name not in ['table','attrs']:
-            self.attrs[name] = value
+        if name not in ['table','attributes','factory_query']:
+            self.attributes[name] = value
         else:
             super().__setattr__(name, value)
 
 
     def __delattr__(self, name):
-        self.attrs.pop(name)
+        try:
+            self.attributes.pop(name)
+        except KeyError:
+            pass
 
 
     def __str__(self):
         for_display = {}
 
-        for key in self.attrs:
-            if type(self.attrs[key]) == datetime.date:
-                for_display[key] = self.attrs[key].strftime('%Y-%m-%d')
-            elif type(self.attrs[key]) == datetime.datetime:
-                for_display[key] = self.attrs[key].strftime('%Y-%m-%d %H:%M:%S')
-            elif type(self.attrs[key]) == decimal.Decimal:
-                for_display[key] = float(self.attrs[key])
+        for key in self.attributes:
+            if type(self.attributes[key]) == datetime.date:
+                for_display[key] = self.attributes[key].strftime('%Y-%m-%d')
+            elif type(self.attributes[key]) == datetime.datetime:
+                for_display[key] = self.attributes[key].strftime('%Y-%m-%d %H:%M:%S')
+            elif type(self.attributes[key]) == decimal.Decimal:
+                for_display[key] = float(self.attributes[key])
             else:
-                for_display[key] = self.attrs[key]
+                for_display[key] = self.attributes[key]
 
         return json.dumps(for_display,indent=4)
 
@@ -110,15 +103,15 @@ class BaseModel:
         return related
 
 
-    def update(self, attrs):
-        self.attrs.update(attrs)
+    def update(self, attributes):
+        self.attributes.update(attributes)
 
 
     def save(self):
         if self.id:
-            DB().update(self.table, self.id, self.attrs)
+            DB().update(self.table, self.id, self.attributes)
         else:
-            self.id = DB().create(self.table, self.attrs)
+            self.id = DB().create(self.table, self.attributes.copy())
 
 
     def delete(self):
