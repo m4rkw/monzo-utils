@@ -395,14 +395,14 @@ class TestFlex(BaseTest):
                 'name': 'payment',
                 'amount': 123,
                 'months': 3,
-                'start_date': datetime.date(2024,1,1),
+                'start_date': datetime.date(2023,10,1),
             },
             datetime.date(2024,2,1),
             datetime.date(2024,3,1),
             datetime.date(2024,4,1),
         )
 
-        self.assertEqual(p.num_paid, 1)
+        self.assertEqual(p.num_paid, 3)
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
@@ -454,7 +454,8 @@ class TestFlex(BaseTest):
             datetime.date(2024,4,1),
         )
 
-        self.assertEqual(p.remaining, 82)
+        with freeze_time("2024-01-20"):
+            self.assertEqual(p.remaining, 82)
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
@@ -755,6 +756,136 @@ class TestFlex(BaseTest):
             datetime.date(2024,4,1),
         )
         p.cache['last_date'] = datetime.date(2024,2,22)
+
+        with freeze_time("2024-01-20"):
+            self.assertEqual(p.last_date, datetime.date(2024,1,1))
+
+
+    @patch('monzo_utils.lib.db.DB.__init__')
+    @patch('monzo_utils.lib.db.DB.query')
+    @patch('monzo_utils.model.flex.Flex.last_flex_payment', new_callable=PropertyMock)
+    def test_last_date_last_flex_payment_no_start_date(self, mock_last_flex_payment, mock_query, mock_db):
+        mock_db.return_value = None
+
+        t = Transaction({
+            'id': 1,
+            'date': datetime.date(2024,1,6)
+        })
+
+        mock_last_flex_payment.return_value = t
+
+        p = Flex(
+            {
+                'flex_payment_date': 1
+            },
+            'payment_list_config',
+            {
+                'name': 'payment',
+                'amount': 123,
+                'months': 3,
+                'desc': 'desc'
+            },
+            datetime.date(2024,2,1),
+            datetime.date(2024,3,1),
+            datetime.date(2024,4,1),
+        )
+
+        with freeze_time("2024-01-20"):
+            self.assertEqual(p.last_date, datetime.date(2024,1,6))
+
+
+    @patch('monzo_utils.lib.db.DB.__init__')
+    @patch('monzo_utils.lib.db.DB.query')
+    @patch('monzo_utils.model.flex.Flex.last_flex_payment', new_callable=PropertyMock)
+    def test_last_date_last_flex_payment_with_start_date_reached(self, mock_last_flex_payment, mock_query, mock_db):
+        mock_db.return_value = None
+
+        t = Transaction({
+            'id': 1,
+            'date': datetime.date(2024,1,6)
+        })
+
+        mock_last_flex_payment.return_value = t
+
+        p = Flex(
+            {
+                'flex_payment_date': 1
+            },
+            'payment_list_config',
+            {
+                'name': 'payment',
+                'amount': 123,
+                'months': 3,
+                'start_date': datetime.date(2024,1,1),
+                'desc': 'desc'
+            },
+            datetime.date(2024,2,1),
+            datetime.date(2024,3,1),
+            datetime.date(2024,4,1),
+        )
+
+        with freeze_time("2024-01-20"):
+            self.assertEqual(p.last_date, datetime.date(2024,1,6))
+
+
+    @patch('monzo_utils.lib.db.DB.__init__')
+    @patch('monzo_utils.lib.db.DB.query')
+    @patch('monzo_utils.model.flex.Flex.last_flex_payment', new_callable=PropertyMock)
+    def test_last_date_last_flex_payment_with_start_date_not_reached(self, mock_last_flex_payment, mock_query, mock_db):
+        mock_db.return_value = None
+
+        t = Transaction({
+            'id': 1,
+            'date': datetime.date(2024,1,6)
+        })
+
+        mock_last_flex_payment.return_value = t
+
+        p = Flex(
+            {
+                'flex_payment_date': 1
+            },
+            'payment_list_config',
+            {
+                'name': 'payment',
+                'amount': 123,
+                'months': 3,
+                'start_date': datetime.date(2024,1,7),
+                'desc': 'desc'
+            },
+            datetime.date(2024,2,1),
+            datetime.date(2024,3,1),
+            datetime.date(2024,4,1),
+        )
+
+        with freeze_time("2024-01-20"):
+            self.assertEqual(p.last_date, None)
+
+
+    @patch('monzo_utils.lib.db.DB.__init__')
+    @patch('monzo_utils.lib.db.DB.query')
+    @patch('monzo_utils.model.flex.Flex.last_flex_payment', new_callable=PropertyMock)
+    def test_last_date_enumerate_until_today(self, mock_last_flex_payment, mock_query, mock_db):
+        mock_db.return_value = None
+
+        mock_last_flex_payment.return_value = None
+
+        p = Flex(
+            {
+                'flex_payment_date': 1
+            },
+            'payment_list_config',
+            {
+                'name': 'payment',
+                'amount': 123,
+                'months': 13,
+                'start_date': datetime.date(2023,1,7),
+                'desc': 'desc'
+            },
+            datetime.date(2024,2,1),
+            datetime.date(2024,3,1),
+            datetime.date(2024,4,1),
+        )
 
         with freeze_time("2024-01-20"):
             self.assertEqual(p.last_date, datetime.date(2024,1,1))
@@ -1427,3 +1558,93 @@ class TestFlex(BaseTest):
         mock_due_date.return_value = datetime.date(2024,4,1)
 
         self.assertEqual(p.due_next_month, False)
+
+
+    @patch('monzo_utils.lib.db.DB.__init__')
+    @patch('monzo_utils.lib.db.DB.query')
+    def test_amount_for_period_month1(self, mock_query, mock_db):
+        mock_db.return_value = None
+
+        p = Flex(
+            {
+                'flex_payment_date': 1
+            },
+            'payment_list_config',
+            {
+                'name': 'payment',
+                'amount': 123.35,
+                'months': 3,
+                'start_date': datetime.date(2024,1,2),
+                'desc': 'desc1',
+            },
+            datetime.date(2024,2,1),
+            datetime.date(2024,3,1),
+            datetime.date(2024,4,1),
+        )
+
+        amount = p.amount_for_period(
+            datetime.date(2024,1,1),
+            datetime.date(2024,2,1)
+        )
+
+        self.assertEqual(amount, 42)
+
+
+    @patch('monzo_utils.lib.db.DB.__init__')
+    @patch('monzo_utils.lib.db.DB.query')
+    def test_amount_for_period_month2(self, mock_query, mock_db):
+        mock_db.return_value = None
+
+        p = Flex(
+            {
+                'flex_payment_date': 1
+            },
+            'payment_list_config',
+            {
+                'name': 'payment',
+                'amount': 123.35,
+                'months': 3,
+                'start_date': datetime.date(2024,1,2),
+                'desc': 'desc1',
+            },
+            datetime.date(2024,2,1),
+            datetime.date(2024,3,1),
+            datetime.date(2024,4,1),
+        )
+
+        amount = p.amount_for_period(
+            datetime.date(2024,2,1),
+            datetime.date(2024,3,1)
+        )
+
+        self.assertEqual(amount, 42)
+
+
+    @patch('monzo_utils.lib.db.DB.__init__')
+    @patch('monzo_utils.lib.db.DB.query')
+    def test_amount_for_period_month3(self, mock_query, mock_db):
+        mock_db.return_value = None
+
+        p = Flex(
+            {
+                'flex_payment_date': 1
+            },
+            'payment_list_config',
+            {
+                'name': 'payment',
+                'amount': 123.35,
+                'months': 3,
+                'start_date': datetime.date(2024,1,2),
+                'desc': 'desc1',
+            },
+            datetime.date(2024,2,1),
+            datetime.date(2024,3,1),
+            datetime.date(2024,4,1),
+        )
+
+        amount = p.amount_for_period(
+            datetime.date(2024,3,1),
+            datetime.date(2024,4,1)
+        )
+
+        self.assertEqual(round(amount,2), round(39.35,2))

@@ -23,6 +23,8 @@ class Flex(Payment):
 
         if 'start_date' in self.payment_config:
             last_date = self.payment_config['start_date']
+        else:
+            last_date = datetime.date(last_date.year, last_date.month, last_date.day)
 
         previous_last_date = None
 

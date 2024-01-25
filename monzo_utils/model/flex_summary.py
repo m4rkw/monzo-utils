@@ -6,13 +6,15 @@ from monzo_utils.model.transaction import Transaction
 
 class FlexSummary(Payment):
 
-    def __init__(self, config, total, total_next_month, remaining, last_salary_date):
+    def __init__(self, config, total, total_next_month, remaining, last_salary_date, next_salary_date, following_salary_date):
         self.config = config
         self.payment_config = {}
         self.flex_total = total
         self.flex_total_next_month = total_next_month
         self.flex_remaining = remaining
         self.last_salary_date = last_salary_date
+        self.next_salary_date = next_salary_date
+        self.following_salary_date = following_salary_date
 
         self.cache = {}
 
@@ -45,7 +47,7 @@ class FlexSummary(Payment):
         while last_date.day != self.config['flex_payment_date']:
             last_date -= datetime.timedelta(days=1)
 
-        return last_date
+        return datetime.date(last_date.year, last_date.month, last_date.day)
 
 
     @property
@@ -93,6 +95,9 @@ class FlexSummary(Payment):
             'Flex',
             self.last_salary_date
         ])
+
+        if not transaction:
+            transaction = None
 
         self.cache['last_payment'] = transaction
 

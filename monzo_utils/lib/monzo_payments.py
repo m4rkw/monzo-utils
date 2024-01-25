@@ -275,7 +275,7 @@ class MonzoPayments:
             for payment in payments:
                 flex_remaining += payment.remaining
 
-            summary = FlexSummary(self.config, total_this_month, total_next_month, flex_remaining, self.last_salary_date)
+            summary = FlexSummary(self.config, total_this_month, total_next_month, flex_remaining, self.last_salary_date, self.next_salary_date, self.following_salary_date)
 
             if self.json:
                 self.output.append(summary.data(self.abbreviate))
