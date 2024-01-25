@@ -96,12 +96,18 @@ class MonzoAPI:
 
 
     def save_tokens(self):
-        with open(self.token_file,'w') as f:
-            f.write(json.dumps({
-                'access_token': self.access_token,
-                'expiry': self.access_token_expiry,
-                'refresh_token': self.refresh_token
-            }))
+        self.set_file_contents(self.token_file, json.dumps({
+            'access_token': self.access_token,
+            'expiry': self.access_token_expiry,
+            'refresh_token': self.refresh_token
+        }))
+
+
+    def set_file_contents(self, path, content):
+        with open(path + ".new", 'w') as f:
+            f.write(content)
+
+        os.rename(path + ".new", path)
 
 
     def get_client(self):
@@ -225,6 +231,9 @@ class MonzoAPI:
                 return self.pots(account_id, False)
 
             Log().error("auth failed")
+            sys.exit(1)
+        except MonzoServerError:
+            Log().error("server error")
             sys.exit(1)
         except TimeoutError:
             Log().error("timeout")
