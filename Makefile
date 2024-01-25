@@ -1,6 +1,6 @@
-#.PHONY: all build venv
+.PHONY: all build venv
 
-#all: build
+all: build
 
 venv:
 	python3 -m venv venv
@@ -15,5 +15,5 @@ build: venv
 test: build
 	./venv/bin/pytest tests
 
-#push: test
-#	twine upload dist/*.whl
+push: test
+	twine upload dist/*.whl
