@@ -13,7 +13,7 @@ import pwd
 import datetime
 from freezegun import freeze_time
 
-class TestMonzAPI(BaseTest):
+class TestMonzoAPI(BaseTest):
 
     def setUp(self):
         Config._instances = {}
