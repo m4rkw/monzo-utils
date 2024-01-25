@@ -295,7 +295,7 @@ class MonzoSync:
 
 
     def sanitise(self, string):
-        return re.sub('[\s\t]+', ' ', string)
+        return re.sub(r'[\s\t]+', ' ', string)
 
 
     def add_transaction(self, account, mo_transaction, pot_account_ids, pot_id=None):
