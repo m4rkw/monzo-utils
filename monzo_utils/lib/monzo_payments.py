@@ -118,21 +118,36 @@ class MonzoPayments:
         self.following_salary_date = self.get_next_salary_date(self.next_salary_date)
 
         if self.json is False:
-            self.display_columns()
+            self.display_columns('yearly')
 
         if 'payments' in self.config:
             for payment_list in self.config['payments']:
                 if not payment_list['payments']:
                     continue
 
-                due, total_due_this_month, total_due_next_month = self.display_payment_list(payment_list['type'], payment_list['payments'])
+                due, total_due_this_month, total_due_next_month = self.display_payment_list(payment_list, True)
+
+                self.due += due
+                self.total_this_month += total_due_this_month
+                self.next_month += total_due_next_month
+
+            self.display_spacer('monthly')
+
+            for payment_list in self.config['payments']:
+                if not payment_list['payments']:
+                    continue
+
+                due, total_due_this_month, total_due_next_month = self.display_payment_list(payment_list, False)
 
                 self.due += due
                 self.total_this_month += total_due_this_month
                 self.next_month += total_due_next_month
 
         if 'refunds_due' in self.config and self.config['refunds_due']:
-            self.display_payment_list('Refund', self.config['refunds_due'])
+            self.display_payment_list({
+                'type': 'Refund',
+                'payments': self.config['refunds_due']
+            }, False)
 
         if 'pot' in self.config:
             pot = self.account.get_pot(self.config['pot'])
@@ -224,7 +239,7 @@ class MonzoPayments:
             ms.sync()
 
 
-    def display_columns(self):
+    def display_columns(self, title):
         print("%s %s %s %s %s %s %s %s" % (
             'Status'.rjust(8),
             'Type'.ljust(15),
@@ -236,7 +251,13 @@ class MonzoPayments:
             'Due date'.ljust(10)
         ))
 
-        print("-" * 109)
+        self.display_spacer(title)
+
+
+    def display_spacer(self, title):
+        sys.stdout.write("-" * 9)
+        sys.stdout.write(title.ljust(15,'-'))
+        sys.stdout.write(("-" * 85) + "\n")
 
 
     def prompt_action(self, prompt):
@@ -252,15 +273,15 @@ class MonzoPayments:
         return i == 'y'
 
  
-    def display_payment_list(self, payment_type, payment_list):
-        payments = self.get_payments(payment_type, payment_list)
+    def display_payment_list(self, payment_list, annual):
+        payments = self.get_payments(payment_list, annual)
 
         summary = None
         due = 0
         total_due_this_month = 0
         total_due_next_month = 0
 
-        if payment_type == 'Flex':
+        if payment_list['type'] == 'Flex':
             total_this_month = 0
             total_next_month = 0
             today = datetime.datetime.now()
@@ -293,7 +314,7 @@ class MonzoPayments:
                 due += payment.display_amount * 100
 
             if payment.due_next_month:
-                if payment.status == 'SKIPPED' or payment_type != 'Refund':
+                if payment.status == 'SKIPPED' or payment_list['type'] != 'Refund':
                     total_due_next_month += payment.next_month_amount * 100
 
                     if 'exclude_yearly_from_bills' not in self.config or self.config['exclude_yearly_from_bills'] is False or 'yearly_month' not in payment_config:
@@ -307,12 +328,18 @@ class MonzoPayments:
         return due, total_due_this_month, total_due_next_month
 
 
-    def get_payments(self, payment_type, payment_list):
-        payments = []
+    def get_payments(self, payment_list, annual):
+        payments = {}
 
-        for payment_config in payment_list:
-            payment_list_type_library = payment_type.lower().replace(' ','_')
-            payment_list_type = payment_type.title().replace(' ','')
+        for payment_config in payment_list['payments']:
+            payment_list_type_library = payment_list['type'].lower().replace(' ','_')
+            payment_list_type = payment_list['type'].title().replace(' ','')
+
+            if annual and ('is_yearly' not in payment_config or payment_config['is_yearly'] is False) and ('yearly_month' not in payment_config or 'yearly_day' not in payment_config):
+                continue
+
+            if not annual and (('yearly_month' in payment_config and 'yearly_day' in payment_config) or ('is_yearly' in payment_config and payment_config['is_yearly'])):
+                continue
 
             payment = getattr(importlib.import_module(f"monzo_utils.model.{payment_list_type_library}"), payment_list_type)(
                 self.config,
@@ -323,9 +350,18 @@ class MonzoPayments:
                 self.following_salary_date
             )
 
-            payments.append(payment)
+            if payment.due_date not in payments:
+                payments[payment.due_date] = []
 
-        return payments
+            payments[payment.due_date].append(payment)
+
+        sorted_payments = []
+
+        for due_date in sorted(payments):
+            for payment in payments[due_date]:
+                sorted_payments.append(payment)
+
+        return sorted_payments
 
 
     def notify(self, event, message):

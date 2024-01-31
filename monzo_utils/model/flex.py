@@ -52,7 +52,7 @@ class Flex(Payment):
             while date_due.day != self.config['flex_payment_date']:
                 date_due += datetime.timedelta(days=1)
 
-            if date_due > datetime.date(self.today.year, self.today.month, self.today.day):
+            if datetime.date(date_due.year, date_due.month, date_due.day) > datetime.date(self.today.year, self.today.month, self.today.day):
 
                 if self.last_flex_payment and self.last_flex_payment.date.day != self.config['flex_payment_date'] and self.last_flex_payment.date >= self.payment_config['start_date']:
                     date_due += datetime.timedelta(days=1)

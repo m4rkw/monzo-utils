@@ -6,7 +6,10 @@ from monzo_utils.lib.db import DB
 from monzo_utils.lib.config import Config
 from monzo_utils.lib.monzo_sync import MonzoSync
 from monzo_utils.lib.monzo_api import MonzoAPI
+from monzo_utils.model.account import Account
 from monzo.exceptions import MonzoAuthenticationError, MonzoServerError, MonzoHTTPError, MonzoPermissionsError
+import monzo.endpoints.account
+import monzo.endpoints.balance
 import pytest
 import os
 import pwd
@@ -79,3 +82,46 @@ class TestMonzoSync(BaseTest):
 
         with pytest.raises(AttributeError):
             ms.provider
+
+
+    @patch('monzo_utils.lib.db.DB.__init__')
+    @patch('monzo_utils.lib.config.Config.save')
+    @patch('monzo_utils.lib.monzo_sync.MonzoSync.__init__')
+    @patch('monzo.endpoints.account.Account.__init__')
+    @patch('monzo.endpoints.balance.Balance.__init__')
+    @patch('builtins.print')
+    @patch('monzo_utils.lib.monzo_sync.MonzoSync.prompt_input')
+    @patch('monzo_utils.lib.monzo_sync.MonzoSync.prompt_continue')
+    def test_scan_accounts(self, mock_prompt_continue, mock_prompt_input, mock_print, mock_init_balance, mock_init_account, mock_init, mock_save_config, mock_db):
+        mock_init_balance.return_value = None
+        mock_init_account.return_value = None
+        mock_init.return_value = None
+        mock_db.return_value = None
+
+        config = Config({
+            'accounts': {}
+        })
+
+        Config._instances[Config] = config
+
+        balance1 = monzo.endpoints.balance.Balance()
+        balance1._balance = 123
+
+        account1 = monzo.endpoints.account.Account()
+        account1._account_id = 123
+        account1._balance = balance1
+        account1._description = 'test'
+
+        balance2 = monzo.endpoints.balance.Balance()
+        balance2._balance = 123
+
+        account2 = monzo.endpoints.account.Account()
+        account2._account_id = 123
+        account2._balance = balance2
+        account2._description = 'test'
+
+        ms = MonzoSync()
+        ms.api = MagicMock()
+        ms.api.accounts.return_value = [account1, account2]
+
+        ms.scan_accounts()

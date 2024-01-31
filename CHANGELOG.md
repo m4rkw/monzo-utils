@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.69 - 31/01/2024
+
+- Tidied up output, separating monthly and yearly payments
+- Fixed a couple of bugs
+
 ## 0.0.68 - 31/01/2024
 
 - Bugfix

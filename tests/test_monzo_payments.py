@@ -17,6 +17,7 @@ from monzo_utils.model.finance import Finance
 from monzo_utils.model.flex import Flex
 from monzo_utils.model.refund import Refund
 from monzo_utils.model.standing_order import StandingOrder
+from freezegun import freeze_time
 import os
 import pwd
 import json
@@ -435,8 +436,10 @@ class TestMonzoPayments(BaseTest):
 
         self.assertEqual(len(mock_display_payment_list.call_args), 2)
 
-        mock_display_payment_list.assert_any_call('type1', ['payment1'])
-        mock_display_payment_list.assert_any_call('type2', ['payment2'])
+        mock_display_payment_list.assert_any_call({'type': 'type1', 'payments': ['payment1']}, False)
+        mock_display_payment_list.assert_any_call({'type': 'type1', 'payments': ['payment1']}, True)
+        mock_display_payment_list.assert_any_call({'type': 'type2', 'payments': ['payment2']}, False)
+        mock_display_payment_list.assert_any_call({'type': 'type2', 'payments': ['payment2']}, True)
 
 
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
@@ -474,9 +477,11 @@ class TestMonzoPayments(BaseTest):
 
         mp.main()
 
-        mock_display_payment_list.assert_any_call('type1', ['payment1'])
-        mock_display_payment_list.assert_any_call('type2', ['payment2'])
-        mock_display_payment_list.assert_any_call('Refund', ['one'])
+        mock_display_payment_list.assert_any_call({'type': 'type1', 'payments': ['payment1']}, False)
+        mock_display_payment_list.assert_any_call({'type': 'type1', 'payments': ['payment1']}, True)
+        mock_display_payment_list.assert_any_call({'type': 'type2', 'payments': ['payment2']}, False)
+        mock_display_payment_list.assert_any_call({'type': 'type2', 'payments': ['payment2']}, True)
+        mock_display_payment_list.assert_any_call({'type': 'Refund', 'payments': ['one']}, False)
 
 
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
@@ -646,15 +651,16 @@ class TestMonzoPayments(BaseTest):
         mp.total_this_month = 0
         mp.next_month = 0
 
-        mp.main()
+        with freeze_time("2024-01-20"):
+            mp.main()
 
         expected = {
             'balance': 23.0,
-            'due': 100.26,
-            'total_this_month': 2.6,
-            'total_next_month': 3.0,
+            'due': 100.52,
+            'total_this_month': 5.2,
+            'total_next_month': 6.0,
             'payments': 'sanitised output',
-            'shortfall': 77.26,
+            'shortfall': 77.52,
             'credit': 0
         }
 
@@ -759,7 +765,7 @@ class TestMonzoPayments(BaseTest):
     @patch('monzo_utils.model.flex_summary.FlexSummary.display')
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
     @patch('sys.stdout.write')
-    def test_display_payment_list_flex_summary(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+    def test_display_payment_list_flex_summary_monthly(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
@@ -792,7 +798,13 @@ class TestMonzoPayments(BaseTest):
             )
         ]
 
-        due, total_due_this_month, total_due_next_month = mp.display_payment_list('Flex', [])
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'Flex',
+                'payments': []
+            },
+            False
+        )
 
         mock_display.assert_called_with()
 
@@ -805,7 +817,59 @@ class TestMonzoPayments(BaseTest):
     @patch('monzo_utils.model.flex_summary.FlexSummary.display')
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
     @patch('sys.stdout.write')
-    def test_display_payment_list_flex_json(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+    def test_display_payment_list_flex_summary_annual(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+        mock_mp.return_value = None
+
+        mp = MonzoPayments()
+        mp.last_salary_date = datetime.date(2024,1,1)
+        mp.next_salary_date = datetime.date(2024,2,1)
+        mp.following_salary_date = datetime.date(2024,3,1)
+        mp.config = {
+            'flex_account': 'Flex',
+            'flex_payment_date': 19
+        }
+        mp.due = 0
+        mp.total_this_month = 0
+        mp.next_month = 0
+        mp.json = False
+        mp.next_month_bills_pot = 0
+
+        mock_get_payments.return_value = [
+            Flex(
+                mp.config,
+                {},
+                {
+                    'name': "thing i bought",
+                    'amount': 100,
+                    'start_date': datetime.date(2024,1,10),
+                    'months': 3
+                },
+                mp.last_salary_date,
+                mp.next_salary_date,
+                mp.following_salary_date
+            )
+        ]
+
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'Flex',
+                'payments': []
+            },
+            True
+        )
+
+        mock_display.assert_called_with()
+
+        self.assertEqual(due, 0)
+        self.assertEqual(total_due_this_month, 3400)
+        self.assertEqual(total_due_next_month, 3400)
+
+
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
+    @patch('monzo_utils.model.flex_summary.FlexSummary.display')
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
+    @patch('sys.stdout.write')
+    def test_display_payment_list_flex_json_monthly(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
@@ -837,7 +901,13 @@ class TestMonzoPayments(BaseTest):
             )
         ]
 
-        due, total_due_this_month, total_due_next_month = mp.display_payment_list('Flex', [])
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'Flex',
+                'payments': []
+            },
+            False
+        )
 
         mock_display.assert_not_called()
 
@@ -895,7 +965,103 @@ class TestMonzoPayments(BaseTest):
     @patch('monzo_utils.model.flex_summary.FlexSummary.display')
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
     @patch('sys.stdout.write')
-    def test_display_payment_list_flex_json_abbreviated(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+    def test_display_payment_list_flex_json_annual(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+        mock_mp.return_value = None
+
+        mp = MonzoPayments()
+        mp.last_salary_date = datetime.date(2024,1,1)
+        mp.next_salary_date = datetime.date(2024,2,1)
+        mp.following_salary_date = datetime.date(2024,3,1)
+        mp.config = {
+            'flex_account': 'Flex',
+            'flex_payment_date': 19
+        }
+        mp.json = True
+        mp.output = []
+        mp.abbreviate = False
+        mp.next_month_bills_pot = 0
+
+        mock_get_payments.return_value = [
+            Flex(
+                mp.config,
+                {},
+                {
+                    'name': "thing i bought",
+                    'amount': 100,
+                    'start_date': datetime.date(2024,1,10),
+                    'months': 3
+                },
+                mp.last_salary_date,
+                mp.next_salary_date,
+                mp.following_salary_date
+            )
+        ]
+
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'Flex',
+                'payments': []
+            },
+            True
+        )
+
+        mock_display.assert_not_called()
+
+        self.assertEqual(due, 0)
+        self.assertEqual(total_due_this_month, 3400)
+        self.assertEqual(total_due_next_month, 3400)
+
+        self.assertIsInstance(mp.output, list)
+        self.assertEqual(len(mp.output), 2)
+
+        self.assertIn('amount', mp.output[0])
+        self.assertIn('due_date', mp.output[0])
+        self.assertIn('last_date', mp.output[0])
+        self.assertIn('name', mp.output[0])
+        self.assertIn('payment_type', mp.output[0])
+        self.assertIn('remaining', mp.output[0])
+        self.assertIn('status', mp.output[0])
+        self.assertIn('suffix', mp.output[0])
+
+        self.assertEqual(mp.output[0]['amount'], 34)
+        self.assertEqual(mp.output[0]['due_date'], datetime.date(2024, 2, 19))
+        self.assertEqual(
+            datetime.date(mp.output[0]['last_date'].year, mp.output[0]['last_date'].month, mp.output[0]['last_date'].day),
+            datetime.date(2024, 1, 19)
+        )
+        self.assertEqual(mp.output[0]['name'], 'Flex Payment')
+        self.assertEqual(mp.output[0]['payment_type'], 'Flex Summary')
+        self.assertEqual(mp.output[0]['remaining'], 66)
+        self.assertEqual(mp.output[0]['status'], 'DUE')
+        self.assertEqual(mp.output[0]['suffix'], '')
+
+        self.assertIn('amount', mp.output[1])
+        self.assertIn('due_date', mp.output[1])
+        self.assertIn('last_date', mp.output[1])
+        self.assertIn('name', mp.output[1])
+        self.assertIn('payment_type', mp.output[1])
+        self.assertIn('remaining', mp.output[1])
+        self.assertIn('status', mp.output[1])
+        self.assertIn('suffix', mp.output[1])
+
+        self.assertEqual(mp.output[1]['amount'], 34)
+        self.assertEqual(mp.output[1]['due_date'], datetime.date(2024, 2, 19))
+        self.assertEqual(
+            datetime.date(mp.output[1]['last_date'].year, mp.output[1]['last_date'].month, mp.output[1]['last_date'].day),
+            datetime.date(2024, 1, 19)
+        )
+        self.assertEqual(mp.output[1]['name'], '- thing i bought')
+        self.assertEqual(mp.output[1]['payment_type'], 'Flex')
+        self.assertEqual(mp.output[1]['remaining'], 66)
+        self.assertEqual(mp.output[1]['status'], 'PAID')
+        self.assertEqual(mp.output[1]['suffix'], '1/3')
+
+
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
+    @patch('monzo_utils.model.flex_summary.FlexSummary.display')
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
+    @patch('sys.stdout.write')
+    def test_display_payment_list_flex_json_abbreviated_monthly(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
@@ -927,7 +1093,103 @@ class TestMonzoPayments(BaseTest):
             )
         ]
 
-        due, total_due_this_month, total_due_next_month = mp.display_payment_list('Flex', [])
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'Flex',
+                'payments': []
+            },
+            False
+        )
+
+        mock_display.assert_not_called()
+
+        self.assertEqual(due, 0)
+        self.assertEqual(total_due_this_month, 3400)
+        self.assertEqual(total_due_next_month, 3400)
+
+        self.assertIsInstance(mp.output, list)
+        self.assertEqual(len(mp.output), 2)
+
+        self.assertIn('amount', mp.output[0])
+        self.assertIn('due_date', mp.output[0])
+        self.assertIn('last_date', mp.output[0])
+        self.assertIn('name', mp.output[0])
+        self.assertIn('payment_type', mp.output[0])
+        self.assertIn('remaining', mp.output[0])
+        self.assertIn('status', mp.output[0])
+        self.assertIn('suffix', mp.output[0])
+
+        self.assertEqual(mp.output[0]['amount'], 34)
+        self.assertEqual(mp.output[0]['due_date'], '19/02/24')
+        self.assertEqual(mp.output[0]['last_date'], '19/01/24')
+        self.assertEqual(mp.output[0]['name'], 'Flex Payment')
+        self.assertEqual(mp.output[0]['payment_type'], 'FS')
+        self.assertEqual(mp.output[0]['remaining'], 66)
+        self.assertEqual(mp.output[0]['status'], 'DUE')
+        self.assertEqual(mp.output[0]['suffix'], '')
+
+        self.assertIn('amount', mp.output[1])
+        self.assertIn('due_date', mp.output[1])
+        self.assertIn('last_date', mp.output[1])
+        self.assertIn('name', mp.output[1])
+        self.assertIn('payment_type', mp.output[1])
+        self.assertIn('remaining', mp.output[1])
+        self.assertIn('status', mp.output[1])
+        self.assertIn('suffix', mp.output[1])
+
+        self.assertEqual(mp.output[1]['amount'], 34)
+        self.assertEqual(mp.output[1]['due_date'], '19/02/24')
+        self.assertEqual(mp.output[1]['last_date'], '19/01/24')
+        self.assertEqual(mp.output[1]['name'], '- thing i bought')
+        self.assertEqual(mp.output[1]['payment_type'], 'F')
+        self.assertEqual(mp.output[1]['remaining'], 66)
+        self.assertEqual(mp.output[1]['status'], 'PAID')
+        self.assertEqual(mp.output[1]['suffix'], '1/3')
+
+
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
+    @patch('monzo_utils.model.flex_summary.FlexSummary.display')
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
+    @patch('sys.stdout.write')
+    def test_display_payment_list_flex_json_abbreviated_annual(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+        mock_mp.return_value = None
+
+        mp = MonzoPayments()
+        mp.last_salary_date = datetime.date(2024,1,1)
+        mp.next_salary_date = datetime.date(2024,2,1)
+        mp.following_salary_date = datetime.date(2024,3,1)
+        mp.config = {
+            'flex_account': 'Flex',
+            'flex_payment_date': 19
+        }
+        mp.json = True
+        mp.output = []
+        mp.abbreviate = True
+        mp.next_month_bills_pot = 0
+
+        mock_get_payments.return_value = [
+            Flex(
+                mp.config,
+                {},
+                {
+                    'name': "thing i bought",
+                    'amount': 100,
+                    'start_date': datetime.date(2024,1,10),
+                    'months': 3
+                },
+                mp.last_salary_date,
+                mp.next_salary_date,
+                mp.following_salary_date
+            )
+        ]
+
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'Flex',
+                'payments': []
+            },
+            True
+        )
 
         mock_display.assert_not_called()
 
@@ -979,7 +1241,7 @@ class TestMonzoPayments(BaseTest):
     @patch('monzo_utils.model.card_payment.CardPayment.display')
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
     @patch('sys.stdout.write')
-    def test_display_payment_list_card_payment_summary(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+    def test_display_payment_list_card_payment_summary_monthly(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
         mock_config = MagicMock()
         Config._instances[Config] = mock_config
 
@@ -1010,7 +1272,13 @@ class TestMonzoPayments(BaseTest):
             )
         ]
 
-        due, total_due_this_month, total_due_next_month = mp.display_payment_list('CardPayment', [])
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'CardPayment',
+                'payments': []
+            },
+            False
+        )
 
         mock_display.assert_called_with()
 
@@ -1023,7 +1291,57 @@ class TestMonzoPayments(BaseTest):
     @patch('monzo_utils.model.card_payment.CardPayment.display')
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
     @patch('sys.stdout.write')
-    def test_display_payment_list_card_payment_json(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+    def test_display_payment_list_card_payment_summary_annual(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
+        mock_mp.return_value = None
+
+        mp = MonzoPayments()
+        mp.last_salary_date = datetime.date(2024,1,1)
+        mp.next_salary_date = datetime.date(2024,2,1)
+        mp.following_salary_date = datetime.date(2024,3,1)
+        mp.config = {
+        }
+        mp.next_month_bills_pot = 0
+        mp.json = False
+
+        mock_get_payments.return_value = [
+            CardPayment(
+                mp.config,
+                {},
+                {
+                    'name': "thing i bought",
+                    'amount': 100,
+                    'start_date': datetime.date(2024,1,10),
+                    'months': 3
+                },
+                mp.last_salary_date,
+                mp.next_salary_date,
+                mp.following_salary_date
+            )
+        ]
+
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'CardPayment',
+                'payments': []
+            },
+            True
+        )
+
+        mock_display.assert_called_with()
+
+        self.assertEqual(due, 10000)
+        self.assertEqual(total_due_this_month, 10000)
+        self.assertEqual(total_due_next_month, 10000)
+
+
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
+    @patch('monzo_utils.model.card_payment.CardPayment.display')
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
+    @patch('sys.stdout.write')
+    def test_display_payment_list_card_payment_json_monthly(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
         mock_config = MagicMock()
         Config._instances[Config] = mock_config
 
@@ -1056,7 +1374,13 @@ class TestMonzoPayments(BaseTest):
             )
         ]
 
-        due, total_due_this_month, total_due_next_month = mp.display_payment_list('CardPayment', [])
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'CardPayment',
+                'payments': []
+            },
+            False
+        )
 
         mock_display.assert_not_called()
 
@@ -1090,7 +1414,80 @@ class TestMonzoPayments(BaseTest):
     @patch('monzo_utils.model.card_payment.CardPayment.display')
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
     @patch('sys.stdout.write')
-    def test_display_payment_list_card_payment_json_abbreviated(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+    def test_display_payment_list_card_payment_json_annual(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
+        mock_mp.return_value = None
+
+        mp = MonzoPayments()
+        mp.last_salary_date = datetime.date(2024,1,1)
+        mp.next_salary_date = datetime.date(2024,2,1)
+        mp.following_salary_date = datetime.date(2024,3,1)
+        mp.config = {
+        }
+        mp.json = True
+        mp.next_month_bills_pot = 0
+        mp.output = []
+        mp.abbreviate = False
+
+        mock_get_payments.return_value = [
+            CardPayment(
+                mp.config,
+                {},
+                {
+                    'name': "thing i bought",
+                    'amount': 100,
+                    'start_date': datetime.date(2024,1,10),
+                    'months': 3
+                },
+                mp.last_salary_date,
+                mp.next_salary_date,
+                mp.following_salary_date
+            )
+        ]
+
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'CardPayment',
+                'payments': []
+            },
+            True
+        )
+
+        mock_display.assert_not_called()
+
+        self.assertEqual(due, 10000)
+        self.assertEqual(total_due_this_month, 10000)
+        self.assertEqual(total_due_next_month, 10000)
+
+        self.assertIsInstance(mp.output, list)
+        self.assertEqual(len(mp.output), 1)
+
+        self.assertIn('amount', mp.output[0])
+        self.assertIn('due_date', mp.output[0])
+        self.assertIn('last_date', mp.output[0])
+        self.assertIn('name', mp.output[0])
+        self.assertIn('payment_type', mp.output[0])
+        self.assertIn('remaining', mp.output[0])
+        self.assertIn('status', mp.output[0])
+        self.assertIn('suffix', mp.output[0])
+
+        self.assertEqual(mp.output[0]['amount'], 100)
+        self.assertEqual(mp.output[0]['due_date'], datetime.date(2024, 1, 10))
+        self.assertEqual(mp.output[0]['last_date'], None)
+        self.assertEqual(mp.output[0]['name'], 'thing i bought')
+        self.assertEqual(mp.output[0]['payment_type'], 'Card Payment')
+        self.assertEqual(mp.output[0]['remaining'], None)
+        self.assertEqual(mp.output[0]['status'], 'DUE')
+        self.assertEqual(mp.output[0]['suffix'], '')
+
+
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
+    @patch('monzo_utils.model.card_payment.CardPayment.display')
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
+    @patch('sys.stdout.write')
+    def test_display_payment_list_card_payment_json_abbreviated_monthly(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
         mock_config = MagicMock()
         Config._instances[Config] = mock_config
 
@@ -1123,7 +1520,86 @@ class TestMonzoPayments(BaseTest):
             )
         ]
 
-        due, total_due_this_month, total_due_next_month = mp.display_payment_list('CardPayment', [])
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'CardPayment',
+                'payments': []
+            },
+            False
+        )
+
+        mock_display.assert_not_called()
+
+        self.assertEqual(due, 10000)
+        self.assertEqual(total_due_this_month, 10000)
+        self.assertEqual(total_due_next_month, 10000)
+
+        self.assertIsInstance(mp.output, list)
+        self.assertEqual(len(mp.output), 1)
+
+        self.assertIn('amount', mp.output[0])
+        self.assertIn('due_date', mp.output[0])
+        self.assertIn('last_date', mp.output[0])
+        self.assertIn('name', mp.output[0])
+        self.assertIn('payment_type', mp.output[0])
+        self.assertIn('remaining', mp.output[0])
+        self.assertIn('status', mp.output[0])
+        self.assertIn('suffix', mp.output[0])
+
+        self.assertEqual(mp.output[0]['amount'], 100)
+        self.assertEqual(mp.output[0]['due_date'], '10/01/24')
+        self.assertEqual(mp.output[0]['last_date'], None)
+        self.assertEqual(mp.output[0]['name'], 'thing i bought')
+        self.assertEqual(mp.output[0]['payment_type'], 'CP')
+        self.assertEqual(mp.output[0]['remaining'], None)
+        self.assertEqual(mp.output[0]['status'], 'DUE')
+        self.assertEqual(mp.output[0]['suffix'], '')
+
+
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
+    @patch('monzo_utils.model.card_payment.CardPayment.display')
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
+    @patch('sys.stdout.write')
+    def test_display_payment_list_card_payment_json_abbreviated_annual(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
+        mock_mp.return_value = None
+
+        mp = MonzoPayments()
+        mp.last_salary_date = datetime.date(2024,1,1)
+        mp.next_salary_date = datetime.date(2024,2,1)
+        mp.following_salary_date = datetime.date(2024,3,1)
+        mp.config = {
+        }
+        mp.json = True
+        mp.next_month_bills_pot = 0
+        mp.output = []
+        mp.abbreviate = True
+
+        mock_get_payments.return_value = [
+            CardPayment(
+                mp.config,
+                {},
+                {
+                    'name': "thing i bought",
+                    'amount': 100,
+                    'start_date': datetime.date(2024,1,10),
+                    'months': 3
+                },
+                mp.last_salary_date,
+                mp.next_salary_date,
+                mp.following_salary_date
+            )
+        ]
+
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'CardPayment',
+                'payments': []
+            },
+            True
+        )
 
         mock_display.assert_not_called()
 
@@ -1157,7 +1633,7 @@ class TestMonzoPayments(BaseTest):
     @patch('monzo_utils.model.direct_debit.DirectDebit.display')
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
     @patch('sys.stdout.write')
-    def test_display_payment_list_direct_debit_summary(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+    def test_display_payment_list_direct_debit_summary_monthly(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
         mock_config = MagicMock()
         Config._instances[Config] = mock_config
 
@@ -1188,7 +1664,13 @@ class TestMonzoPayments(BaseTest):
             )
         ]
 
-        due, total_due_this_month, total_due_next_month = mp.display_payment_list('DirectDebit', [])
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'DirectDebit',
+                'payments': []
+            },
+            False
+        )
 
         mock_display.assert_called_with()
 
@@ -1201,7 +1683,57 @@ class TestMonzoPayments(BaseTest):
     @patch('monzo_utils.model.direct_debit.DirectDebit.display')
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
     @patch('sys.stdout.write')
-    def test_display_payment_list_direct_debit_json(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+    def test_display_payment_list_direct_debit_summary_annual(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
+        mock_mp.return_value = None
+
+        mp = MonzoPayments()
+        mp.last_salary_date = datetime.date(2024,1,1)
+        mp.next_salary_date = datetime.date(2024,2,1)
+        mp.following_salary_date = datetime.date(2024,3,1)
+        mp.config = {
+        }
+        mp.next_month_bills_pot = 0
+        mp.json = False
+
+        mock_get_payments.return_value = [
+            DirectDebit(
+                mp.config,
+                {},
+                {
+                    'name': "thing i bought",
+                    'amount': 100,
+                    'start_date': datetime.date(2024,1,10),
+                    'months': 3
+                },
+                mp.last_salary_date,
+                mp.next_salary_date,
+                mp.following_salary_date
+            )
+        ]
+
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'DirectDebit',
+                'payments': []
+            },
+            True
+        )
+
+        mock_display.assert_called_with()
+
+        self.assertEqual(due, 10000)
+        self.assertEqual(total_due_this_month, 10000)
+        self.assertEqual(total_due_next_month, 10000)
+
+
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
+    @patch('monzo_utils.model.direct_debit.DirectDebit.display')
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
+    @patch('sys.stdout.write')
+    def test_display_payment_list_direct_debit_json_monthly(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
         mock_config = MagicMock()
         Config._instances[Config] = mock_config
 
@@ -1234,7 +1766,13 @@ class TestMonzoPayments(BaseTest):
             )
         ]
 
-        due, total_due_this_month, total_due_next_month = mp.display_payment_list('DirectDebit', [])
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'DirectDebit',
+                'payments': []
+            },
+            False
+        )
 
         mock_display.assert_not_called()
 
@@ -1268,7 +1806,80 @@ class TestMonzoPayments(BaseTest):
     @patch('monzo_utils.model.direct_debit.DirectDebit.display')
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
     @patch('sys.stdout.write')
-    def test_display_payment_list_direct_debit_json_abbreviated(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+    def test_display_payment_list_direct_debit_json_annual(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
+        mock_mp.return_value = None
+
+        mp = MonzoPayments()
+        mp.last_salary_date = datetime.date(2024,1,1)
+        mp.next_salary_date = datetime.date(2024,2,1)
+        mp.following_salary_date = datetime.date(2024,3,1)
+        mp.config = {
+        }
+        mp.json = True
+        mp.next_month_bills_pot = 0
+        mp.output = []
+        mp.abbreviate = False
+
+        mock_get_payments.return_value = [
+            DirectDebit(
+                mp.config,
+                {},
+                {
+                    'name': "thing i bought",
+                    'amount': 100,
+                    'start_date': datetime.date(2024,1,10),
+                    'months': 3
+                },
+                mp.last_salary_date,
+                mp.next_salary_date,
+                mp.following_salary_date
+            )
+        ]
+
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'DirectDebit',
+                'payments': []
+            },
+            True
+        )
+
+        mock_display.assert_not_called()
+
+        self.assertEqual(due, 10000)
+        self.assertEqual(total_due_this_month, 10000)
+        self.assertEqual(total_due_next_month, 10000)
+
+        self.assertIsInstance(mp.output, list)
+        self.assertEqual(len(mp.output), 1)
+
+        self.assertIn('amount', mp.output[0])
+        self.assertIn('due_date', mp.output[0])
+        self.assertIn('last_date', mp.output[0])
+        self.assertIn('name', mp.output[0])
+        self.assertIn('payment_type', mp.output[0])
+        self.assertIn('remaining', mp.output[0])
+        self.assertIn('status', mp.output[0])
+        self.assertIn('suffix', mp.output[0])
+
+        self.assertEqual(mp.output[0]['amount'], 100)
+        self.assertEqual(mp.output[0]['due_date'], datetime.date(2024, 1, 10))
+        self.assertEqual(mp.output[0]['last_date'], None)
+        self.assertEqual(mp.output[0]['name'], 'thing i bought')
+        self.assertEqual(mp.output[0]['payment_type'], 'Direct Debit')
+        self.assertEqual(mp.output[0]['remaining'], None)
+        self.assertEqual(mp.output[0]['status'], 'DUE')
+        self.assertEqual(mp.output[0]['suffix'], '')
+
+
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
+    @patch('monzo_utils.model.direct_debit.DirectDebit.display')
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
+    @patch('sys.stdout.write')
+    def test_display_payment_list_direct_debit_json_abbreviated_monthly(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
         mock_config = MagicMock()
         Config._instances[Config] = mock_config
 
@@ -1301,7 +1912,13 @@ class TestMonzoPayments(BaseTest):
             )
         ]
 
-        due, total_due_this_month, total_due_next_month = mp.display_payment_list('DirectDebit', [])
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'DirectDebit',
+                'payments': []
+            },
+            False
+        )
 
         mock_display.assert_not_called()
 
@@ -1331,12 +1948,84 @@ class TestMonzoPayments(BaseTest):
         self.assertEqual(mp.output[0]['suffix'], '')
 
 
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
+    @patch('monzo_utils.model.direct_debit.DirectDebit.display')
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
+    @patch('sys.stdout.write')
+    def test_display_payment_list_direct_debit_json_abbreviated_annual(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+        mock_config = MagicMock()
+        Config._instances[Config] = mock_config
+
+        mock_mp.return_value = None
+
+        mp = MonzoPayments()
+        mp.last_salary_date = datetime.date(2024,1,1)
+        mp.next_salary_date = datetime.date(2024,2,1)
+        mp.following_salary_date = datetime.date(2024,3,1)
+        mp.config = {
+        }
+        mp.json = True
+        mp.next_month_bills_pot = 0
+        mp.output = []
+        mp.abbreviate = True
+
+        mock_get_payments.return_value = [
+            DirectDebit(
+                mp.config,
+                {},
+                {
+                    'name': "thing i bought",
+                    'amount': 100,
+                    'start_date': datetime.date(2024,1,10),
+                    'months': 3
+                },
+                mp.last_salary_date,
+                mp.next_salary_date,
+                mp.following_salary_date
+            )
+        ]
+
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'DirectDebit',
+                'payments': []
+            },
+            True
+        )
+
+        mock_display.assert_not_called()
+
+        self.assertEqual(due, 10000)
+        self.assertEqual(total_due_this_month, 10000)
+        self.assertEqual(total_due_next_month, 10000)
+
+        self.assertIsInstance(mp.output, list)
+        self.assertEqual(len(mp.output), 1)
+
+        self.assertIn('amount', mp.output[0])
+        self.assertIn('due_date', mp.output[0])
+        self.assertIn('last_date', mp.output[0])
+        self.assertIn('name', mp.output[0])
+        self.assertIn('payment_type', mp.output[0])
+        self.assertIn('remaining', mp.output[0])
+        self.assertIn('status', mp.output[0])
+        self.assertIn('suffix', mp.output[0])
+
+        self.assertEqual(mp.output[0]['amount'], 100)
+        self.assertEqual(mp.output[0]['due_date'], '10/01/24')
+        self.assertEqual(mp.output[0]['last_date'], None)
+        self.assertEqual(mp.output[0]['name'], 'thing i bought')
+        self.assertEqual(mp.output[0]['payment_type'], 'DD')
+        self.assertEqual(mp.output[0]['remaining'], None)
+        self.assertEqual(mp.output[0]['status'], 'DUE')
+        self.assertEqual(mp.output[0]['suffix'], '')
+
 
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
     @patch('monzo_utils.model.amazon_payments.AmazonPayments.display')
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
     @patch('sys.stdout.write')
-    def test_display_payment_list_amazon_payments_summary(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+    def test_display_payment_list_amazon_payments_summary_monthly(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
@@ -1366,7 +2055,13 @@ class TestMonzoPayments(BaseTest):
             )
         ]
 
-        due, total_due_this_month, total_due_next_month = mp.display_payment_list('AmazonPayments', [])
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'AmazonPayments',
+                'payments': []
+            },
+            False
+        )
 
         mock_display.assert_called_with()
 
@@ -1379,7 +2074,56 @@ class TestMonzoPayments(BaseTest):
     @patch('monzo_utils.model.amazon_payments.AmazonPayments.display')
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
     @patch('sys.stdout.write')
-    def test_display_payment_list_amazon_payments_json(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+    def test_display_payment_list_amazon_payments_summary_annual(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+        mock_mp.return_value = None
+
+        mp = MonzoPayments()
+        mp.last_salary_date = datetime.date(2024,1,1)
+        mp.next_salary_date = datetime.date(2024,2,1)
+        mp.following_salary_date = datetime.date(2024,3,1)
+        mp.config = {
+        }
+        mp.next_month_bills_pot = 0
+        mp.json = False
+
+        mock_get_payments.return_value = [
+            AmazonPayments(
+                mp.config,
+                {
+                    'payment_day': 16
+                },
+                {
+                    'name': "thing i bought",
+                    'amount': 100,
+                    'start_date': datetime.date(2024,1,10),
+                    'months': 3,
+                },
+                mp.last_salary_date,
+                mp.next_salary_date,
+                mp.following_salary_date
+            )
+        ]
+
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'AmazonPayments',
+                'payments': []
+            },
+            True
+        )
+
+        mock_display.assert_called_with()
+
+        self.assertEqual(due, 0)
+        self.assertEqual(total_due_this_month, 0)
+        self.assertEqual(total_due_next_month, 3333)
+
+
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
+    @patch('monzo_utils.model.amazon_payments.AmazonPayments.display')
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
+    @patch('sys.stdout.write')
+    def test_display_payment_list_amazon_payments_json_monthly(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
@@ -1411,7 +2155,13 @@ class TestMonzoPayments(BaseTest):
             )
         ]
 
-        due, total_due_this_month, total_due_next_month = mp.display_payment_list('AmazonPayments', [])
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'AmazonPayments',
+                'payments': []
+            },
+            False
+        )
 
         mock_display.assert_not_called()
 
@@ -1445,7 +2195,79 @@ class TestMonzoPayments(BaseTest):
     @patch('monzo_utils.model.amazon_payments.AmazonPayments.display')
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
     @patch('sys.stdout.write')
-    def test_display_payment_list_amazon_payments_json_abbreviated(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+    def test_display_payment_list_amazon_payments_json_annual(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+        mock_mp.return_value = None
+
+        mp = MonzoPayments()
+        mp.last_salary_date = datetime.date(2024,1,1)
+        mp.next_salary_date = datetime.date(2024,2,1)
+        mp.following_salary_date = datetime.date(2024,3,1)
+        mp.config = {
+        }
+        mp.json = True
+        mp.next_month_bills_pot = 0
+        mp.output = []
+        mp.abbreviate = False
+
+        mock_get_payments.return_value = [
+            AmazonPayments(
+                mp.config,
+                {
+                    'payment_day': 16
+                },
+                {
+                    'name': "thing i bought",
+                    'amount': 100,
+                    'start_date': datetime.date(2024,1,10),
+                    'months': 3
+                },
+                mp.last_salary_date,
+                mp.next_salary_date,
+                mp.following_salary_date
+            )
+        ]
+
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'AmazonPayments',
+                'payments': []
+            },
+            True
+        )
+
+        mock_display.assert_not_called()
+
+        self.assertEqual(due, 0)
+        self.assertEqual(total_due_this_month, 0)
+        self.assertEqual(total_due_next_month, 3333)
+
+        self.assertIsInstance(mp.output, list)
+        self.assertEqual(len(mp.output), 1)
+
+        self.assertIn('amount', mp.output[0])
+        self.assertIn('due_date', mp.output[0])
+        self.assertIn('last_date', mp.output[0])
+        self.assertIn('name', mp.output[0])
+        self.assertIn('payment_type', mp.output[0])
+        self.assertIn('remaining', mp.output[0])
+        self.assertIn('status', mp.output[0])
+        self.assertIn('suffix', mp.output[0])
+
+        self.assertEqual(mp.output[0]['amount'], 33.33)
+        self.assertEqual(mp.output[0]['due_date'], datetime.date(2024, 2, 16))
+        self.assertEqual(mp.output[0]['last_date'], None)
+        self.assertEqual(mp.output[0]['name'], 'thing i bought')
+        self.assertEqual(mp.output[0]['payment_type'], 'Amazon Payments')
+        self.assertEqual(mp.output[0]['remaining'], 100)
+        self.assertEqual(mp.output[0]['status'], 'SKIPPED')
+        self.assertEqual(mp.output[0]['suffix'], '0/3')
+
+
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
+    @patch('monzo_utils.model.amazon_payments.AmazonPayments.display')
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
+    @patch('sys.stdout.write')
+    def test_display_payment_list_amazon_payments_json_abbreviated_monthly(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
@@ -1477,7 +2299,85 @@ class TestMonzoPayments(BaseTest):
             )
         ]
 
-        due, total_due_this_month, total_due_next_month = mp.display_payment_list('AmazonPayments', [])
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'AmazonPayments',
+                'payments': []
+            },
+            False
+        )
+
+        mock_display.assert_not_called()
+
+        self.assertEqual(due, 0)
+        self.assertEqual(total_due_this_month, 0)
+        self.assertEqual(total_due_next_month, 3333)
+
+        self.assertIsInstance(mp.output, list)
+        self.assertEqual(len(mp.output), 1)
+
+        self.assertIn('amount', mp.output[0])
+        self.assertIn('due_date', mp.output[0])
+        self.assertIn('last_date', mp.output[0])
+        self.assertIn('name', mp.output[0])
+        self.assertIn('payment_type', mp.output[0])
+        self.assertIn('remaining', mp.output[0])
+        self.assertIn('status', mp.output[0])
+        self.assertIn('suffix', mp.output[0])
+
+        self.assertEqual(mp.output[0]['amount'], 33.33)
+        self.assertEqual(mp.output[0]['due_date'], '16/02/24')
+        self.assertEqual(mp.output[0]['last_date'], None)
+        self.assertEqual(mp.output[0]['name'], 'thing i bought')
+        self.assertEqual(mp.output[0]['payment_type'], 'AP')
+        self.assertEqual(mp.output[0]['remaining'], 100)
+        self.assertEqual(mp.output[0]['status'], 'SKIPPED')
+        self.assertEqual(mp.output[0]['suffix'], '0/3')
+
+
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
+    @patch('monzo_utils.model.amazon_payments.AmazonPayments.display')
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
+    @patch('sys.stdout.write')
+    def test_display_payment_list_amazon_payments_json_abbreviated_annual(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+        mock_mp.return_value = None
+
+        mp = MonzoPayments()
+        mp.last_salary_date = datetime.date(2024,1,1)
+        mp.next_salary_date = datetime.date(2024,2,1)
+        mp.following_salary_date = datetime.date(2024,3,1)
+        mp.config = {
+        }
+        mp.json = True
+        mp.next_month_bills_pot = 0
+        mp.output = []
+        mp.abbreviate = True
+
+        mock_get_payments.return_value = [
+            AmazonPayments(
+                mp.config,
+                {
+                    'payment_day': 16
+                },
+                {
+                    'name': "thing i bought",
+                    'amount': 100,
+                    'start_date': datetime.date(2024,1,10),
+                    'months': 3
+                },
+                mp.last_salary_date,
+                mp.next_salary_date,
+                mp.following_salary_date
+            )
+        ]
+
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'AmazonPayments',
+                'payments': []
+            },
+            True
+        )
 
         mock_display.assert_not_called()
 
@@ -1511,7 +2411,7 @@ class TestMonzoPayments(BaseTest):
     @patch('monzo_utils.model.finance.Finance.display')
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
     @patch('sys.stdout.write')
-    def test_display_payment_list_finance_summary(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+    def test_display_payment_list_finance_summary_monthly(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
@@ -1541,7 +2441,13 @@ class TestMonzoPayments(BaseTest):
             )
         ]
 
-        due, total_due_this_month, total_due_next_month = mp.display_payment_list('Finance', [])
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'Finance',
+                'payments': []
+            },
+            False
+        )
 
         mock_display.assert_called_with()
 
@@ -1554,7 +2460,56 @@ class TestMonzoPayments(BaseTest):
     @patch('monzo_utils.model.finance.Finance.display')
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
     @patch('sys.stdout.write')
-    def test_display_payment_list_finance_json(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+    def test_display_payment_list_finance_summary_annual(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+        mock_mp.return_value = None
+
+        mp = MonzoPayments()
+        mp.last_salary_date = datetime.date(2024,1,1)
+        mp.next_salary_date = datetime.date(2024,2,1)
+        mp.following_salary_date = datetime.date(2024,3,1)
+        mp.config = {
+        }
+        mp.next_month_bills_pot = 0
+        mp.json = False
+
+        mock_get_payments.return_value = [
+            Finance(
+                mp.config,
+                {
+                    'payment_day': 16
+                },
+                {
+                    'name': "thing i bought",
+                    'amount': 100,
+                    'start_date': datetime.date(2024,1,10),
+                    'months': 3,
+                },
+                mp.last_salary_date,
+                mp.next_salary_date,
+                mp.following_salary_date
+            )
+        ]
+
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'Finance',
+                'payments': []
+            },
+            True
+        )
+
+        mock_display.assert_called_with()
+
+        self.assertEqual(due, 3333)
+        self.assertEqual(total_due_this_month, 3333)
+        self.assertEqual(total_due_next_month, 3333)
+
+
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
+    @patch('monzo_utils.model.finance.Finance.display')
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
+    @patch('sys.stdout.write')
+    def test_display_payment_list_finance_json_monthly(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
@@ -1586,7 +2541,13 @@ class TestMonzoPayments(BaseTest):
             )
         ]
 
-        due, total_due_this_month, total_due_next_month = mp.display_payment_list('Finance', [])
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'Finance',
+                'payments': []
+            },
+            False
+        )
 
         mock_display.assert_not_called()
 
@@ -1620,7 +2581,79 @@ class TestMonzoPayments(BaseTest):
     @patch('monzo_utils.model.finance.Finance.display')
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
     @patch('sys.stdout.write')
-    def test_display_payment_list_finance_json_abbreviated(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+    def test_display_payment_list_finance_json_annual(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+        mock_mp.return_value = None
+
+        mp = MonzoPayments()
+        mp.last_salary_date = datetime.date(2024,1,1)
+        mp.next_salary_date = datetime.date(2024,2,1)
+        mp.following_salary_date = datetime.date(2024,3,1)
+        mp.config = {
+        }
+        mp.json = True
+        mp.next_month_bills_pot = 0
+        mp.output = []
+        mp.abbreviate = False
+
+        mock_get_payments.return_value = [
+            Finance(
+                mp.config,
+                {
+                    'payment_day': 16
+                },
+                {
+                    'name': "thing i bought",
+                    'amount': 100,
+                    'start_date': datetime.date(2024,1,10),
+                    'months': 3
+                },
+                mp.last_salary_date,
+                mp.next_salary_date,
+                mp.following_salary_date
+            )
+        ]
+
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'Finance',
+                'payments': []
+            },
+            True
+        )
+
+        mock_display.assert_not_called()
+
+        self.assertEqual(due, 3333)
+        self.assertEqual(total_due_this_month, 3333)
+        self.assertEqual(total_due_next_month, 3333)
+
+        self.assertIsInstance(mp.output, list)
+        self.assertEqual(len(mp.output), 1)
+
+        self.assertIn('amount', mp.output[0])
+        self.assertIn('due_date', mp.output[0])
+        self.assertIn('last_date', mp.output[0])
+        self.assertIn('name', mp.output[0])
+        self.assertIn('payment_type', mp.output[0])
+        self.assertIn('remaining', mp.output[0])
+        self.assertIn('status', mp.output[0])
+        self.assertIn('suffix', mp.output[0])
+
+        self.assertEqual(mp.output[0]['amount'], 33.33)
+        self.assertEqual(mp.output[0]['due_date'], datetime.date(2024, 1, 10))
+        self.assertEqual(mp.output[0]['last_date'], None)
+        self.assertEqual(mp.output[0]['name'], 'thing i bought')
+        self.assertEqual(mp.output[0]['payment_type'], 'Finance')
+        self.assertEqual(mp.output[0]['remaining'], 100)
+        self.assertEqual(mp.output[0]['status'], 'DUE')
+        self.assertEqual(mp.output[0]['suffix'], '0/3')
+
+
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
+    @patch('monzo_utils.model.finance.Finance.display')
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
+    @patch('sys.stdout.write')
+    def test_display_payment_list_finance_json_abbreviated_monthly(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
@@ -1652,7 +2685,85 @@ class TestMonzoPayments(BaseTest):
             )
         ]
 
-        due, total_due_this_month, total_due_next_month = mp.display_payment_list('Finance', [])
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'Finance',
+                'payments': []
+            },
+            False
+        )
+
+        mock_display.assert_not_called()
+
+        self.assertEqual(due, 3333)
+        self.assertEqual(total_due_this_month, 3333)
+        self.assertEqual(total_due_next_month, 3333)
+
+        self.assertIsInstance(mp.output, list)
+        self.assertEqual(len(mp.output), 1)
+
+        self.assertIn('amount', mp.output[0])
+        self.assertIn('due_date', mp.output[0])
+        self.assertIn('last_date', mp.output[0])
+        self.assertIn('name', mp.output[0])
+        self.assertIn('payment_type', mp.output[0])
+        self.assertIn('remaining', mp.output[0])
+        self.assertIn('status', mp.output[0])
+        self.assertIn('suffix', mp.output[0])
+
+        self.assertEqual(mp.output[0]['amount'], 33.33)
+        self.assertEqual(mp.output[0]['due_date'], '10/01/24')
+        self.assertEqual(mp.output[0]['last_date'], None)
+        self.assertEqual(mp.output[0]['name'], 'thing i bought')
+        self.assertEqual(mp.output[0]['payment_type'], 'F')
+        self.assertEqual(mp.output[0]['remaining'], 100)
+        self.assertEqual(mp.output[0]['status'], 'DUE')
+        self.assertEqual(mp.output[0]['suffix'], '0/3')
+
+
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
+    @patch('monzo_utils.model.finance.Finance.display')
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.get_payments')
+    @patch('sys.stdout.write')
+    def test_display_payment_list_finance_json_abbreviated_annual(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
+        mock_mp.return_value = None
+
+        mp = MonzoPayments()
+        mp.last_salary_date = datetime.date(2024,1,1)
+        mp.next_salary_date = datetime.date(2024,2,1)
+        mp.following_salary_date = datetime.date(2024,3,1)
+        mp.config = {
+        }
+        mp.json = True
+        mp.next_month_bills_pot = 0
+        mp.output = []
+        mp.abbreviate = True
+
+        mock_get_payments.return_value = [
+            Finance(
+                mp.config,
+                {
+                    'payment_day': 16
+                },
+                {
+                    'name': "thing i bought",
+                    'amount': 100,
+                    'start_date': datetime.date(2024,1,10),
+                    'months': 3
+                },
+                mp.last_salary_date,
+                mp.next_salary_date,
+                mp.following_salary_date
+            )
+        ]
+
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'Finance',
+                'payments': []
+            },
+            True
+        )
 
         mock_display.assert_not_called()
 
@@ -1719,7 +2830,13 @@ class TestMonzoPayments(BaseTest):
             )
         ]
 
-        due, total_due_this_month, total_due_next_month = mp.display_payment_list('Refund', [])
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'Refund',
+                'payments': []
+            },
+            False
+        )
 
         mock_display.assert_called_with()
 
@@ -1768,7 +2885,13 @@ class TestMonzoPayments(BaseTest):
             )
         ]
 
-        due, total_due_this_month, total_due_next_month = mp.display_payment_list('Refund', [])
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'Refund',
+                'payments': []
+            },
+            False
+        )
 
         mock_display.assert_not_called()
 
@@ -1838,7 +2961,13 @@ class TestMonzoPayments(BaseTest):
             )
         ]
 
-        due, total_due_this_month, total_due_next_month = mp.display_payment_list('Refund', [])
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'Refund',
+                'payments': []
+            },
+            False
+        )
 
         mock_display.assert_not_called()
 
@@ -1905,7 +3034,13 @@ class TestMonzoPayments(BaseTest):
             )
         ]
 
-        due, total_due_this_month, total_due_next_month = mp.display_payment_list('Standing Order', [])
+        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
+            {
+                'type': 'Standing Order',
+                'payments': []
+            },
+            False
+        )
 
         mock_display.assert_called_with()
 
@@ -1915,14 +3050,27 @@ class TestMonzoPayments(BaseTest):
 
 
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
-    @patch('monzo_utils.model.amazon_payments.AmazonPayments.__init__')
-    def test_get_payments_amazon_payments(self, mock_ap, mock_mp):
+    def test_get_payments_amazon_payments_monthly(self, mock_mp):
         mock_mp.return_value = None
-        mock_ap.return_value = None
 
         payment_list = [
             {
-                'name': 'test payment'
+                'name': 'test payment',
+                'amount': 123,
+                'months': 3
+            },
+            {
+                'name': 'test payment 2',
+                'amount': 234,
+                'months': 3,
+                'yearly_month': 4,
+                'yearly_day': 4
+            },
+            {
+                'name': 'test payment 3',
+                'amount': 234,
+                'months': 3,
+                'is_yearly': True
             }
         ]
 
@@ -1934,27 +3082,47 @@ class TestMonzoPayments(BaseTest):
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
 
-        mp.get_payments('Amazon Payments', payment_list)
+        resp = mp.get_payments(
+            {
+                'type': 'Amazon Payments',
+                'payments': payment_list,
+                'payment_day': 1
+            },
+            False
+        )
 
-        self.assertEqual(len(mock_ap.call_args[0]), 6)
+        self.assertIsInstance(resp, list)
+        self.assertEqual(len(resp), 1)
 
-        self.assertEqual(mock_ap.call_args[0][0], mp.config)
-        self.assertEqual(mock_ap.call_args[0][1], [{'name': 'test payment'}])
-        self.assertEqual(mock_ap.call_args[0][2], {'name': 'test payment'})
-        self.assertEqual(mock_ap.call_args[0][3], datetime.date(2024, 1, 1))
-        self.assertEqual(mock_ap.call_args[0][4], datetime.date(2024, 2, 1))
-        self.assertEqual(mock_ap.call_args[0][5], datetime.date(2024, 3, 1))
+        self.assertIsInstance(resp[0], AmazonPayments)
+        self.assertEqual(resp[0].name, 'test payment')
+        self.assertEqual(resp[0].last_salary_date, datetime.date(2024, 1, 1))
+        self.assertEqual(resp[0].next_salary_date, datetime.date(2024, 2, 1))
+        self.assertEqual(resp[0].following_salary_date, datetime.date(2024, 3, 1))
 
 
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
-    @patch('monzo_utils.model.card_payment.CardPayment.__init__')
-    def test_get_payments_card_payment(self, mock_ap, mock_mp):
+    def test_get_payments_amazon_payments_annual(self, mock_mp):
         mock_mp.return_value = None
-        mock_ap.return_value = None
 
         payment_list = [
             {
-                'name': 'test payment'
+                'name': 'test payment',
+                'amount': 123,
+                'months': 3
+            },
+            {
+                'name': 'test payment 2',
+                'amount': 234,
+                'months': 3,
+                'yearly_month': 4,
+                'yearly_day': 4
+            },
+            {
+                'name': 'test payment 3',
+                'amount': 234,
+                'months': 3,
+                'is_yearly': True
             }
         ]
 
@@ -1966,27 +3134,50 @@ class TestMonzoPayments(BaseTest):
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
 
-        mp.get_payments('Card Payment', payment_list)
+        resp = mp.get_payments(
+            {
+                'type': 'Amazon Payments',
+                'payments': payment_list,
+                'payment_day': 1
+            },
+            True
+        )
 
-        self.assertEqual(len(mock_ap.call_args[0]), 6)
+        self.assertIsInstance(resp, list)
+        self.assertEqual(len(resp), 2)
 
-        self.assertEqual(mock_ap.call_args[0][0], mp.config)
-        self.assertEqual(mock_ap.call_args[0][1], [{'name': 'test payment'}])
-        self.assertEqual(mock_ap.call_args[0][2], {'name': 'test payment'})
-        self.assertEqual(mock_ap.call_args[0][3], datetime.date(2024, 1, 1))
-        self.assertEqual(mock_ap.call_args[0][4], datetime.date(2024, 2, 1))
-        self.assertEqual(mock_ap.call_args[0][5], datetime.date(2024, 3, 1))
+        self.assertIsInstance(resp[0], AmazonPayments)
+        self.assertEqual(resp[0].name, 'test payment 2')
+        self.assertEqual(resp[0].last_salary_date, datetime.date(2024, 1, 1))
+        self.assertEqual(resp[0].next_salary_date, datetime.date(2024, 2, 1))
+        self.assertEqual(resp[0].following_salary_date, datetime.date(2024, 3, 1))
+
+        self.assertIsInstance(resp[1], AmazonPayments)
+        self.assertEqual(resp[1].name, 'test payment 3')
+        self.assertEqual(resp[1].last_salary_date, datetime.date(2024, 1, 1))
+        self.assertEqual(resp[1].next_salary_date, datetime.date(2024, 2, 1))
+        self.assertEqual(resp[1].following_salary_date, datetime.date(2024, 3, 1))
 
 
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
-    @patch('monzo_utils.model.direct_debit.DirectDebit.__init__')
-    def test_get_payments_direct_debit(self, mock_ap, mock_mp):
+    def test_get_payments_card_payment_monthly(self, mock_mp):
         mock_mp.return_value = None
-        mock_ap.return_value = None
 
         payment_list = [
             {
-                'name': 'test payment'
+                'name': 'test payment',
+                'amount': 123,
+            },
+            {
+                'name': 'test payment 2',
+                'amount': 234,
+                'yearly_month': 4,
+                'yearly_day': 4
+            },
+            {
+                'name': 'test payment 3',
+                'amount': 234,
+                'is_yearly': True
             }
         ]
 
@@ -1998,27 +3189,44 @@ class TestMonzoPayments(BaseTest):
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
 
-        mp.get_payments('Direct Debit', payment_list)
+        resp = mp.get_payments(
+            {
+                'type': 'Card Payment',
+                'payments': payment_list
+            },
+            False
+        )
 
-        self.assertEqual(len(mock_ap.call_args[0]), 6)
+        self.assertIsInstance(resp, list)
+        self.assertEqual(len(resp), 1)
 
-        self.assertEqual(mock_ap.call_args[0][0], mp.config)
-        self.assertEqual(mock_ap.call_args[0][1], [{'name': 'test payment'}])
-        self.assertEqual(mock_ap.call_args[0][2], {'name': 'test payment'})
-        self.assertEqual(mock_ap.call_args[0][3], datetime.date(2024, 1, 1))
-        self.assertEqual(mock_ap.call_args[0][4], datetime.date(2024, 2, 1))
-        self.assertEqual(mock_ap.call_args[0][5], datetime.date(2024, 3, 1))
+        self.assertIsInstance(resp[0], CardPayment)
+        self.assertEqual(resp[0].name, 'test payment')
+        self.assertEqual(resp[0].last_salary_date, datetime.date(2024,1,1))
+        self.assertEqual(resp[0].next_salary_date, datetime.date(2024,2,1))
+        self.assertEqual(resp[0].following_salary_date, datetime.date(2024,3,1))
 
 
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
-    @patch('monzo_utils.model.finance.Finance.__init__')
-    def test_get_payments_finance(self, mock_ap, mock_mp):
+    def test_get_payments_card_payment_annual(self, mock_mp):
         mock_mp.return_value = None
-        mock_ap.return_value = None
 
         payment_list = [
             {
-                'name': 'test payment'
+                'name': 'test payment',
+                'amount': 123,
+            },
+            {
+                'name': 'test payment 2',
+                'amount': 234,
+                'yearly_month': 4,
+                'yearly_day': 4
+            },
+            {
+                'name': 'test payment 3',
+                'amount': 234,
+                'is_yearly': True,
+                'renew_date': datetime.date(2040,1,1)
             }
         ]
 
@@ -2030,27 +3238,49 @@ class TestMonzoPayments(BaseTest):
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
 
-        mp.get_payments('Finance', payment_list)
+        resp = mp.get_payments(
+            {
+                'type': 'Card Payment',
+                'payments': payment_list
+            },
+            True
+        )
 
-        self.assertEqual(len(mock_ap.call_args[0]), 6)
+        self.assertIsInstance(resp, list)
+        self.assertEqual(len(resp), 2)
 
-        self.assertEqual(mock_ap.call_args[0][0], mp.config)
-        self.assertEqual(mock_ap.call_args[0][1], [{'name': 'test payment'}])
-        self.assertEqual(mock_ap.call_args[0][2], {'name': 'test payment'})
-        self.assertEqual(mock_ap.call_args[0][3], datetime.date(2024, 1, 1))
-        self.assertEqual(mock_ap.call_args[0][4], datetime.date(2024, 2, 1))
-        self.assertEqual(mock_ap.call_args[0][5], datetime.date(2024, 3, 1))
+        self.assertIsInstance(resp[0], CardPayment)
+        self.assertEqual(resp[0].name, 'test payment 2')
+        self.assertEqual(resp[0].last_salary_date, datetime.date(2024,1,1))
+        self.assertEqual(resp[0].next_salary_date, datetime.date(2024,2,1))
+        self.assertEqual(resp[0].following_salary_date, datetime.date(2024,3,1))
+
+        self.assertIsInstance(resp[1], CardPayment)
+        self.assertEqual(resp[1].name, 'test payment 3')
+        self.assertEqual(resp[1].last_salary_date, datetime.date(2024,1,1))
+        self.assertEqual(resp[1].next_salary_date, datetime.date(2024,2,1))
+        self.assertEqual(resp[1].following_salary_date, datetime.date(2024,3,1))
 
 
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
-    @patch('monzo_utils.model.flex.Flex.__init__')
-    def test_get_payments_flex(self, mock_ap, mock_mp):
+    def test_get_payments_direct_debit_monthly(self, mock_mp):
         mock_mp.return_value = None
-        mock_ap.return_value = None
 
         payment_list = [
             {
-                'name': 'test payment'
+                'name': 'test payment',
+                'amount': 123,
+            },
+            {
+                'name': 'test payment 2',
+                'amount': 234,
+                'yearly_month': 4,
+                'yearly_day': 4
+            },
+            {
+                'name': 'test payment 3',
+                'amount': 234,
+                'is_yearly': True
             }
         ]
 
@@ -2062,27 +3292,44 @@ class TestMonzoPayments(BaseTest):
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
 
-        mp.get_payments('Flex', payment_list)
+        resp = mp.get_payments(
+            {
+                'type': 'Direct Debit',
+                'payments': payment_list
+            },
+            False
+        )
 
-        self.assertEqual(len(mock_ap.call_args[0]), 6)
+        self.assertIsInstance(resp, list)
+        self.assertEqual(len(resp), 1)
 
-        self.assertEqual(mock_ap.call_args[0][0], mp.config)
-        self.assertEqual(mock_ap.call_args[0][1], [{'name': 'test payment'}])
-        self.assertEqual(mock_ap.call_args[0][2], {'name': 'test payment'})
-        self.assertEqual(mock_ap.call_args[0][3], datetime.date(2024, 1, 1))
-        self.assertEqual(mock_ap.call_args[0][4], datetime.date(2024, 2, 1))
-        self.assertEqual(mock_ap.call_args[0][5], datetime.date(2024, 3, 1))
+        self.assertIsInstance(resp[0], DirectDebit)
+        self.assertEqual(resp[0].name, 'test payment')
+        self.assertEqual(resp[0].last_salary_date, datetime.date(2024, 1, 1))
+        self.assertEqual(resp[0].next_salary_date, datetime.date(2024, 2, 1))
+        self.assertEqual(resp[0].following_salary_date, datetime.date(2024, 3, 1))
 
 
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
-    @patch('monzo_utils.model.flex_summary.FlexSummary.__init__')
-    def test_get_payments_flex_summary(self, mock_ap, mock_mp):
+    def test_get_payments_direct_debit_annual(self, mock_mp):
         mock_mp.return_value = None
-        mock_ap.return_value = None
 
         payment_list = [
             {
-                'name': 'test payment'
+                'name': 'test payment',
+                'amount': 123,
+            },
+            {
+                'name': 'test payment 2',
+                'amount': 234,
+                'yearly_month': 4,
+                'yearly_day': 4
+            },
+            {
+                'name': 'test payment 3',
+                'amount': 234,
+                'is_yearly': True,
+                'renew_date': datetime.date(2040,1,1)
             }
         ]
 
@@ -2094,29 +3341,53 @@ class TestMonzoPayments(BaseTest):
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
 
-        mp.get_payments('Flex Summary', payment_list)
+        resp = mp.get_payments(
+            {
+                'type': 'Direct Debit',
+                'payments': payment_list
+            },
+            True
+        )
 
-        self.assertEqual(len(mock_ap.call_args[0]), 6)
+        self.assertIsInstance(resp, list)
+        self.assertEqual(len(resp), 2)
 
-        self.assertEqual(mock_ap.call_args[0][0], mp.config)
-        self.assertEqual(mock_ap.call_args[0][1], [{'name': 'test payment'}])
-        self.assertEqual(mock_ap.call_args[0][2], {'name': 'test payment'})
-        self.assertEqual(mock_ap.call_args[0][3], datetime.date(2024, 1, 1))
-        self.assertEqual(mock_ap.call_args[0][4], datetime.date(2024, 2, 1))
-        self.assertEqual(mock_ap.call_args[0][5], datetime.date(2024, 3, 1))
+        self.assertIsInstance(resp[0], DirectDebit)
+        self.assertEqual(resp[0].name, 'test payment 2')
+        self.assertEqual(resp[0].last_salary_date, datetime.date(2024, 1, 1))
+        self.assertEqual(resp[0].next_salary_date, datetime.date(2024, 2, 1))
+        self.assertEqual(resp[0].following_salary_date, datetime.date(2024, 3, 1))
+
+        self.assertIsInstance(resp[1], DirectDebit)
+        self.assertEqual(resp[1].name, 'test payment 3')
+        self.assertEqual(resp[1].last_salary_date, datetime.date(2024, 1, 1))
+        self.assertEqual(resp[1].next_salary_date, datetime.date(2024, 2, 1))
+        self.assertEqual(resp[1].following_salary_date, datetime.date(2024, 3, 1))
 
 
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
-    @patch('monzo_utils.model.refund.Refund.__init__')
-    def test_get_payments_refund(self, mock_ap, mock_mp):
+    def test_get_payments_finance_monthly(self, mock_mp):
         mock_mp.return_value = None
-        mock_ap.return_value = None
 
         payment_list = [
             {
-                'name': 'test payment'
+                'name': 'test payment',
+                'amount': 123,
+            },
+            {
+                'name': 'test payment 2',
+                'amount': 234,
+                'yearly_month': 4,
+                'yearly_day': 4
+            },
+            {
+                'name': 'test payment 3',
+                'amount': 234,
+                'is_yearly': True,
+                'renew_date': datetime.date(2040,1,1)
             }
         ]
+
 
         mp = MonzoPayments()
         mp.config = {
@@ -2126,23 +3397,120 @@ class TestMonzoPayments(BaseTest):
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
 
-        mp.get_payments('Refund', payment_list)
+        resp = mp.get_payments(
+            {
+                'type': 'Finance',
+                'payments': payment_list
+            },
+            False
+        )
 
-        self.assertEqual(len(mock_ap.call_args[0]), 6)
+        self.assertIsInstance(resp, list)
+        self.assertEqual(len(resp), 1)
 
-        self.assertEqual(mock_ap.call_args[0][0], mp.config)
-        self.assertEqual(mock_ap.call_args[0][1], [{'name': 'test payment'}])
-        self.assertEqual(mock_ap.call_args[0][2], {'name': 'test payment'})
-        self.assertEqual(mock_ap.call_args[0][3], datetime.date(2024, 1, 1))
-        self.assertEqual(mock_ap.call_args[0][4], datetime.date(2024, 2, 1))
-        self.assertEqual(mock_ap.call_args[0][5], datetime.date(2024, 3, 1))
+        self.assertIsInstance(resp[0], Finance)
+        self.assertEqual(resp[0].name, 'test payment')
+        self.assertEqual(resp[0].last_salary_date, datetime.date(2024, 1, 1))
+        self.assertEqual(resp[0].next_salary_date, datetime.date(2024, 2, 1))
+        self.assertEqual(resp[0].following_salary_date, datetime.date(2024, 3, 1))
 
 
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
-    @patch('monzo_utils.model.standing_order.StandingOrder.__init__')
-    def test_get_payments_standing_order(self, mock_ap, mock_mp):
+    def test_get_payments_finance_annual(self, mock_mp):
         mock_mp.return_value = None
-        mock_ap.return_value = None
+
+        payment_list = [
+            {
+                'name': 'test payment',
+                'amount': 123,
+            },
+            {
+                'name': 'test payment 2',
+                'amount': 234,
+                'yearly_month': 4,
+                'yearly_day': 4
+            },
+            {
+                'name': 'test payment 3',
+                'amount': 234,
+                'is_yearly': True,
+                'renew_date': datetime.date(2040,1,1)
+            }
+        ]
+
+        mp = MonzoPayments()
+        mp.config = {
+            'config': 'key'
+        }
+        mp.last_salary_date = datetime.date(2024,1,1)
+        mp.next_salary_date = datetime.date(2024,2,1)
+        mp.following_salary_date = datetime.date(2024,3,1)
+
+        resp = mp.get_payments(
+            {
+                'type': 'Finance',
+                'payments': payment_list
+            },
+            True
+        )
+
+        self.assertIsInstance(resp, list)
+        self.assertEqual(len(resp), 2)
+
+        self.assertIsInstance(resp[0], Finance)
+        self.assertEqual(resp[0].name, 'test payment 2')
+        self.assertEqual(resp[0].last_salary_date, datetime.date(2024, 1, 1))
+        self.assertEqual(resp[0].next_salary_date, datetime.date(2024, 2, 1))
+        self.assertEqual(resp[0].following_salary_date, datetime.date(2024, 3, 1))
+
+        self.assertIsInstance(resp[1], Finance)
+        self.assertEqual(resp[1].name, 'test payment 3')
+        self.assertEqual(resp[1].last_salary_date, datetime.date(2024, 1, 1))
+        self.assertEqual(resp[1].next_salary_date, datetime.date(2024, 2, 1))
+        self.assertEqual(resp[1].following_salary_date, datetime.date(2024, 3, 1))
+
+
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
+    def test_get_payments_flex(self, mock_mp):
+        mock_mp.return_value = None
+
+        payment_list = [
+            {
+                'name': 'test payment',
+                'months': 5
+            }
+        ]
+
+        mp = MonzoPayments()
+        mp.config = {
+            'config': 'key',
+            'flex_payment_date': 1
+        }
+        mp.last_salary_date = datetime.date(2024,1,1)
+        mp.next_salary_date = datetime.date(2024,2,1)
+        mp.following_salary_date = datetime.date(2024,3,1)
+
+        resp = mp.get_payments(
+            {
+                'type': 'Flex',
+                'payments': payment_list
+            },
+            False
+        )
+
+        self.assertIsInstance(resp, list)
+        self.assertEqual(len(resp), 1)
+
+        self.assertIsInstance(resp[0], Flex)
+        self.assertEqual(resp[0].name, '- test payment')
+        self.assertEqual(resp[0].last_salary_date, datetime.date(2024, 1, 1))
+        self.assertEqual(resp[0].next_salary_date, datetime.date(2024, 2, 1))
+        self.assertEqual(resp[0].following_salary_date, datetime.date(2024, 3, 1))
+
+
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
+    def test_get_payments_refund(self, mock_mp):
+        mock_mp.return_value = None
 
         payment_list = [
             {
@@ -2158,16 +3526,177 @@ class TestMonzoPayments(BaseTest):
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
 
-        mp.get_payments('Standing Order', payment_list)
+        resp = mp.get_payments(
+            {
+                'type': 'Refund',
+                'payments': payment_list
+            },
+            False
+        )
 
-        self.assertEqual(len(mock_ap.call_args[0]), 6)
+        self.assertIsInstance(resp, list)
+        self.assertEqual(len(resp), 1)
 
-        self.assertEqual(mock_ap.call_args[0][0], mp.config)
-        self.assertEqual(mock_ap.call_args[0][1], [{'name': 'test payment'}])
-        self.assertEqual(mock_ap.call_args[0][2], {'name': 'test payment'})
-        self.assertEqual(mock_ap.call_args[0][3], datetime.date(2024, 1, 1))
-        self.assertEqual(mock_ap.call_args[0][4], datetime.date(2024, 2, 1))
-        self.assertEqual(mock_ap.call_args[0][5], datetime.date(2024, 3, 1))
+        self.assertIsInstance(resp[0], Refund)
+        self.assertEqual(resp[0].name, 'test payment')
+        self.assertEqual(resp[0].last_salary_date, datetime.date(2024, 1, 1))
+        self.assertEqual(resp[0].next_salary_date, datetime.date(2024, 2, 1))
+        self.assertEqual(resp[0].following_salary_date, datetime.date(2024, 3, 1))
+
+
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
+    def test_get_payments_standing_order_monthly(self, mock_mp):
+        mock_mp.return_value = None
+
+        payment_list = [
+            {
+                'name': 'test payment'
+            },
+            {
+                'name': 'test payment yearly',
+                'yearly_month': 5,
+                'yearly_day': 3
+            },
+            {
+                'name': 'test payment yearly2',
+                'is_yearly': True
+            }
+        ]
+
+        mp = MonzoPayments()
+        mp.config = {
+            'config': 'key'
+        }
+        mp.last_salary_date = datetime.date(2024,1,1)
+        mp.next_salary_date = datetime.date(2024,2,1)
+        mp.following_salary_date = datetime.date(2024,3,1)
+
+        resp = mp.get_payments(
+            {
+                'type': 'Standing Order',
+                'payments': payment_list
+            },
+            False
+        )
+
+        self.assertIsInstance(resp, list)
+        self.assertEqual(len(resp), 1)
+
+        self.assertIsInstance(resp[0], StandingOrder)
+        self.assertEqual(resp[0].name, 'test payment')
+        self.assertEqual(resp[0].last_salary_date, datetime.date(2024, 1, 1))
+        self.assertEqual(resp[0].next_salary_date, datetime.date(2024, 2, 1))
+        self.assertEqual(resp[0].following_salary_date, datetime.date(2024, 3, 1))
+
+
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
+    def test_get_payments_standing_order_annual(self, mock_mp):
+        mock_mp.return_value = None
+
+        payment_list = [
+            {
+                'name': 'test payment'
+            },
+            {
+                'name': 'test payment yearly',
+                'yearly_month': 5,
+                'yearly_day': 3
+            },
+            {
+                'name': 'test payment yearly2',
+                'is_yearly': True,
+                'renew_date': datetime.date(2040,1,1)
+            }
+        ]
+
+        mp = MonzoPayments()
+        mp.config = {
+            'config': 'key'
+        }
+        mp.last_salary_date = datetime.date(2024,1,1)
+        mp.next_salary_date = datetime.date(2024,2,1)
+        mp.following_salary_date = datetime.date(2024,3,1)
+
+        resp = mp.get_payments(
+            {
+                'type': 'Standing Order',
+                'payments': payment_list
+            },
+            True
+        )
+
+        self.assertIsInstance(resp, list)
+        self.assertEqual(len(resp), 2)
+
+        self.assertIsInstance(resp[0], StandingOrder)
+        self.assertEqual(resp[0].name, 'test payment yearly')
+        self.assertEqual(resp[0].last_salary_date, datetime.date(2024, 1, 1))
+        self.assertEqual(resp[0].next_salary_date, datetime.date(2024, 2, 1))
+        self.assertEqual(resp[0].following_salary_date, datetime.date(2024, 3, 1))
+
+        self.assertIsInstance(resp[1], StandingOrder)
+        self.assertEqual(resp[1].name, 'test payment yearly2')
+        self.assertEqual(resp[1].last_salary_date, datetime.date(2024, 1, 1))
+        self.assertEqual(resp[1].next_salary_date, datetime.date(2024, 2, 1))
+        self.assertEqual(resp[1].following_salary_date, datetime.date(2024, 3, 1))
+
+
+    @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
+    def test_get_payments_sort_by_due_date(self, mock_mp):
+        mock_mp.return_value = None
+
+        payment_list = [
+            {
+                'name': 'test payment',
+                'renew_date': datetime.date(2040,1,1)
+            },
+            {
+                'name': 'test payment 2',
+                'renew_date': datetime.date(2040,1,7)
+            },
+            {
+                'name': 'test payment 3',
+                'renew_date': datetime.date(2040,1,3)
+            }
+        ]
+
+        mp = MonzoPayments()
+        mp.config = {
+            'config': 'key'
+        }
+        mp.last_salary_date = datetime.date(2024,1,1)
+        mp.next_salary_date = datetime.date(2024,2,1)
+        mp.following_salary_date = datetime.date(2024,3,1)
+
+        resp = mp.get_payments(
+            {
+                'type': 'Standing Order',
+                'payments': payment_list
+            },
+            False
+        )
+
+        self.assertIsInstance(resp, list)
+        self.assertEqual(len(resp), 3)
+
+        self.assertIsInstance(resp[0], StandingOrder)
+        self.assertEqual(resp[0].name, 'test payment')
+        self.assertEqual(resp[0].last_salary_date, datetime.date(2024, 1, 1))
+        self.assertEqual(resp[0].next_salary_date, datetime.date(2024, 2, 1))
+        self.assertEqual(resp[0].following_salary_date, datetime.date(2024, 3, 1))
+
+        self.assertIsInstance(resp[1], StandingOrder)
+        self.assertEqual(resp[1].name, 'test payment 3')
+        self.assertEqual(resp[1].last_salary_date, datetime.date(2024, 1, 1))
+        self.assertEqual(resp[1].next_salary_date, datetime.date(2024, 2, 1))
+        self.assertEqual(resp[1].following_salary_date, datetime.date(2024, 3, 1))
+
+        self.assertIsInstance(resp[2], StandingOrder)
+        self.assertEqual(resp[2].name, 'test payment 2')
+        self.assertEqual(resp[2].last_salary_date, datetime.date(2024, 1, 1))
+        self.assertEqual(resp[2].next_salary_date, datetime.date(2024, 2, 1))
+        self.assertEqual(resp[2].following_salary_date, datetime.date(2024, 3, 1))
+
 
 
     @patch('pushover.Client.__init__')
