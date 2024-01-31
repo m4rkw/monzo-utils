@@ -535,30 +535,69 @@ class TestAccount(BaseTest):
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
-    @patch('monzo_utils.lib.db.DB.one')
-    def test_last_salary_transaction_single(self, mock_one, mock_init):
+    @patch('monzo_utils.lib.db.DB.query')
+    def test_last_salary_transaction_single(self, mock_query, mock_init):
         mock_init.return_value = None
-        mock_one.return_value = 'transaction'
+        mock_query.return_value = [{
+            'id': 123,
+            'date': datetime.date(2024,1,1)
+        }]
 
         mp = Account()
 
-        resp = mp.last_salary_transaction('description', 1000)
+        resp = mp.last_salary_transaction('description', 1000, 1)
 
-        mock_one.assert_called_with('select * from transaction where account_id = %s and declined = %s and money_in >= %s and ( description like %s) order by created_at desc limit 1', [None, 0, 1000, '%description%'])
+        mock_query.assert_called_with('select * from transaction where account_id = %s and declined = %s and money_in >= %s and ( description like %s) order by created_at desc', [None, 0, 1000, '%description%'])
 
-        self.assertEqual(resp, 'transaction')
+        self.assertEqual(resp, {
+            'id': 123,
+            'date': datetime.date(2024,1,1)
+        })
+
+    @patch('monzo_utils.lib.db.DB.__init__')
+    @patch('monzo_utils.lib.db.DB.query')
+    def test_last_salary_transaction_date_out_of_range(self, mock_query, mock_init):
+        mock_init.return_value = None
+        mock_query.return_value = [
+            {
+                'id': 123,
+                'date': datetime.date(2024,1,10)
+            },
+            {
+                'id': 234,
+                'date': datetime.date(2024,1,1)
+            }
+        ]
+
+        mp = Account()
+
+        resp = mp.last_salary_transaction('description', 1000, 1)
+
+        mock_query.assert_called_with('select * from transaction where account_id = %s and declined = %s and money_in >= %s and ( description like %s) order by created_at desc', [None, 0, 1000, '%description%'])
+
+        self.assertEqual(resp, {
+            'id': 234,
+            'date': datetime.date(2024,1,1)
+        })
+
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
-    @patch('monzo_utils.lib.db.DB.one')
-    def test_last_salary_transaction_multi(self, mock_one, mock_init):
+    @patch('monzo_utils.lib.db.DB.query')
+    def test_last_salary_transaction_multi(self, mock_query, mock_init):
         mock_init.return_value = None
-        mock_one.return_value = 'transaction'
+        mock_query.return_value = [{
+            'id': 123,
+            'date': datetime.date(2024,1,1)
+        }]
 
         mp = Account()
 
-        resp = mp.last_salary_transaction(['desc1','desc2','desc3'], 1000)
+        resp = mp.last_salary_transaction(['desc1','desc2','desc3'], 1000, 1)
 
-        mock_one.assert_called_with('select * from transaction where account_id = %s and declined = %s and money_in >= %s and ( description like %s or  description like %s or  description like %s) order by created_at desc limit 1', [None, 0, 1000, '%desc1%', '%desc2%', '%desc3%'])
+        mock_query.assert_called_with('select * from transaction where account_id = %s and declined = %s and money_in >= %s and ( description like %s or  description like %s or  description like %s) order by created_at desc', [None, 0, 1000, '%desc1%', '%desc2%', '%desc3%'])
 
-        self.assertEqual(resp, 'transaction')
+        self.assertEqual(resp, {
+            'id': 123,
+            'date': datetime.date(2024,1,1)
+        })

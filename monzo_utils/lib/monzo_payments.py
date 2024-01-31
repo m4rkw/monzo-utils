@@ -351,7 +351,8 @@ class MonzoPayments:
 
         last_salary_transaction = account.last_salary_transaction(
             description=self.config['salary_description'],
-            salary_minimum=self.config['salary_minimum'] if 'salary_minimum' in self.config else 1000
+            salary_minimum=self.config['salary_minimum'] if 'salary_minimum' in self.config else 1000,
+            salary_payment_day=self.config['salary_payment_day']
         )
 
         if not last_salary_transaction:

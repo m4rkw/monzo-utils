@@ -2226,7 +2226,7 @@ class TestMonzoPayments(BaseTest):
 
         self.assertEqual(last_salary_date, datetime.date(2024, 1, 1))
 
-        mock_last_salary_transaction.assert_called_with(description='SALARY', salary_minimum=1000)
+        mock_last_salary_transaction.assert_called_with(description='SALARY', salary_minimum=1000, salary_payment_day=1)
 
 
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
@@ -2254,7 +2254,7 @@ class TestMonzoPayments(BaseTest):
 
         mock_init_account.assert_called_with('select * from account where provider_id = %s and name = %s', [7, 'Current'])
 
-        mock_last_salary_transaction.assert_called_with(description='SALARY', salary_minimum=1000)
+        mock_last_salary_transaction.assert_called_with(description='SALARY', salary_minimum=1000, salary_payment_day=1)
 
 
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
@@ -2284,7 +2284,7 @@ class TestMonzoPayments(BaseTest):
 
         self.assertEqual(last_salary_date, datetime.date(2024, 1, 1))
 
-        mock_last_salary_transaction.assert_called_with(description='SALARY', salary_minimum=1000)
+        mock_last_salary_transaction.assert_called_with(description='SALARY', salary_minimum=1000, salary_payment_day=1)
 
 
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
@@ -2311,7 +2311,7 @@ class TestMonzoPayments(BaseTest):
         with pytest.raises(SystemExit) as e:
             last_salary_date = mp.get_last_salary_date()
 
-        mock_last_salary_transaction.assert_called_with(description='SALARY', salary_minimum=1000)
+        mock_last_salary_transaction.assert_called_with(description='SALARY', salary_minimum=1000, salary_payment_day=1)
 
 
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')

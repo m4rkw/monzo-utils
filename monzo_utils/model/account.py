@@ -48,7 +48,7 @@ class Account(BaseModel):
         return keys
 
 
-    def last_salary_transaction(self, description, salary_minimum):
+    def last_salary_transaction(self, description, salary_minimum, salary_payment_day):
         if type(description) == list:
             salary_desc = description
         else:
@@ -65,4 +65,10 @@ class Account(BaseModel):
 
         where += ")"
 
-        return DB().one(f"select * from transaction where {where} order by created_at desc limit 1", params)
+        for row in DB().query(f"select * from transaction where {where} order by created_at desc", params):
+            day = row['date'].day
+
+            if row['date'].day >= salary_payment_day - 4 and row['date'].day <= salary_payment_day:
+                return row
+
+        return None

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.67 - 31/01/2024
+
+- Use day range to determine salary payment date
+
 ## 0.0.66 - 25/01/2024
 
 - Unit tests
