@@ -346,7 +346,14 @@ class Payment:
         if self.last_date.month == 12:
             due_date = datetime.date(self.last_date.year+1, 1, self.last_date.day)
         else:
-            due_date = datetime.date(self.last_date.year, self.last_date.month+1, self.last_date.day)
+            day = self.last_date.day
+
+            while 1:
+                try:
+                    due_date = datetime.date(self.last_date.year, self.last_date.month+1, day)
+                    break
+                except:
+                    day -= 1
 
         if 'start_date' in self.payment_config and due_date < self.payment_config['start_date']:
             return self.payment_config['start_date']

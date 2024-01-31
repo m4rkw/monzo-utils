@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.68 - 31/01/2024
+
+- Bugfix
+
 ## 0.0.67 - 31/01/2024
 
 - Use day range to determine salary payment date
