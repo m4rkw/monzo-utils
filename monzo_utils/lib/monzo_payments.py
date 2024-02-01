@@ -131,7 +131,8 @@ class MonzoPayments:
                 self.total_this_month += total_due_this_month
                 self.next_month += total_due_next_month
 
-            self.display_spacer('monthly')
+            if self.json is False:
+                self.display_spacer('monthly')
 
             for payment_list in self.config['payments']:
                 if not payment_list['payments']:
@@ -251,13 +252,13 @@ class MonzoPayments:
             'Due date'.ljust(10)
         ))
 
-        self.display_spacer(title)
+        if self.json is False:
+            self.display_spacer(title)
 
 
     def display_spacer(self, title):
-        sys.stdout.write("-" * 9)
-        sys.stdout.write(title.ljust(15,'-'))
-        sys.stdout.write(("-" * 85) + "\n")
+        sys.stdout.write("-" * 100)
+        sys.stdout.write(title.ljust(9,'-') + "\n")
 
 
     def prompt_action(self, prompt):
