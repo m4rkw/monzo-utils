@@ -53,22 +53,23 @@ class TestFlex(BaseTest):
 
         mock_db.return_value = None
 
-        p = Flex(
-            {
-                'flex_payment_date': 1
-            },
-            'payment_list_config',
-            {
-                'name': 'payment',
-                'amount': 123,
-                'months': 3,
-                'start_date': datetime.date(2024,1,1),
-            },
-            datetime.date(2024,1,1),
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-        )
-        p.cache['last_date'] = datetime.date(2024,1,1)
+        with freeze_time("2024-01-20"):
+            p = Flex(
+                {
+                    'flex_payment_date': 1
+                },
+                'payment_list_config',
+                {
+                    'name': 'payment',
+                    'amount': 123,
+                    'months': 3,
+                    'start_date': datetime.date(2024,1,1),
+                },
+                datetime.date(2024,1,1),
+                datetime.date(2024,2,1),
+                datetime.date(2024,3,1),
+            )
+            p.cache['last_date'] = datetime.date(2024,1,1)
 
         data = p.data()
 
@@ -99,22 +100,23 @@ class TestFlex(BaseTest):
 
         mock_db.return_value = None
 
-        p = Flex(
-            {
-                'flex_payment_date': 1
-            },
-            'payment_list_config',
-            {
-                'name': 'payment',
-                'amount': 123,
-                'months': 3,
-                'start_date': datetime.date(2024,1,1),
-            },
-            datetime.date(2024,1,1),
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-        )
-        p.cache['last_date'] = datetime.date(2024,1,1)
+        with freeze_time("2024-01-20"):
+            p = Flex(
+                {
+                    'flex_payment_date': 1
+                },
+                'payment_list_config',
+                {
+                    'name': 'payment',
+                    'amount': 123,
+                    'months': 3,
+                    'start_date': datetime.date(2024,1,1),
+                },
+                datetime.date(2024,1,1),
+                datetime.date(2024,2,1),
+                datetime.date(2024,3,1),
+            )
+            p.cache['last_date'] = datetime.date(2024,1,1)
 
         data = p.data(True)
 
@@ -191,21 +193,22 @@ class TestFlex(BaseTest):
 
         mock_db.return_value = None
 
-        p = Flex(
-            {
-                'flex_payment_date': 1
-            },
-            'payment_list_config',
-            {
-                'name': 'payment',
-                'amount': 123,
-                'months': 3,
-                'start_date': datetime.date(2024,1,1),
-            },
-            datetime.date(2024,1,1),
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-        )
+        with freeze_time("2024-01-20"):
+            p = Flex(
+                {
+                    'flex_payment_date': 1
+                },
+                'payment_list_config',
+                {
+                    'name': 'payment',
+                    'amount': 123,
+                    'months': 3,
+                    'start_date': datetime.date(2024,1,1),
+                },
+                datetime.date(2024,1,1),
+                datetime.date(2024,2,1),
+                datetime.date(2024,3,1),
+            )
 
         p.display()
 
@@ -438,23 +441,23 @@ class TestFlex(BaseTest):
     def test_remaining(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Flex(
-            {
-                'flex_payment_date': 1
-            },
-            'payment_list_config',
-            {
-                'name': 'payment',
-                'amount': 123,
-                'months': 3,
-                'start_date': datetime.date(2024,1,1),
-            },
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-            datetime.date(2024,4,1),
-        )
-
         with freeze_time("2024-01-20"):
+            p = Flex(
+                {
+                    'flex_payment_date': 1
+                },
+                'payment_list_config',
+                {
+                    'name': 'payment',
+                    'amount': 123,
+                    'months': 3,
+                    'start_date': datetime.date(2024,1,1),
+                },
+                datetime.date(2024,2,1),
+                datetime.date(2024,3,1),
+                datetime.date(2024,4,1),
+            )
+
             self.assertEqual(p.remaining, 82)
 
 
@@ -674,29 +677,29 @@ class TestFlex(BaseTest):
     def test_last_date_last_payment(self, mock_last_payment, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Flex(
-            {
-                'flex_payment_date': 1
-            },
-            'payment_list_config',
-            {
-                'name': 'payment',
-                'amount': 123,
-                'months': 3,
-                'start_date': datetime.date(2024,1,1),
-                'desc': 'desc'
-            },
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-            datetime.date(2024,4,1),
-        )
-        t = Transaction({
-            'id': 123,
-            'date': datetime.date(2024,2,22)
-        })
-        mock_last_payment.return_value = t
-
         with freeze_time("2024-01-20"):
+            p = Flex(
+                {
+                    'flex_payment_date': 1
+                },
+                'payment_list_config',
+                {
+                    'name': 'payment',
+                    'amount': 123,
+                    'months': 3,
+                    'start_date': datetime.date(2024,1,1),
+                    'desc': 'desc'
+                },
+                datetime.date(2024,2,1),
+                datetime.date(2024,3,1),
+                datetime.date(2024,4,1),
+            )
+            t = Transaction({
+                'id': 123,
+                'date': datetime.date(2024,2,22)
+            })
+            mock_last_payment.return_value = t
+
             self.assertEqual(p.last_date, datetime.date(2024,1,1))
 
 
@@ -707,30 +710,30 @@ class TestFlex(BaseTest):
     def test_last_date_older_last_payment(self, mock_older_last_payment, mock_last_payment, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Flex(
-            {
-                'flex_payment_date': 1
-            },
-            'payment_list_config',
-            {
-                'name': 'payment',
-                'amount': 123,
-                'months': 3,
-                'start_date': datetime.date(2024,1,1),
-                'desc': 'desc'
-            },
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-            datetime.date(2024,4,1),
-        )
-        t = Transaction({
-            'id': 123,
-            'date': datetime.date(2024,2,22)
-        })
-        mock_last_payment.return_value = None
-        mock_older_last_payment.return_value = t
-
         with freeze_time("2024-01-20"):
+            p = Flex(
+                {
+                    'flex_payment_date': 1
+                },
+                'payment_list_config',
+                {
+                    'name': 'payment',
+                    'amount': 123,
+                    'months': 3,
+                    'start_date': datetime.date(2024,1,1),
+                    'desc': 'desc'
+                },
+                datetime.date(2024,2,1),
+                datetime.date(2024,3,1),
+                datetime.date(2024,4,1),
+            )
+            t = Transaction({
+                'id': 123,
+                'date': datetime.date(2024,2,22)
+            })
+            mock_last_payment.return_value = None
+            mock_older_last_payment.return_value = t
+
             self.assertEqual(p.last_date, datetime.date(2024,1,1))
 
 
@@ -739,25 +742,25 @@ class TestFlex(BaseTest):
     def test_last_date_return_from_cache(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = Flex(
-            {
-                'flex_payment_date': 1
-            },
-            'payment_list_config',
-            {
-                'name': 'payment',
-                'amount': 123,
-                'months': 3,
-                'start_date': datetime.date(2024,1,1),
-                'desc': 'desc'
-            },
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-            datetime.date(2024,4,1),
-        )
-        p.cache['last_date'] = datetime.date(2024,2,22)
-
         with freeze_time("2024-01-20"):
+            p = Flex(
+                {
+                    'flex_payment_date': 1
+                },
+                'payment_list_config',
+                {
+                    'name': 'payment',
+                    'amount': 123,
+                    'months': 3,
+                    'start_date': datetime.date(2024,1,1),
+                    'desc': 'desc'
+                },
+                datetime.date(2024,2,1),
+                datetime.date(2024,3,1),
+                datetime.date(2024,4,1),
+            )
+            p.cache['last_date'] = datetime.date(2024,2,22)
+
             self.assertEqual(p.last_date, datetime.date(2024,1,1))
 
 
@@ -841,24 +844,24 @@ class TestFlex(BaseTest):
 
         mock_last_flex_payment.return_value = t
 
-        p = Flex(
-            {
-                'flex_payment_date': 1
-            },
-            'payment_list_config',
-            {
-                'name': 'payment',
-                'amount': 123,
-                'months': 3,
-                'start_date': datetime.date(2024,1,7),
-                'desc': 'desc'
-            },
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-            datetime.date(2024,4,1),
-        )
-
         with freeze_time("2024-01-20"):
+            p = Flex(
+                {
+                    'flex_payment_date': 1
+                },
+                'payment_list_config',
+                {
+                    'name': 'payment',
+                    'amount': 123,
+                    'months': 3,
+                    'start_date': datetime.date(2024,1,7),
+                    'desc': 'desc'
+                },
+                datetime.date(2024,2,1),
+                datetime.date(2024,3,1),
+                datetime.date(2024,4,1),
+            )
+
             self.assertEqual(p.last_date, None)
 
 
@@ -870,24 +873,24 @@ class TestFlex(BaseTest):
 
         mock_last_flex_payment.return_value = None
 
-        p = Flex(
-            {
-                'flex_payment_date': 1
-            },
-            'payment_list_config',
-            {
-                'name': 'payment',
-                'amount': 123,
-                'months': 13,
-                'start_date': datetime.date(2023,1,7),
-                'desc': 'desc'
-            },
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-            datetime.date(2024,4,1),
-        )
-
         with freeze_time("2024-01-20"):
+            p = Flex(
+                {
+                    'flex_payment_date': 1
+                },
+                'payment_list_config',
+                {
+                    'name': 'payment',
+                    'amount': 123,
+                    'months': 13,
+                    'start_date': datetime.date(2023,1,7),
+                    'desc': 'desc'
+                },
+                datetime.date(2024,2,1),
+                datetime.date(2024,3,1),
+                datetime.date(2024,4,1),
+            )
+
             self.assertEqual(p.last_date, datetime.date(2024,1,1))
 
 

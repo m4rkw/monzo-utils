@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.72 - 01/02/2024
+
+- Fixed tests by freezing time
+
 ## 0.0.71 - 01/02/2024
 
 - Bugfix

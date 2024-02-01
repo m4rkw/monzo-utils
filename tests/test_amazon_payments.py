@@ -50,21 +50,22 @@ class TestAmazonPayments(BaseTest):
     def test_data_fields(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = AmazonPayments(
-            'config',
-            {
-                'payment_day': 1
-            },
-            {
-                'name': 'payment',
-                'amount': 123,
-                'months': 5
-            },
-            datetime.date(2024,1,1),
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-        )
-        p.cache['last_date'] = datetime.date(2024,1,1)
+        with freeze_time("2024-01-20"):
+            p = AmazonPayments(
+                'config',
+                {
+                    'payment_day': 1
+                },
+                {
+                    'name': 'payment',
+                    'amount': 123,
+                    'months': 5
+                },
+                datetime.date(2024,1,1),
+                datetime.date(2024,2,1),
+                datetime.date(2024,3,1),
+            )
+            p.cache['last_date'] = datetime.date(2024,1,1)
 
         data = p.data()
 
@@ -92,21 +93,22 @@ class TestAmazonPayments(BaseTest):
     def test_data_abbreviated(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = AmazonPayments(
-            'config',
-            {
-                'payment_day': 1
-            },
-            {
-                'name': 'payment',
-                'amount': 123,
-                'months': 5
-            },
-            datetime.date(2024,1,1),
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-        )
-        p.cache['last_date'] = datetime.date(2024,1,1)
+        with freeze_time("2024-01-20"):
+            p = AmazonPayments(
+                'config',
+                {
+                    'payment_day': 1
+                },
+                {
+                    'name': 'payment',
+                    'amount': 123,
+                    'months': 5
+                },
+                datetime.date(2024,1,1),
+                datetime.date(2024,2,1),
+                datetime.date(2024,3,1),
+            )
+            p.cache['last_date'] = datetime.date(2024,1,1)
 
         data = p.data(True)
 
@@ -182,20 +184,21 @@ class TestAmazonPayments(BaseTest):
     def test_display(self, mock_print, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = AmazonPayments(
-            'config',
-            {
-                'payment_day': 1
-            },
-            {
-                'name': 'payment',
-                'amount': 123,
-                'months': 5
-            },
-            datetime.date(2024,1,1),
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-        )
+        with freeze_time("2024-01-20"):
+            p = AmazonPayments(
+                'config',
+                {
+                    'payment_day': 1
+                },
+                {
+                    'name': 'payment',
+                    'amount': 123,
+                    'months': 5
+                },
+                datetime.date(2024,1,1),
+                datetime.date(2024,2,1),
+                datetime.date(2024,3,1),
+            )
 
         p.display()
 
@@ -1570,25 +1573,25 @@ class TestAmazonPayments(BaseTest):
     def test_due_date__yearly_month(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = AmazonPayments(
-            {},
-            {
-                'payment_day': 1
-            },
-            {
-                'name': 'payment',
-                'amount': 123,
-                'desc': 'desc1',
-                'yearly_month': 8,
-                'yearly_day': 22,
-                'months': 5
-            },
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-            datetime.date(2024,4,1),
-        )
-
         with freeze_time("2024-01-20"):
+            p = AmazonPayments(
+                {},
+                {
+                    'payment_day': 1
+                },
+                {
+                    'name': 'payment',
+                    'amount': 123,
+                    'desc': 'desc1',
+                    'yearly_month': 8,
+                    'yearly_day': 22,
+                    'months': 5
+                },
+                datetime.date(2024,2,1),
+                datetime.date(2024,3,1),
+                datetime.date(2024,4,1),
+            )
+
             self.assertEqual(p.due_date, datetime.date(2024,2,1))
 
 
@@ -1597,24 +1600,24 @@ class TestAmazonPayments(BaseTest):
     def test_due_date__renew_date(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = AmazonPayments(
-            {},
-            {
-                'payment_day': 1
-            },
-            {
-                'name': 'payment',
-                'amount': 123,
-                'desc': 'desc1',
-                'renew_date': datetime.date(2024,5,1),
-                'months': 5
-            },
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-            datetime.date(2024,4,1),
-        )
-
         with freeze_time("2024-01-20"):
+            p = AmazonPayments(
+                {},
+                {
+                    'payment_day': 1
+                },
+                {
+                    'name': 'payment',
+                    'amount': 123,
+                    'desc': 'desc1',
+                    'renew_date': datetime.date(2024,5,1),
+                    'months': 5
+                },
+                datetime.date(2024,2,1),
+                datetime.date(2024,3,1),
+                datetime.date(2024,4,1),
+            )
+
             self.assertEqual(p.due_date, datetime.date(2024,2,1))
 
 
@@ -1623,24 +1626,24 @@ class TestAmazonPayments(BaseTest):
     def test_due_date__start_date(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = AmazonPayments(
-            {},
-            {
-                'payment_day': 1
-            },
-            {
-                'name': 'payment',
-                'amount': 123,
-                'desc': 'desc1',
-                'start_date': datetime.date(2024,5,1),
-                'months': 5
-            },
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-            datetime.date(2024,4,1),
-        )
-
         with freeze_time("2024-01-20"):
+            p = AmazonPayments(
+                {},
+                {
+                    'payment_day': 1
+                },
+                {
+                    'name': 'payment',
+                    'amount': 123,
+                    'desc': 'desc1',
+                    'start_date': datetime.date(2024,5,1),
+                    'months': 5
+                },
+                datetime.date(2024,2,1),
+                datetime.date(2024,3,1),
+                datetime.date(2024,4,1),
+            )
+
             self.assertEqual(p.due_date, datetime.date(2024,2,1))
 
 
@@ -1649,23 +1652,23 @@ class TestAmazonPayments(BaseTest):
     def test_due_date__no_last_date_or_start_date(self, mock_query, mock_db):
         mock_db.return_value = None
 
-        p = AmazonPayments(
-            {},
-            {
-                'payment_day': 1
-            },
-            {
-                'name': 'payment',
-                'amount': 123,
-                'desc': 'desc1',
-                'months': 5
-            },
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-            datetime.date(2024,4,1),
-        )
-
         with freeze_time("2024-01-20"):
+            p = AmazonPayments(
+                {},
+                {
+                    'payment_day': 1
+                },
+                {
+                    'name': 'payment',
+                    'amount': 123,
+                    'desc': 'desc1',
+                    'months': 5
+                },
+                datetime.date(2024,2,1),
+                datetime.date(2024,3,1),
+                datetime.date(2024,4,1),
+            )
+
             self.assertEqual(p.due_date, datetime.date(2024,2,1))
 
 
@@ -1677,21 +1680,22 @@ class TestAmazonPayments(BaseTest):
 
         mock_last_date.return_value = datetime.date(2024,4,1)
 
-        p = AmazonPayments(
-            {},
-            {
-                'payment_day': 1
-            },
-            {
-                'name': 'payment',
-                'amount': 123,
-                'desc': 'desc1',
-                'months': 5
-            },
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-            datetime.date(2024,4,1),
-        )
+        with freeze_time("2024-01-20"):
+            p = AmazonPayments(
+                {},
+                {
+                    'payment_day': 1
+                },
+                {
+                    'name': 'payment',
+                    'amount': 123,
+                    'desc': 'desc1',
+                    'months': 5
+                },
+                datetime.date(2024,2,1),
+                datetime.date(2024,3,1),
+                datetime.date(2024,4,1),
+            )
 
         self.assertEqual(p.due_date, datetime.date(2024,2,1))
 
@@ -1708,22 +1712,23 @@ class TestAmazonPayments(BaseTest):
 
         mock_last_date.return_value = datetime.date(2023,12,28)
 
-        p = AmazonPayments(
-            {},
-            {
-                'payment_day': 1
-            },
-            {
-                'name': 'payment',
-                'amount': 123,
-                'desc': 'desc1',
-                'start_date': datetime.date(2024,2,2),
-                'months': 5
-            },
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-            datetime.date(2024,4,1),
-        )
+        with freeze_time("2024-01-20"):
+            p = AmazonPayments(
+                {},
+                {
+                    'payment_day': 1
+                },
+                {
+                    'name': 'payment',
+                    'amount': 123,
+                    'desc': 'desc1',
+                    'start_date': datetime.date(2024,2,2),
+                    'months': 5
+                },
+                datetime.date(2024,2,1),
+                datetime.date(2024,3,1),
+                datetime.date(2024,4,1),
+            )
 
         self.assertEqual(p.due_date, datetime.date(2024,2,1))
 
@@ -1736,22 +1741,23 @@ class TestAmazonPayments(BaseTest):
 
         mock_last_date.return_value = datetime.date(2023,12,28)
 
-        p = AmazonPayments(
-            {},
-            {
-                'payment_day': 1
-            },
-            {
-                'name': 'payment',
-                'amount': 123,
-                'desc': 'desc1',
-                'exclude_months': [1,2,3,4,5,6,7,8,9],
-                'months': 5
-            },
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-            datetime.date(2024,4,1),
-        )
+        with freeze_time("2024-01-20"):
+            p = AmazonPayments(
+                {},
+                {
+                    'payment_day': 1
+                },
+                {
+                    'name': 'payment',
+                    'amount': 123,
+                    'desc': 'desc1',
+                    'exclude_months': [1,2,3,4,5,6,7,8,9],
+                    'months': 5
+                },
+                datetime.date(2024,2,1),
+                datetime.date(2024,3,1),
+                datetime.date(2024,4,1),
+            )
 
         self.assertEqual(p.due_date, datetime.date(2024,2,1))
 

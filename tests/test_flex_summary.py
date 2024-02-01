@@ -60,21 +60,22 @@ class TestFlex(BaseTest):
 
         mock_db.return_value = None
 
-        p = FlexSummary(
-            {
-                'flex_payment_date':1,
-                'flex_account': 'Current',
-            },
-            1100.10,
-            635.4,
-            800.1,
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-            datetime.date(2024,4,1),
-        )
-        p.cache['last_date'] = datetime.date(2024,1,1)
+        with freeze_time('2024-01-22'):
+            p = FlexSummary(
+                {
+                    'flex_payment_date':1,
+                    'flex_account': 'Current',
+                },
+                1100.10,
+                635.4,
+                800.1,
+                datetime.date(2024,2,1),
+                datetime.date(2024,3,1),
+                datetime.date(2024,4,1),
+            )
+            p.cache['last_date'] = datetime.date(2024,1,1)
 
-        data = p.data()
+            data = p.data()
 
         self.assertIn('amount', data)
         self.assertIn('due_date', data)
@@ -103,21 +104,22 @@ class TestFlex(BaseTest):
 
         mock_db.return_value = None
 
-        p = FlexSummary(
-            {
-                'flex_payment_date':1,
-                'flex_account': 'Current',
-            },
-            1100.10,
-            635.4,
-            800.1,
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-            datetime.date(2024,4,1),
-        )
-        p.cache['last_date'] = datetime.date(2024,1,1)
+        with freeze_time('2024-01-22'):
+            p = FlexSummary(
+                {
+                    'flex_payment_date':1,
+                    'flex_account': 'Current',
+                },
+                1100.10,
+                635.4,
+                800.1,
+                datetime.date(2024,2,1),
+                datetime.date(2024,3,1),
+                datetime.date(2024,4,1),
+            )
+            p.cache['last_date'] = datetime.date(2024,1,1)
 
-        data = p.data(True)
+            data = p.data(True)
 
         self.assertIn('amount', data)
         self.assertIn('due_date', data)
@@ -190,20 +192,21 @@ class TestFlex(BaseTest):
 
         mock_db.return_value = None
 
-        p = FlexSummary(
-            {
-                'flex_payment_date':1,
-                'flex_account': 'Current',
-            },
-            1100.10,
-            635.4,
-            800.1,
-            datetime.date(2024,2,1),
-            datetime.date(2024,3,1),
-            datetime.date(2024,4,1),
-        )
+        with freeze_time('2024-01-22'):
+            p = FlexSummary(
+                {
+                    'flex_payment_date':1,
+                    'flex_account': 'Current',
+                },
+                1100.10,
+                635.4,
+                800.1,
+                datetime.date(2024,2,1),
+                datetime.date(2024,3,1),
+                datetime.date(2024,4,1),
+            )
 
-        p.display()
+            p.display()
 
         mock_print.assert_called_with('    DUE: Flex Summary    Flex Payment                    £1100.10 ->£635.40  £800.10  2024-01-01   2024-02-01')
 
