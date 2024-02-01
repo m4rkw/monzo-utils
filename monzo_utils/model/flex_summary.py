@@ -24,6 +24,9 @@ class FlexSummary(Payment):
         if self.last_payment and self.last_payment.date >= self.last_salary_date:
             return 'PAID'
 
+        if self.display_amount == 0:
+            return 'SKIPPED'
+
         return 'DUE'
 
 
