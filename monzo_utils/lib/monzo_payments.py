@@ -282,7 +282,7 @@ class MonzoPayments:
         total_due_this_month = 0
         total_due_next_month = 0
 
-        if payment_list['type'] == 'Flex':
+        if payment_list['type'] == 'Flex' and annual is False:
             total_this_month = 0
             total_next_month = 0
             today = datetime.datetime.now()
