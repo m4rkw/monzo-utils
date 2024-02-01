@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 from unittest.mock import PropertyMock
 from monzo_utils.model.flex_summary import FlexSummary
 from monzo_utils.model.transaction import Transaction
+from monzo_utils.model.account import Account
 from monzo_utils.lib.db import DB
 from monzo_utils.lib.config import Config
 from monzo_utils.lib.transactions_seen import TransactionsSeen
@@ -54,11 +55,19 @@ class TestFlex(BaseTest):
 
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
-    def test_data_fields(self, mock_query, mock_db):
+    @patch('monzo_utils.model.account.Account.one')
+    def test_data_fields(self, mock_account_one, mock_query, mock_db):
         mock_config = MagicMock()
         Config._instances[Config] = mock_config
 
         mock_db.return_value = None
+
+        account = Account({
+            'id': 123,
+            'name': 'Current'
+        })
+
+        mock_account_one.return_value = account
 
         with freeze_time('2024-01-22'):
             p = FlexSummary(
@@ -98,9 +107,17 @@ class TestFlex(BaseTest):
 
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
-    def test_data_abbreviated(self, mock_query, mock_db):
+    @patch('monzo_utils.model.account.Account.one')
+    def test_data_abbreviated(self, mock_account_one, mock_query, mock_db):
         mock_config = MagicMock()
         Config._instances[Config] = mock_config
+
+        account = Account({
+            'id': 123,
+            'name': 'Current'
+        })
+
+        mock_account_one.return_value = account
 
         mock_db.return_value = None
 
@@ -186,11 +203,19 @@ class TestFlex(BaseTest):
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
     @patch('builtins.print')
-    def test_display(self, mock_print, mock_query, mock_db):
+    @patch('monzo_utils.model.account.Account.one')
+    def test_display(self, mock_account_one, mock_print, mock_query, mock_db):
         mock_config = MagicMock()
         Config._instances[Config] = mock_config
 
         mock_db.return_value = None
+
+        account = Account({
+            'id': 123,
+            'name': 'Current'
+        })
+
+        mock_account_one.return_value = account
 
         with freeze_time('2024-01-22'):
             p = FlexSummary(
@@ -268,8 +293,16 @@ class TestFlex(BaseTest):
 
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
-    def test_status_due(self, mock_query, mock_db):
+    @patch('monzo_utils.model.account.Account.one')
+    def test_status_due(self, mock_account_one, mock_query, mock_db):
         mock_db.return_value = None
+
+        account = Account({
+            'id': 123,
+            'name': 'Current'
+        })
+
+        mock_account_one.return_value = account
 
         with freeze_time('2024-01-22'):
             p = FlexSummary(
@@ -687,8 +720,16 @@ class TestFlex(BaseTest):
 
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
-    def test_last_date_return_from_cache(self, mock_query, mock_db):
+    @patch('monzo_utils.model.account.Account.one')
+    def test_last_date_return_from_cache(self, mock_account_one, mock_query, mock_db):
         mock_db.return_value = None
+
+        account = Account({
+            'id': 123,
+            'name': 'Current'
+        })
+
+        mock_account_one.return_value = account
 
         p = FlexSummary(
             {
@@ -860,10 +901,18 @@ class TestFlex(BaseTest):
 
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
-    @patch('monzo_utils.model.transaction.Transaction.__init__')
-    def test_last_payment_no_transactions(self, mock_find, mock_query, mock_db):
+    @patch('monzo_utils.model.transaction.Transaction.one')
+    @patch('monzo_utils.model.account.Account.one')
+    def test_last_payment_no_transactions(self, mock_account_one, mock_find, mock_query, mock_db):
         mock_db.return_value = None
         mock_find.return_value = None
+
+        account = Account({
+            'id': 123,
+            'name': 'Current'
+        })
+
+        mock_account_one.return_value = account
 
         p = FlexSummary(
             {
@@ -882,7 +931,7 @@ class TestFlex(BaseTest):
 
         self.assertEqual(resp, None)
 
-        mock_find.assert_called_with('select * from transaction where account_id = %s and declined = %s and money_in = %s and description = %s and `date` > %s order by created_at asc limit 1', [None, 0, 1100.1, 'Flex', datetime.date(2024, 2, 1)])
+        mock_find.assert_called_with('select * from transaction where account_id = %s and declined = %s and money_in = %s and description = %s and `date` > %s order by created_at asc limit 1', [123, 0, 1100.1, 'Flex', datetime.date(2024, 2, 1)])
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
@@ -1096,8 +1145,16 @@ class TestFlex(BaseTest):
 
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
-    def test_due_date__start_date(self, mock_query, mock_db):
+    @patch('monzo_utils.model.account.Account.one')
+    def test_due_date__start_date(self, mock_account_one, mock_query, mock_db):
         mock_db.return_value = None
+
+        account = Account({
+            'id': 123,
+            'name': 'Current'
+        })
+
+        mock_account_one.return_value = account
 
         p = FlexSummary(
             {

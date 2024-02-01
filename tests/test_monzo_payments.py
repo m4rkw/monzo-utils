@@ -3728,11 +3728,17 @@ class TestMonzoPayments(BaseTest):
 
 
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
-    @patch('monzo_utils.model.account.Account.__init__')
+    @patch('monzo_utils.model.account.Account.one')
     @patch('monzo_utils.model.account.Account.last_salary_transaction')
-    def test_get_last_salary_date_with_salary_account(self, mock_last_salary_transaction, mock_init_account, mock_mp):
+    def test_get_last_salary_date_with_salary_account(self, mock_last_salary_transaction, mock_account_one, mock_mp):
         mock_mp.return_value = None
-        mock_init_account.return_value = None
+
+        account = Account({
+            'id': 123,
+            'name': 'test'
+        })
+
+        mock_account_one.return_value = account
 
         mock_last_salary_transaction.return_value = {
             'date': datetime.date(2024,1,1)
@@ -3751,7 +3757,7 @@ class TestMonzoPayments(BaseTest):
 
         last_salary_date = mp.get_last_salary_date()
 
-        mock_init_account.assert_called_with('select * from account where provider_id = %s and name = %s', [7, 'Current'])
+        mock_account_one.assert_called_with('select * from account where provider_id = %s and name = %s', [7, 'Current'])
 
         self.assertEqual(last_salary_date, datetime.date(2024, 1, 1))
 
@@ -3759,11 +3765,17 @@ class TestMonzoPayments(BaseTest):
 
 
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
-    @patch('monzo_utils.model.account.Account.__init__')
+    @patch('monzo_utils.model.account.Account.one')
     @patch('monzo_utils.model.account.Account.last_salary_transaction')
-    def test_get_last_salary_date_with_salary_account_not_found(self, mock_last_salary_transaction, mock_init_account, mock_mp):
+    def test_get_last_salary_date_with_salary_account_not_found(self, mock_last_salary_transaction, mock_account_one, mock_mp):
         mock_mp.return_value = None
-        mock_init_account.return_value = None
+
+        account = Account({
+            'id': 123,
+            'name': 'test'
+        })
+
+        mock_account_one.return_value = account
 
         mock_last_salary_transaction.return_value = None
 
@@ -3781,7 +3793,7 @@ class TestMonzoPayments(BaseTest):
         with pytest.raises(SystemExit) as e:
             last_salary_date = mp.get_last_salary_date()
 
-        mock_init_account.assert_called_with('select * from account where provider_id = %s and name = %s', [7, 'Current'])
+        mock_account_one.assert_called_with('select * from account where provider_id = %s and name = %s', [7, 'Current'])
 
         mock_last_salary_transaction.assert_called_with(description='SALARY', salary_minimum=1000, salary_payment_day=1)
 
@@ -4536,12 +4548,21 @@ class TestMonzoPayments(BaseTest):
     @patch('monzo_utils.lib.monzo_payments.MonzoPayments.__init__')
     @patch('monzo_utils.lib.monzo_api.MonzoAPI.deposit_to_pot')
     @patch('monzo_utils.lib.monzo_api.MonzoAPI.__init__')
-    def test_check_pot_payments_no_config(self, mock_init, mock_deposit_to_pot, mock_mp):
+    @patch('monzo_utils.model.pot.Pot.one')
+    def test_check_pot_payments_no_config(self, mock_pot_one, mock_init, mock_deposit_to_pot, mock_mp):
         mock_config = MagicMock()
         Config._instances[Config] = mock_config
 
         mock_init.return_value = None
         mock_mp.return_value = None
+
+        pot = Pot({
+            'id': 123,
+            'name': 'test',
+            'last_monthly_transfer_date': datetime.date(2024,1,2)
+        })
+
+        mock_pot_one.return_value = pot
 
         mp = MonzoPayments()
         mp.config = {

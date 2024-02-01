@@ -47,8 +47,8 @@ class MonzoPayments:
         self.seen = []
         self.exchange_rates = {}
 
-        self.provider = Provider("select * from provider where name = %s", [PROVIDER])
-        self.account = Account("select * from account where provider_id = %s and name = %s", [self.provider.id, self.account_name])
+        self.provider = Provider.one("select * from provider where name = %s", [PROVIDER])
+        self.account = Account.one("select * from account where provider_id = %s and name = %s", [self.provider.id, self.account_name])
 
         if not self.account:
             sys.stderr.write(f"account {self.account_name} not found in the database\n")
@@ -382,7 +382,7 @@ class MonzoPayments:
 
     def get_last_salary_date(self):
         if 'salary_account' in self.config and self.config['salary_account'] != self.account_name:
-            account = Account("select * from account where provider_id = %s and name = %s", [self.provider.id, self.config['salary_account']])
+            account = Account.one("select * from account where provider_id = %s and name = %s", [self.provider.id, self.config['salary_account']])
         else:
             account = self.account
 
@@ -633,7 +633,10 @@ class MonzoPayments:
             return sync_required
 
         for payment in self.config['payments_to_pots']:
-            pot = Pot("select * from pot where name = %s and deleted = %s", [payment['name'], 0])
+            pot = Pot.one("select * from pot where name = %s and deleted = %s", [payment['name'], 0])
+
+            if not pot:
+                continue
 
             if pot.last_monthly_transfer_date != self.last_salary_date:
                 amount_to_transfer = self.get_transfer_amount(pot, payment)

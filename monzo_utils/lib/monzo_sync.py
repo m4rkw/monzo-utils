@@ -261,18 +261,13 @@ class MonzoSync:
 
 
     def get_or_create_merchant(self, mo_merchant):
-        if 'metadata' in mo_merchant and 'website' in mo_merchant['metadata']:
-            website = mo_merchant['metadata']['website']
-        else:
-            website = None
-
         merchant_id = mo_merchant['id']
 
         mo_merchant['merchant_id'] = mo_merchant['id']
         mo_merchant.pop('id')
         mo_address = mo_merchant.pop('address')
 
-        merchant = Merchant("select * from merchant where merchant_id = %s", [merchant_id])
+        merchant = Merchant.one("select * from merchant where merchant_id = %s", [merchant_id])
 
         if not merchant:
             Log().info(f"creating merchant: {mo_merchant['name']} ({mo_merchant['merchant_id']})")
@@ -283,7 +278,7 @@ class MonzoSync:
 
         mo_address['merchant_id'] = merchant.id
 
-        address = MerchantAddress("select * from merchant_address where merchant_id = %s", [merchant.id])
+        address = MerchantAddress.one("select * from merchant_address where merchant_id = %s", [merchant.id])
 
         if not address:
             address = MerchantAddress()
@@ -334,7 +329,7 @@ class MonzoSync:
         where += " and account_id = %s and transaction_id = %s"
         params += [account.id, mo_transaction.transaction_id]
 
-        transaction = Transaction(f"select * from transaction where {where}", params)
+        transaction = Transaction.one(f"select * from transaction where {where}", params)
 
         date = mo_transaction.created.strftime('%Y-%m-%d')
 
@@ -398,7 +393,7 @@ class MonzoSync:
                 metadata['metadata_%s' % (key)] = mo_transaction.metadata[key]
 
         for key in metadata:
-            transaction_metadata = TransactionMetadata("select * from transaction_metadata where transaction_id = %s and `key` = %s", [transaction.id, key])
+            transaction_metadata = TransactionMetadata.one("select * from transaction_metadata where transaction_id = %s and `key` = %s", [transaction.id, key])
 
             if not transaction_metadata:
                 transaction_metadata = TransactionMetadata()
@@ -409,7 +404,7 @@ class MonzoSync:
 
             transaction_metadata.save()
 
-        for transaction_metadata in TransactionMetadata().find("select * from transaction_metadata where transaction_id = %s", [transaction.id]):
+        for transaction_metadata in TransactionMetadata.find("select * from transaction_metadata where transaction_id = %s", [transaction.id]):
             if transaction_metadata.key not in metadata:
                 transaction_metadata.delete()
 
@@ -417,7 +412,7 @@ class MonzoSync:
 
 
     def get_or_create_counterparty(self, mo_counterparty):
-        counterparty = Counterparty("select * from counterparty where user_id = %s", [mo_counterparty['user_id']])
+        counterparty = Counterparty.one("select * from counterparty where user_id = %s", [mo_counterparty['user_id']])
 
         if not counterparty:
             Log().info(f"creating counterparty: {mo_counterparty['name']} ({mo_counterparty['user_id']})")
@@ -431,7 +426,7 @@ class MonzoSync:
 
 
     def get_provider(self):
-        provider = Provider("select * from provider where name = %s", [PROVIDER])
+        provider = Provider.one("select * from provider where name = %s", [PROVIDER])
 
         if not provider:
             Log().info(f"creating provider: {PROVIDER}")
@@ -466,7 +461,7 @@ class MonzoSync:
             pot_lookup = {}
 
             for mo_pot in mo_pots:
-                pot = Pot("select * from pot where account_id = %s and pot_id = %s", [account.id, mo_pot.pot_id])
+                pot = Pot.one("select * from pot where account_id = %s and pot_id = %s", [account.id, mo_pot.pot_id])
 
                 if not pot:
                     Log().info(f"creating pot: {mo_pot.name}")
@@ -534,7 +529,7 @@ class MonzoSync:
 
 
     def get_or_create_account(self, mo_account, account_config):
-        account = Account("select * from account where provider_id = %s and account_id = %s", [self.provider.id, mo_account.account_id])
+        account = Account.one("select * from account where provider_id = %s and account_id = %s", [self.provider.id, mo_account.account_id])
 
         if not account:
             account = Account()

@@ -40,46 +40,11 @@ class TestBaseModel(BaseTest):
     def test_constructor_from_db_not_found(self, mock_one, mock_db):
         mock_db.return_value = None
         mock_one.return_value = None
-        m = BaseModel("select * from account where id = %s", [123])
+        m = BaseModel({})
 
         self.assertEqual(m.attributes, {})
         self.assertEqual(m.table, 'base_model')
         self.assertEqual(m.factory_query, False)
-
-
-    @patch('monzo_utils.lib.db.DB.__init__')
-    @patch('monzo_utils.lib.db.DB.one')
-    def test_constructor_from_db_found(self, mock_one, mock_db):
-        mock_db.return_value = None
-        mock_one.return_value = {
-            'key': 'one',
-            'key2': 'two'
-        }
-        m = BaseModel("select * from account where id = %s", [123])
-
-        self.assertEqual(m.attributes, {'key': 'one', 'key2': 'two'})
-        self.assertEqual(m.table, 'base_model')
-        self.assertEqual(m.factory_query, False)
-
-
-    @patch('monzo_utils.lib.db.DB.__init__')
-    @patch('monzo_utils.lib.db.DB.query')
-    def test_find(self, mock_query, mock_init):
-        mock_init.return_value = None
-        mock_query.return_value = [{
-            'key1': 'blah',
-            'key2': 'bloo'
-        }]
-
-        m = BaseModel()
-        m.table = 'account'
-
-        resp = m.find('select * from account where id = %s', [123])
-
-        self.assertIsInstance(resp, list)
-        self.assertEqual(len(resp), 1)
-        self.assertIsInstance(resp[0], BaseModel)
-        self.assertEqual(resp[0].attributes, {'key1': 'blah', 'key2': 'bloo'})
 
 
     def test_getattr(self):

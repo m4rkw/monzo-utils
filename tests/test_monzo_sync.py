@@ -125,3 +125,72 @@ class TestMonzoSync(BaseTest):
         ms.api.accounts.return_value = [account1, account2]
 
         ms.scan_accounts()
+
+
+    @patch('monzo_utils.lib.db.DB.__init__')
+    @patch('monzo_utils.lib.db.DB.query')
+    @patch('monzo_utils.lib.monzo_sync.MonzoSync.__init__')
+    def test_test_db_access_mysql(self, mock_init, mock_query, mock_db_init):
+        mock_init.return_value = None
+        mock_db_init.return_value = None
+
+        ms = MonzoSync()
+
+        ms.test_db_access({
+            'driver': 'mysql',
+            'host': 'localhost',
+            'database': 'test'
+        })
+
+        mock_db_init.assert_called_with({
+            'driver': 'mysql',
+            'host': 'localhost',
+            'database': 'test'
+        })
+
+        mock_query.assert_called_with('show tables')
+
+
+    @patch('monzo_utils.lib.db.DB.__init__')
+    @patch('monzo_utils.lib.db.DB.query')
+    @patch('monzo_utils.lib.monzo_sync.MonzoSync.__init__')
+    def test_test_db_access_sqlite(self, mock_init, mock_query, mock_db_init):
+        mock_init.return_value = None
+        mock_db_init.return_value = None
+
+        ms = MonzoSync()
+
+        ms.test_db_access({
+            'driver': 'sqlite3',
+            'host': 'localhost',
+            'database': 'test'
+        })
+
+        mock_db_init.assert_called_with({
+            'driver': 'sqlite3',
+            'host': 'localhost',
+            'database': 'test'
+        })
+
+        mock_query.assert_called_with('pragma table_info(`provider`)')
+
+
+#    @patch('monzo_utils.lib.db.DB.__init__')
+#    @patch('monzo_utils.lib.db.DB.query')
+#    @patch('monzo_utils.lib.monzo_sync.MonzoSync.__init__')
+#    @patch('monzo_utils.model.merchant.Merchant.__init__')
+#    def test_get_or_create_merchant_create(self, mock_init_merchant, mock_init, mock_query, mock_db_init):
+#        mock_init.return_value = None
+#        mock_db_init.return_value = None
+#        mock_init_merchant.return_value = None
+#
+#        ms = MonzoSync()
+#
+#        mo_merchant = {
+#            'id': 'werjoidsf',
+#            'name': 'test',
+#            'address': {
+#            }
+#        }
+#
+#        ms.get_or_create_merchant(mo_merchant)

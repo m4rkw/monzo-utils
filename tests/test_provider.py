@@ -38,26 +38,15 @@ class TestProvider(BaseTest):
 
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.one')
-    def test_constructor_from_db_not_found(self, mock_one, mock_db):
-        mock_db.return_value = None
-        mock_one.return_value = None
-        m = Provider("select * from provider where id = %s", [123])
-
-        self.assertEqual(m.attributes, {})
-        self.assertEqual(m.table, 'provider')
-        self.assertEqual(m.factory_query, False)
-
-
-    @patch('monzo_utils.lib.db.DB.__init__')
-    @patch('monzo_utils.lib.db.DB.one')
-    def test_constructor_from_db_found(self, mock_one, mock_db):
+    def test_one(self, mock_one, mock_db):
         mock_db.return_value = None
         mock_one.return_value = {
             'key': 'one',
             'key2': 'two'
         }
-        m = Provider("select * from provider where id = %s", [123])
+        m = Provider.one("select * from provider where id = %s", [123])
 
+        self.assertIsInstance(m, Provider)
         self.assertEqual(m.attributes, {'key': 'one', 'key2': 'two'})
         self.assertEqual(m.table, 'provider')
         self.assertEqual(m.factory_query, False)

@@ -17,7 +17,7 @@ class Account(BaseModel):
 
 
     def get_pot(self, name):
-        return Pot("select * from pot where account_id = %s and name = %s and deleted = %s", [self.id, name, 0])
+        return Pot.one("select * from pot where account_id = %s and name = %s and deleted = %s", [self.id, name, 0])
 
 
     @property

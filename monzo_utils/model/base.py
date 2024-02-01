@@ -8,30 +8,39 @@ from monzo_utils.lib.db import DB
 
 class BaseModel:
 
-    def __init__(self, data=None, params=None):
+    @classmethod
+    def one(cls, sql, params):
+        row = DB().one(sql, params)
+
+        if row:
+            table = re.sub(r'(?<!^)(?=[A-Z])', '_', cls.__name__).lower()
+
+            return getattr(importlib.import_module(f"monzo_utils.model.{table}"), cls.__name__)(row)
+
+        return None
+
+
+    @classmethod
+    def find(cls, sql, params):
+        table = re.sub(r'(?<!^)(?=[A-Z])', '_', cls.__name__).lower()
+
+        data = DB().query(sql, params)
+
+        results = []
+
+        for row in data:
+            results.append(getattr(importlib.import_module(f"monzo_utils.model.{table}"), cls.__name__)(row))
+
+        return results
+
+
+    def __init__(self, attributes=None):
         self.attributes = {}
-        self.table = re.sub(r'(?<!^)(?=[A-Z])', '_', type(self).__name__).lower()
         self.factory_query = False
+        self.table = re.sub(r'(?<!^)(?=[A-Z])', '_', self.__class__.__name__).lower()
 
-        if data:
-            if type(data) == dict:
-                self.attributes = data
-            else:
-                row = DB().one(data, params)
-
-                if row:
-                    self.attributes = row
-
-
-    def find(self, sql, params):
-        rows = DB().query(sql, params)
-
-        data = []
-
-        for row in rows:
-            data.append(getattr(importlib.import_module(f"monzo_utils.model.{self.table}"), self.__class__.__name__)(row))
-
-        return data
+        if type(attributes) == dict:
+            self.attributes = attributes
 
 
     def __getattr__(self, name):

@@ -37,30 +37,20 @@ class TestAccount(BaseTest):
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
-    @patch('monzo_utils.lib.db.DB.one')
-    def test_constructor_from_db_not_found(self, mock_one, mock_db):
-        mock_db.return_value = None
-        mock_one.return_value = None
-        m = Account("select * from account where id = %s", [123])
+    @patch('monzo_utils.lib.db.DB.query')
+    def test_one(self, mock_query, mock_init):
+        mock_init.return_value = None
+        mock_query.return_value = [{
+            'key1': 'blah',
+            'key2': 'bloo'
+        }]
 
-        self.assertEqual(m.attributes, {})
-        self.assertEqual(m.table, 'account')
-        self.assertEqual(m.factory_query, False)
+        account = Account.one('select * from account where id = %s', [123])
 
-
-    @patch('monzo_utils.lib.db.DB.__init__')
-    @patch('monzo_utils.lib.db.DB.one')
-    def test_constructor_from_db_found(self, mock_one, mock_db):
-        mock_db.return_value = None
-        mock_one.return_value = {
-            'key': 'one',
-            'key2': 'two'
-        }
-        m = Account("select * from account where id = %s", [123])
-
-        self.assertEqual(m.attributes, {'key': 'one', 'key2': 'two'})
-        self.assertEqual(m.table, 'account')
-        self.assertEqual(m.factory_query, False)
+        self.assertIsInstance(account, Account)
+        self.assertEqual(account.attributes, {'key1': 'blah', 'key2': 'bloo'})
+        self.assertEqual(account.table, 'account')
+        self.assertEqual(account.factory_query, False)
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
@@ -72,10 +62,7 @@ class TestAccount(BaseTest):
             'key2': 'bloo'
         }]
 
-        m = Account()
-        m.table = 'account'
-
-        resp = m.find('select * from account where id = %s', [123])
+        resp = Account.find('select * from account where id = %s', [123])
 
         self.assertIsInstance(resp, list)
         self.assertEqual(len(resp), 1)
@@ -244,13 +231,11 @@ class TestAccount(BaseTest):
     def test_save_create_new(self, mock_update, mock_create, mock_init):
         mock_init.return_value = None
 
-        m = Account()
-
-        m.attributes = {
+        m = Account({
             'id': 123,
             'key1': 'blah',
             'key2': 'bloo'
-        }
+        })
 
         m.save()
 
@@ -483,12 +468,13 @@ class TestAccount(BaseTest):
         self.assertEqual(t, ['data'])
 
 
-    @patch('monzo_utils.model.pot.Pot.__init__')
+    @patch('monzo_utils.model.pot.Pot.one')
     def test_get_pot(self, mock_pot):
         mock_pot.return_value = None
 
-        mp = Account()
-        mp.attributes['id'] = 123
+        mp = Account({
+            'id': 123
+        })
 
         mp.get_pot("Test")
 

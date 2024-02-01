@@ -40,14 +40,14 @@ class Finance(Payment):
         if 'single_payment' in self.payment_config and self.payment_config['single_payment']:
             where, params = self.get_transaction_where_condition(amounts=False)
 
-            self.cache['all_finance_transactions'] = Transaction().find(
+            self.cache['all_finance_transactions'] = Transaction.find(
                 f"select * from transaction where {where} order by created_at asc",
                 params
             )
         else:
             where, params = self.get_transaction_where_condition(amounts)
 
-            self.cache['all_finance_transactions'] = Transaction().find(
+            self.cache['all_finance_transactions'] = Transaction.find(
                 f"select * from transaction where {where} order by created_at asc",
                 params
             )

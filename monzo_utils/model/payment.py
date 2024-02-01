@@ -280,7 +280,7 @@ class Payment:
 
         where, params = self.get_transaction_where_condition()
 
-        transactions = Transaction().find(f"select * from transaction where {where} order by created_at desc", params)
+        transactions = Transaction.find(f"select * from transaction where {where} order by created_at desc", params)
 
         for transaction in transactions:
             if 'start_date' in self.payment_config and transaction.date < self.payment_config['start_date']:
@@ -306,7 +306,7 @@ class Payment:
 
         where, params = self.get_transaction_where_condition()
 
-        transactions = Transaction().find(
+        transactions = Transaction.find(
             f"select * from transaction where {where} order by created_at desc",
             params
         )

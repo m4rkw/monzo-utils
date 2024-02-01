@@ -37,26 +37,15 @@ class TestMerchantAddress(BaseTest):
 
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.one')
-    def test_constructor_from_db_not_found(self, mock_one, mock_db):
-        mock_db.return_value = None
-        mock_one.return_value = None
-        m = MerchantAddress("select * from merchant_address where id = %s", [123])
-
-        self.assertEqual(m.attributes, {})
-        self.assertEqual(m.table, 'merchant_address')
-        self.assertEqual(m.factory_query, False)
-
-
-    @patch('monzo_utils.lib.db.DB.__init__')
-    @patch('monzo_utils.lib.db.DB.one')
-    def test_constructor_from_db_found(self, mock_one, mock_db):
+    def test_one(self, mock_one, mock_db):
         mock_db.return_value = None
         mock_one.return_value = {
             'key': 'one',
             'key2': 'two'
         }
-        m = MerchantAddress("select * from merchant_address where id = %s", [123])
+        m = MerchantAddress.one("select * from merchant_address where id = %s", [123])
 
+        self.assertIsInstance(m, MerchantAddress)
         self.assertEqual(m.attributes, {'key': 'one', 'key2': 'two'})
         self.assertEqual(m.table, 'merchant_address')
         self.assertEqual(m.factory_query, False)
@@ -71,10 +60,7 @@ class TestMerchantAddress(BaseTest):
             'key2': 'bloo'
         }]
 
-        m = MerchantAddress()
-        m.table = 'merchant_address'
-
-        resp = m.find('select * from merchant_address where id = %s', [123])
+        resp = MerchantAddress.find('select * from merchant_address where id = %s', [123])
 
         self.assertIsInstance(resp, list)
         self.assertEqual(len(resp), 1)
