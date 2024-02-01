@@ -34,7 +34,7 @@ class Monzo:
                 if i+1 < len(sys.argv) and sys.argv[i+1].isdigit():
                     n = int(sys.argv[i+1])
 
-        provider = Provider("select * from provider where name = %s", [PROVIDER])
+        provider = Provider.one("select * from provider where name = %s", [PROVIDER])
         accounts = provider.accounts(order=Config().account_order if 'account_order' in Config().keys else None)
 
         count = 0
