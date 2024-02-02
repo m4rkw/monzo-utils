@@ -46,7 +46,7 @@ class MonzoSync:
 
         self.db = DB()
 
-        self.provider = self.get_provider()
+        self.provider = self.get_or_create_provider(PROVIDER)
 
 
     def setup(self):
@@ -425,14 +425,14 @@ class MonzoSync:
         return counterparty
 
 
-    def get_provider(self):
-        provider = Provider.one("select * from provider where name = %s", [PROVIDER])
+    def get_or_create_provider(self, provider_name):
+        provider = Provider.one("select * from provider where name = %s", [provider_name])
 
         if not provider:
-            Log().info(f"creating provider: {PROVIDER}")
+            Log().info(f"creating provider: {provider_name}")
 
             provider = Provider()
-            provider.name = PROVIDER
+            provider.name = provider_name
             provider.save()
 
         return provider
@@ -441,8 +441,6 @@ class MonzoSync:
     def sync(self, days=3):
         mo_accounts = self.api.accounts()
 
-        accounts = []
-
         for mo_account in mo_accounts:
             if 'monzoflexbackingloan' in mo_account.description:
                 continue
@@ -450,82 +448,99 @@ class MonzoSync:
             if mo_account.account_id not in Config().accounts:
                 continue
 
-            account = self.get_or_create_account(mo_account, Config().accounts[mo_account.account_id])
-
-            Log().info(f"syncing account: {account.name}")
-
-            Log().info(f"getting pots for account: {account.name}")
-
-            mo_pots = self.api.pots(account_id=account.account_id)
-
-            pot_lookup = {}
-
-            for mo_pot in mo_pots:
-                pot = Pot.one("select * from pot where account_id = %s and pot_id = %s", [account.id, mo_pot.pot_id])
-
-                if not pot:
-                    Log().info(f"creating pot: {mo_pot.name}")
-                    pot = Pot()
-
-                pot.account_id = account.id
-                pot.pot_id = mo_pot.pot_id
-                pot.name = mo_pot.name
-                pot.balance = mo_pot.balance / 100
-                pot.deleted = mo_pot.deleted
-
-                pot.save()
-
-                pot_lookup[pot.pot_id] = pot
- 
-            try:
-                Log().info(f'syncing transactions for account: {account.name}')
-
-                mo_transactions = self.api.transactions(account.account_id, days=days)
-            except MonzoPermissionsError as e:
-                Log().error(f"permissions error: {str(e)}")
-
-                if sys.stdin.isatty():
-                    Log().info("Need to refresh permissions in the app, Settings -> Privacy & Security -> Manage Apps")
-                else:
-                    os.system("echo 'Need to refresh permissions in the app, Settings -> Privacy & Security -> Manage Apps'| mail -s 'Monzo permission refresh required' '%s'" % (Config().email))
-
-                sys.exit(1)
-
-            except MonzoServerError as e:
-                Log().error(f"server error: {str(e)}")
-                continue
-
-            seen = {}
-            total = 0
-
-            pot_account_ids = {}
-
-            for mo_transaction in mo_transactions:
-                transaction = self.add_transaction(account, mo_transaction, pot_account_ids)
-
-                seen[transaction.id] = 1
-                total += 1
-
-            seen = {}
-
-            for pot_account_id in pot_account_ids:
-                if pot_lookup[pot_account_ids[pot_account_id]].deleted:
-                    continue
-
-                Log().info(f"syncing transactions for pot: {pot_lookup[pot_account_ids[pot_account_id]].name}")
-
-                mo_pot_transactions = self.api.transactions(pot_account_id, days=days)
-
-                for mo_pot_transaction in mo_pot_transactions:
-                    transaction = self.add_transaction(account, mo_pot_transaction, pot_account_ids, pot_lookup[pot_account_ids[pot_account_id]].id)
-
-                    seen[transaction.id] = 1
-                    total += 1
-
-            Log().info(f"account {account.name} synced {total} transactions")
+            self.sync_account(mo_account, days)
 
         if 'touch_file' in Config().keys:
             Path(Config().touch_file).touch()
+
+
+    def sync_account(self, mo_account, days):
+        Log().info(f"syncing account: {Config().accounts[mo_account.account_id]['name']}")
+
+        account = self.get_or_create_account(mo_account, Config().accounts[mo_account.account_id])
+
+        Log().info(f"getting pots for account: {account.name}")
+
+        pot_lookup = self.sync_account_pots(account)
+
+        Log().info(f'syncing transactions for account: {account.name}')
+
+        pot_account_ids, total = self.sync_account_transactions(account, pot_lookup, days)
+
+        Log().info(f'syncing pot transactions for account: {account.name}')
+
+        self.sync_account_pot_transactions(account, pot_account_ids, pot_lookup, total, days)
+
+
+    def sync_account_transactions(self, account, pot_lookup, days):
+        try:
+            mo_transactions = self.api.transactions(account.account_id, days=days)
+        except MonzoPermissionsError as e:
+            Log().error(f"permissions error: {str(e)}")
+
+            if sys.stdin.isatty():
+                Log().info("Need to refresh permissions in the app, Settings -> Privacy & Security -> Manage Apps")
+            else:
+                os.system("echo 'Need to refresh permissions in the app, Settings -> Privacy & Security -> Manage Apps'| mail -s 'Monzo permission refresh required' '%s'" % (Config().email))
+
+            sys.exit(1)
+
+        except MonzoServerError as e:
+            Log().error(f"server error: {str(e)}")
+            return [], 0
+
+        total = 0
+
+        pot_account_ids = {}
+
+        for mo_transaction in mo_transactions:
+            transaction = self.add_transaction(account, mo_transaction, pot_account_ids)
+
+            total += 1
+
+        return pot_account_ids, total
+
+
+    def sync_account_pot_transactions(self, account, pot_account_ids, pot_lookup, total, days):
+        for pot_account_id in pot_account_ids:
+            if pot_lookup[pot_account_ids[pot_account_id]].deleted:
+                continue
+
+            Log().info(f"syncing transactions for pot: {pot_lookup[pot_account_ids[pot_account_id]].name}")
+
+            mo_pot_transactions = self.api.transactions(pot_account_id, days=days)
+
+            for mo_pot_transaction in mo_pot_transactions:
+                transaction = self.add_transaction(account, mo_pot_transaction, pot_account_ids, pot_lookup[pot_account_ids[pot_account_id]].id)
+
+                total += 1
+
+        Log().info(f"account {account.name} synced {total} transactions")
+
+
+    def sync_account_pots(self, account):
+        mo_pots = self.api.pots(account_id=account.account_id)
+
+        pot_lookup = {}
+
+        for mo_pot in mo_pots:
+            pot = Pot.one("select * from pot where account_id = %s and pot_id = %s", [account.id, mo_pot.pot_id])
+
+            if not pot:
+                Log().info(f"creating pot: {mo_pot.name}")
+                pot = Pot()
+
+            pot.account_id = account.id
+            pot.pot_id = mo_pot.pot_id
+            pot.name = mo_pot.name
+            pot.balance = mo_pot.balance / 100
+            pot.deleted = mo_pot.deleted
+
+            pot.save()
+
+            pot_lookup[pot.pot_id] = pot
+
+        return pot_lookup
 
 
     def get_or_create_account(self, mo_account, account_config):
