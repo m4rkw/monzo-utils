@@ -2,7 +2,8 @@
 
 ## 0.0.75 - 03/02/2024
 
-- Bugfix
+- Bugfix - if yearly payment was made recently don't show it due in the next
+  month
 
 ## 0.0.74 - 02/02/2024
 
