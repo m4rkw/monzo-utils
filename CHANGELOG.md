@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.75 - 03/02/2024
+
+- Bugfix
+
 ## 0.0.74 - 02/02/2024
 
 - Completed unit test coverage

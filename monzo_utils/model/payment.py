@@ -332,7 +332,15 @@ class Payment:
             while day.month != self.payment_config['yearly_month'] or day.day != self.payment_config['yearly_day']:
                 day += datetime.timedelta(days=1)
 
-            return datetime.date(day.year, day.month, day.day)
+            due_date = datetime.date(day.year, day.month, day.day)
+
+            if self.last_date:
+                days_since_last_payment = (due_date - self.last_date).total_seconds() / 86400
+
+                if days_since_last_payment < 90:
+                    due_date = datetime.date(due_date.year + 1, self.payment_config['yearly_month'], self.payment_config['yearly_day'])
+
+            return due_date
 
         if 'renew_date' in self.payment_config:
             return self.payment_config['renew_date']

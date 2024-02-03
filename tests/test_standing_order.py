@@ -1474,6 +1474,31 @@ class TestStandingOrder(BaseTest):
 
     @patch('monzo_utils.lib.db.DB.__init__')
     @patch('monzo_utils.lib.db.DB.query')
+    def test_due_date__yearly_month_payment_made_early(self, mock_query, mock_db):
+        mock_db.return_value = None
+
+        p = StandingOrder(
+            {},
+            'payment_list_config',
+            {
+                'name': 'payment',
+                'amount': 123,
+                'desc': 'desc1',
+                'yearly_month': 2,
+                'yearly_day': 25
+            },
+            datetime.date(2024,2,1),
+            datetime.date(2024,3,1),
+            datetime.date(2024,4,1),
+        )
+        p.cache['last_date'] = datetime.date(2024,2,3)
+
+        with freeze_time("2024-02-03"):
+            self.assertEqual(p.due_date, datetime.date(2025,2,25))
+
+
+    @patch('monzo_utils.lib.db.DB.__init__')
+    @patch('monzo_utils.lib.db.DB.query')
     def test_due_date__renew_date(self, mock_query, mock_db):
         mock_db.return_value = None
 
