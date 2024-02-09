@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.76 - 09/02/2024
+
+- Fixed a bug where transactions found by monzo-payments aren't limited to the
+  account being viewed
+
 ## 0.0.75 - 03/02/2024
 
 - Bugfix - if yearly payment was made recently don't show it due in the next

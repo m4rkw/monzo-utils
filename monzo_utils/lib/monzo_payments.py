@@ -297,7 +297,7 @@ class MonzoPayments:
             for payment in payments:
                 flex_remaining += payment.remaining
 
-            summary = FlexSummary(self.config, total_this_month, total_next_month, flex_remaining, self.last_salary_date, self.next_salary_date, self.following_salary_date)
+            summary = FlexSummary(self.config, self.account, total_this_month, total_next_month, flex_remaining, self.last_salary_date, self.next_salary_date, self.following_salary_date)
 
             if self.json:
                 self.output.append(summary.data(self.abbreviate))
@@ -344,6 +344,7 @@ class MonzoPayments:
 
             payment = getattr(importlib.import_module(f"monzo_utils.model.{payment_list_type_library}"), payment_list_type)(
                 self.config,
+                self.account,
                 payment_list,
                 payment_config,
                 self.last_salary_date,
@@ -357,6 +358,12 @@ class MonzoPayments:
             payments[payment.due_date].append(payment)
 
         sorted_payments = []
+
+        if None in payments:
+            for payment in payments[None]:
+                sorted_payments.append(payment)
+
+            payments.pop(None)
 
         for due_date in sorted(payments):
             for payment in payments[due_date]:

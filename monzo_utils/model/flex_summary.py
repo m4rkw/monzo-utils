@@ -6,8 +6,9 @@ from monzo_utils.model.transaction import Transaction
 
 class FlexSummary(Payment):
 
-    def __init__(self, config, total, total_next_month, remaining, last_salary_date, next_salary_date, following_salary_date):
+    def __init__(self, config, account, total, total_next_month, remaining, last_salary_date, next_salary_date, following_salary_date):
         self.config = config
+        self.account = account
         self.payment_config = {}
         self.flex_total = total
         self.flex_total_next_month = total_next_month

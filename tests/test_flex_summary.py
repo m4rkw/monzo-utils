@@ -26,11 +26,17 @@ class TestFlex(BaseTest):
     @patch('monzo_utils.lib.db.DB.query')
     def test_constructor(self, mock_query, mock_init):
         with freeze_time("2024-01-01"):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = FlexSummary(
                 {
                     'flex_payment_date':1,
                     'flex_account': 'Current',
                 },
+                account,
                 1100.10,
                 635.4,
                 800.1,
@@ -70,11 +76,17 @@ class TestFlex(BaseTest):
         mock_account_one.return_value = account
 
         with freeze_time('2024-01-22'):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = FlexSummary(
                 {
                     'flex_payment_date':1,
                     'flex_account': 'Current',
                 },
+                account,
                 1100.10,
                 635.4,
                 800.1,
@@ -122,11 +134,17 @@ class TestFlex(BaseTest):
         mock_db.return_value = None
 
         with freeze_time('2024-01-22'):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = FlexSummary(
                 {
                     'flex_payment_date':1,
                     'flex_account': 'Current',
                 },
+                account,
                 1100.10,
                 635.4,
                 800.1,
@@ -162,11 +180,17 @@ class TestFlex(BaseTest):
     def test_abbreviate(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -183,11 +207,17 @@ class TestFlex(BaseTest):
     def test_short_date(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -218,11 +248,17 @@ class TestFlex(BaseTest):
         mock_account_one.return_value = account
 
         with freeze_time('2024-01-22'):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = FlexSummary(
                 {
                     'flex_payment_date':1,
                     'flex_account': 'Current',
                 },
+                account,
                 1100.10,
                 635.4,
                 800.1,
@@ -246,11 +282,17 @@ class TestFlex(BaseTest):
         mock_db.return_value = None
 
         with freeze_time('2024-01-22'):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = FlexSummary(
                 {
                     'flex_payment_date':1,
                     'flex_account': 'Current',
                 },
+                account,
                 1100.10,
                 635.4,
                 800.1,
@@ -275,11 +317,17 @@ class TestFlex(BaseTest):
         mock_db.return_value = None
 
         with freeze_time('2024-01-22'):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = FlexSummary(
                 {
                     'flex_payment_date':1,
                     'flex_account': 'Current',
                 },
+                account,
                 1100.10,
                 635.4,
                 800.1,
@@ -305,11 +353,17 @@ class TestFlex(BaseTest):
         mock_account_one.return_value = account
 
         with freeze_time('2024-01-22'):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = FlexSummary(
                 {
                     'flex_payment_date':1,
                     'flex_account': 'Current',
                 },
+                account,
                 1100.10,
                 635.4,
                 800.1,
@@ -335,11 +389,17 @@ class TestFlex(BaseTest):
         mock_last_payment.return_value = t
 
         with freeze_time('2024-01-22'):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = FlexSummary(
                 {
                     'flex_payment_date':1,
                     'flex_account': 'Current',
                 },
+                account,
                 1100.10,
                 635.4,
                 800.1,
@@ -371,11 +431,17 @@ class TestFlex(BaseTest):
         mock_last_payment.return_value = t
 
         with freeze_time('2024-01-22'):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = FlexSummary(
                 {
                     'flex_payment_date':1,
                     'flex_account': 'Current',
                 },
+                account,
                 1100.10,
                 635.4,
                 800.1,
@@ -398,11 +464,17 @@ class TestFlex(BaseTest):
     def test_payment_type(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -419,11 +491,17 @@ class TestFlex(BaseTest):
     def test_num_paid(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -440,11 +518,17 @@ class TestFlex(BaseTest):
     def test_num_total(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -465,11 +549,17 @@ class TestFlex(BaseTest):
     def test_remaining(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -496,11 +586,17 @@ class TestFlex(BaseTest):
 
         Config._instances = {Config: config}
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -523,11 +619,17 @@ class TestFlex(BaseTest):
         last_payment = Transaction({"money_out": 234, "id":12})
         mock_last_payment.return_value = last_payment
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -548,11 +650,17 @@ class TestFlex(BaseTest):
 
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -573,11 +681,17 @@ class TestFlex(BaseTest):
 
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -596,11 +710,17 @@ class TestFlex(BaseTest):
     def test_next_month_amount_renewal_first_payment(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -618,11 +738,17 @@ class TestFlex(BaseTest):
     def test_next_month_amount_renewal_regular_amount(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -643,11 +769,17 @@ class TestFlex(BaseTest):
 
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -666,11 +798,17 @@ class TestFlex(BaseTest):
     def test_last_date_last_payment(self, mock_last_payment, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -695,11 +833,17 @@ class TestFlex(BaseTest):
     def test_last_date_older_last_payment(self, mock_older_last_payment, mock_last_payment, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -731,11 +875,17 @@ class TestFlex(BaseTest):
 
         mock_account_one.return_value = account
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -754,11 +904,17 @@ class TestFlex(BaseTest):
     def test_get_transaction_where_condition__desc_list(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -770,8 +926,8 @@ class TestFlex(BaseTest):
         with freeze_time("2024-01-20"):
             where, params = p.get_transaction_where_condition()
 
-            self.assertEqual(where, 'money_out > %s and declined = %s and (  description like %s )')
-            self.assertEqual(params, [0, 0, '%FlexSummary%'])
+            self.assertEqual(where, 'account_id = %s and money_out > %s and declined = %s and (  description like %s )')
+            self.assertEqual(params, [1, 0, 0, '%FlexSummary%'])
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
@@ -779,11 +935,17 @@ class TestFlex(BaseTest):
     def test_get_transaction_where_condition__desc_single(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -795,8 +957,8 @@ class TestFlex(BaseTest):
         with freeze_time("2024-01-20"):
             where, params = p.get_transaction_where_condition()
 
-            self.assertEqual(where, 'money_out > %s and declined = %s and (  description like %s )')
-            self.assertEqual(params, [0, 0, '%FlexSummary%'])
+            self.assertEqual(where, 'account_id = %s and money_out > %s and declined = %s and (  description like %s )')
+            self.assertEqual(params, [1, 0, 0, '%FlexSummary%'])
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
@@ -804,11 +966,17 @@ class TestFlex(BaseTest):
     def test_get_transaction_where_condition__start_date(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -820,8 +988,8 @@ class TestFlex(BaseTest):
         with freeze_time("2024-01-20"):
             where, params = p.get_transaction_where_condition()
 
-            self.assertEqual(where, 'money_out > %s and declined = %s and (  description like %s )')
-            self.assertEqual(params, [0, 0, '%FlexSummary%'])
+            self.assertEqual(where, 'account_id = %s and money_out > %s and declined = %s and (  description like %s )')
+            self.assertEqual(params, [1, 0, 0, '%FlexSummary%'])
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
@@ -829,11 +997,17 @@ class TestFlex(BaseTest):
     def test_get_transaction_where_condition__fixed(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -845,8 +1019,8 @@ class TestFlex(BaseTest):
         with freeze_time("2024-01-20"):
             where, params = p.get_transaction_where_condition()
 
-            self.assertEqual(where, 'money_out > %s and declined = %s and (  description like %s )')
-            self.assertEqual(params, [0, 0, '%FlexSummary%'])
+            self.assertEqual(where, 'account_id = %s and money_out > %s and declined = %s and (  description like %s )')
+            self.assertEqual(params, [1, 0, 0, '%FlexSummary%'])
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
@@ -854,11 +1028,17 @@ class TestFlex(BaseTest):
     def test_get_transaction_where_condition__fixed_amounts_list(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -870,8 +1050,8 @@ class TestFlex(BaseTest):
         with freeze_time("2024-01-20"):
             where, params = p.get_transaction_where_condition([123,234,456])
 
-            self.assertEqual(where, 'money_out > %s and declined = %s and (  description like %s ) and ( money_out = %s or  money_out = %s or  money_out = %s)')
-            self.assertEqual(params, [0, 0, '%FlexSummary%', 123, 234, 456])
+            self.assertEqual(where, 'account_id = %s and money_out > %s and declined = %s and (  description like %s ) and ( money_out = %s or  money_out = %s or  money_out = %s)')
+            self.assertEqual(params, [1, 0, 0, '%FlexSummary%', 123, 234, 456])
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
@@ -879,11 +1059,17 @@ class TestFlex(BaseTest):
     def test_get_transaction_where_condition__not_fixed_amounts_list(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -895,8 +1081,8 @@ class TestFlex(BaseTest):
         with freeze_time("2024-01-20"):
             where, params = p.get_transaction_where_condition([123,234,456])
 
-            self.assertEqual(where, 'money_out > %s and declined = %s and (  description like %s ) and ( money_out = %s or  money_out = %s or  money_out = %s)')
-            self.assertEqual(params, [0, 0, '%FlexSummary%', 123, 234, 456])
+            self.assertEqual(where, 'account_id = %s and money_out > %s and declined = %s and (  description like %s ) and ( money_out = %s or  money_out = %s or  money_out = %s)')
+            self.assertEqual(params, [1, 0, 0, '%FlexSummary%', 123, 234, 456])
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
@@ -914,11 +1100,17 @@ class TestFlex(BaseTest):
 
         mock_account_one.return_value = account
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -957,11 +1149,17 @@ class TestFlex(BaseTest):
             })
         ]
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -990,11 +1188,17 @@ class TestFlex(BaseTest):
         mock_get_transaction_where_condition.return_value = 'blah = %s', [12]
         mock_find.return_value = []
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -1027,11 +1231,17 @@ class TestFlex(BaseTest):
 
         mock_find.return_value = [transaction]
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -1073,11 +1283,17 @@ class TestFlex(BaseTest):
             })
         ]
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -1120,11 +1336,17 @@ class TestFlex(BaseTest):
             })
         ]
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -1156,11 +1378,17 @@ class TestFlex(BaseTest):
 
         mock_account_one.return_value = account
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -1180,11 +1408,17 @@ class TestFlex(BaseTest):
         mock_db.return_value = None
         mock_due_date.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -1207,11 +1441,17 @@ class TestFlex(BaseTest):
         mock_db.return_value = None
         mock_due_date.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,
@@ -1230,11 +1470,17 @@ class TestFlex(BaseTest):
         mock_db.return_value = None
         mock_due_date.return_value = datetime.date(2024,3,31)
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = FlexSummary(
             {
                 'flex_payment_date':1,
                 'flex_account': 'Current',
             },
+            account,
             1100.10,
             635.4,
             800.1,

@@ -98,6 +98,7 @@ class TestMonzoPayments(BaseTest):
         mock_exists.return_value = False
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.account_name = 'Current'
 
         with pytest.raises(SystemExit) as e:
@@ -116,6 +117,7 @@ class TestMonzoPayments(BaseTest):
         mock_exists.return_value = True
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.account_name = '/path/to/configfile.yaml'
 
         mp.load_config()
@@ -137,6 +139,7 @@ class TestMonzoPayments(BaseTest):
         }
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.account_name = '/path/to/configfile.yaml'
 
         mp.load_config()
@@ -158,6 +161,7 @@ class TestMonzoPayments(BaseTest):
         }
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.account_name = '/path/to/configfile.yaml'
 
         config = mp.load_config()
@@ -179,6 +183,7 @@ class TestMonzoPayments(BaseTest):
         }
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.account_name = '/path/to/configfile.yaml'
 
         config = mp.load_config()
@@ -192,6 +197,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {}
 
         with pytest.raises(SystemExit) as e:
@@ -769,6 +775,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -785,6 +792,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             Flex(
                 mp.config,
+                mp.account,
                 {},
                 {
                     'name': "thing i bought",
@@ -821,6 +829,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -836,6 +845,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             Flex(
                 mp.config,
+                mp.account,
                 {},
                 {
                     'name': "thing i bought",
@@ -917,6 +927,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -932,6 +943,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             Flex(
                 mp.config,
+                mp.account,
                 {},
                 {
                     'name': "thing i bought",
@@ -1010,6 +1022,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -1021,6 +1034,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             CardPayment(
                 mp.config,
+                mp.account,
                 {},
                 {
                     'name': "thing i bought",
@@ -1060,6 +1074,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -1071,6 +1086,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             CardPayment(
                 mp.config,
+                mp.account,
                 {},
                 {
                     'name': "thing i bought",
@@ -1110,6 +1126,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -1123,6 +1140,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             CardPayment(
                 mp.config,
+                mp.account,
                 {},
                 {
                     'name': "thing i bought",
@@ -1183,6 +1201,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -1196,6 +1215,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             CardPayment(
                 mp.config,
+                mp.account,
                 {},
                 {
                     'name': "thing i bought",
@@ -1256,6 +1276,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -1269,6 +1290,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             CardPayment(
                 mp.config,
+                mp.account,
                 {},
                 {
                     'name': "thing i bought",
@@ -1329,6 +1351,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -1342,6 +1365,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             CardPayment(
                 mp.config,
+                mp.account,
                 {},
                 {
                     'name': "thing i bought",
@@ -1402,6 +1426,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -1413,6 +1438,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             DirectDebit(
                 mp.config,
+                mp.account,
                 {},
                 {
                     'name': "thing i bought",
@@ -1452,6 +1478,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -1463,6 +1490,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             DirectDebit(
                 mp.config,
+                mp.account,
                 {},
                 {
                     'name': "thing i bought",
@@ -1502,6 +1530,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -1515,6 +1544,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             DirectDebit(
                 mp.config,
+                mp.account,
                 {},
                 {
                     'name': "thing i bought",
@@ -1575,6 +1605,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -1588,6 +1619,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             DirectDebit(
                 mp.config,
+                mp.account,
                 {},
                 {
                     'name': "thing i bought",
@@ -1648,6 +1680,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -1661,6 +1694,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             DirectDebit(
                 mp.config,
+                mp.account,
                 {},
                 {
                     'name': "thing i bought",
@@ -1721,6 +1755,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -1734,6 +1769,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             DirectDebit(
                 mp.config,
+                mp.account,
                 {},
                 {
                     'name': "thing i bought",
@@ -1791,6 +1827,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -1802,6 +1839,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             AmazonPayments(
                 mp.config,
+                mp.account,
                 {
                     'payment_day': 16
                 },
@@ -1840,6 +1878,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -1851,6 +1890,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             AmazonPayments(
                 mp.config,
+                mp.account,
                 {
                     'payment_day': 16
                 },
@@ -1889,6 +1929,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -1902,6 +1943,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             AmazonPayments(
                 mp.config,
+                mp.account,
                 {
                     'payment_day': 16
                 },
@@ -1961,6 +2003,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -1974,6 +2017,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             AmazonPayments(
                 mp.config,
+                mp.account,
                 {
                     'payment_day': 16
                 },
@@ -2033,6 +2077,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -2046,6 +2091,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             AmazonPayments(
                 mp.config,
+                mp.account,
                 {
                     'payment_day': 16
                 },
@@ -2105,6 +2151,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -2118,6 +2165,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             AmazonPayments(
                 mp.config,
+                mp.account,
                 {
                     'payment_day': 16
                 },
@@ -2177,6 +2225,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -2188,6 +2237,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             Finance(
                 mp.config,
+                mp.account,
                 {
                     'payment_day': 16
                 },
@@ -2226,6 +2276,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -2237,6 +2288,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             Finance(
                 mp.config,
+                mp.account,
                 {
                     'payment_day': 16
                 },
@@ -2275,6 +2327,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -2288,6 +2341,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             Finance(
                 mp.config,
+                mp.account,
                 {
                     'payment_day': 16
                 },
@@ -2347,6 +2401,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -2360,6 +2415,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             Finance(
                 mp.config,
+                mp.account,
                 {
                     'payment_day': 16
                 },
@@ -2419,6 +2475,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -2432,6 +2489,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             Finance(
                 mp.config,
+                mp.account,
                 {
                     'payment_day': 16
                 },
@@ -2491,6 +2549,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -2504,6 +2563,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             Finance(
                 mp.config,
+                mp.account,
                 {
                     'payment_day': 16
                 },
@@ -2566,6 +2626,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -2577,6 +2638,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             Refund(
                 mp.config,
+                mp.account,
                 {
                 },
                 {
@@ -2618,6 +2680,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -2631,6 +2694,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             Refund(
                 mp.config,
+                mp.account,
                 {
                     'payment_day': 16
                 },
@@ -2694,6 +2758,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -2707,6 +2772,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             Refund(
                 mp.config,
+                mp.account,
                 {
                     'payment_day': 16
                 },
@@ -2770,6 +2836,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -2781,6 +2848,7 @@ class TestMonzoPayments(BaseTest):
         mock_get_payments.return_value = [
             StandingOrder(
                 mp.config,
+                mp.account,
                 {
                 },
                 {
@@ -2837,6 +2905,7 @@ class TestMonzoPayments(BaseTest):
         ]
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'config': 'key'
         }
@@ -2889,6 +2958,7 @@ class TestMonzoPayments(BaseTest):
         ]
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'config': 'key'
         }
@@ -2944,6 +3014,7 @@ class TestMonzoPayments(BaseTest):
         ]
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'config': 'key'
         }
@@ -2993,6 +3064,7 @@ class TestMonzoPayments(BaseTest):
         ]
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'config': 'key'
         }
@@ -3047,6 +3119,7 @@ class TestMonzoPayments(BaseTest):
         ]
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'config': 'key'
         }
@@ -3096,6 +3169,7 @@ class TestMonzoPayments(BaseTest):
         ]
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'config': 'key'
         }
@@ -3152,6 +3226,7 @@ class TestMonzoPayments(BaseTest):
 
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'config': 'key'
         }
@@ -3201,6 +3276,7 @@ class TestMonzoPayments(BaseTest):
         ]
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'config': 'key'
         }
@@ -3244,6 +3320,7 @@ class TestMonzoPayments(BaseTest):
         ]
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'config': 'key',
             'flex_payment_date': 1
@@ -3281,6 +3358,7 @@ class TestMonzoPayments(BaseTest):
         ]
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'config': 'key'
         }
@@ -3326,9 +3404,11 @@ class TestMonzoPayments(BaseTest):
         ]
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'config': 'key'
         }
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -3372,9 +3452,11 @@ class TestMonzoPayments(BaseTest):
         ]
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'config': 'key'
         }
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -3423,9 +3505,11 @@ class TestMonzoPayments(BaseTest):
         ]
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'config': 'key'
         }
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.next_salary_date = datetime.date(2024,2,1)
         mp.following_salary_date = datetime.date(2024,3,1)
@@ -3469,6 +3553,7 @@ class TestMonzoPayments(BaseTest):
         mock_init.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'pushover_key': 'pushover key',
             'pushover_app': 'pushover app',
@@ -3485,6 +3570,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
 
         self.assertEqual('SACF', mp.abbreviate_string('String to Abbreviate Capitals From'))
 
@@ -3507,6 +3593,7 @@ class TestMonzoPayments(BaseTest):
         }
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.account_name = 'Joint'
         mp.provider = Provider()
         mp.provider.attributes['id'] = 7
@@ -3542,6 +3629,7 @@ class TestMonzoPayments(BaseTest):
         mock_last_salary_transaction.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.account_name = 'Joint'
         mp.provider = Provider()
         mp.provider.attributes['id'] = 7
@@ -3572,6 +3660,7 @@ class TestMonzoPayments(BaseTest):
         }
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.account_name = 'Joint'
         mp.provider = Provider()
         mp.provider.attributes['id'] = 7
@@ -3600,6 +3689,7 @@ class TestMonzoPayments(BaseTest):
         mock_last_salary_transaction.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.account_name = 'Joint'
         mp.provider = Provider()
         mp.provider.attributes['id'] = 7
@@ -3622,6 +3712,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'salary_payment_day': 1
         }
@@ -3637,6 +3728,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'salary_payment_day': 3
         }
@@ -3652,6 +3744,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'salary_payment_day': 4
         }
@@ -3667,6 +3760,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'salary_payment_day': 1
         }
@@ -3682,6 +3776,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'salary_payment_day': 1,
             'uk_bank_holidays': True
@@ -3698,6 +3793,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'salary_payment_day': 1,
             'uk_bank_holidays': True
@@ -3718,6 +3814,7 @@ class TestMonzoPayments(BaseTest):
         mock_handle_deposit_delay.return_value = False
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'pot': 'Bills',
             'auto_deposit': True,
@@ -3746,6 +3843,7 @@ class TestMonzoPayments(BaseTest):
         mock_init_api.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'pot': 'Bills',
             'auto_deposit': True,
@@ -3774,6 +3872,7 @@ class TestMonzoPayments(BaseTest):
         mock_handle_deposit_delay.return_value = False
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'pot': 'Bills',
             'auto_deposit': False,
@@ -3810,6 +3909,7 @@ class TestMonzoPayments(BaseTest):
         mock_exists.return_value = False
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'pot': 'Bills',
             'auto_deposit': False,
@@ -3848,6 +3948,7 @@ class TestMonzoPayments(BaseTest):
         mock_exists.return_value = False
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'pot': 'Bills',
             'auto_deposit': False,
@@ -3885,6 +3986,7 @@ class TestMonzoPayments(BaseTest):
         mock_exists.return_value = False
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'pot': 'Bills',
             'auto_deposit': False,
@@ -3914,6 +4016,7 @@ class TestMonzoPayments(BaseTest):
         mock_handle_withdrawal_delay.return_value = False
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'pot': 'Bills',
             'auto_withdraw': True,
@@ -3942,6 +4045,7 @@ class TestMonzoPayments(BaseTest):
         mock_init_api.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'pot': 'Bills',
             'auto_withdraw': True,
@@ -3970,6 +4074,7 @@ class TestMonzoPayments(BaseTest):
         mock_handle_withdrawal_delay.return_value = False
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'pot': 'Bills',
             'auto_withdraw': False,
@@ -4006,6 +4111,7 @@ class TestMonzoPayments(BaseTest):
         mock_exists.return_value = False
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'pot': 'Bills',
             'auto_withdraw': False,
@@ -4044,6 +4150,7 @@ class TestMonzoPayments(BaseTest):
         mock_exists.return_value = False
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'pot': 'Bills',
             'auto_deposit': False,
@@ -4081,6 +4188,7 @@ class TestMonzoPayments(BaseTest):
         mock_exists.return_value = False
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'pot': 'Bills',
             'auto_withdraw': False,
@@ -4109,6 +4217,7 @@ class TestMonzoPayments(BaseTest):
         mock_exists.return_value = False
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.credit_tracker = '/tmp/credit'
 
         resp = mp.handle_withdrawal_delay(1001)
@@ -4135,6 +4244,7 @@ class TestMonzoPayments(BaseTest):
         mock_stat.return_value = stat
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.credit_tracker = '/tmp/credit'
         mp.config = {
             'auto_withdraw_delay_mins': 10
@@ -4159,6 +4269,7 @@ class TestMonzoPayments(BaseTest):
         mock_exists.return_value = False
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.shortfall_tracker = '/tmp/credit'
 
         resp = mp.handle_deposit_delay(1001)
@@ -4185,6 +4296,7 @@ class TestMonzoPayments(BaseTest):
         mock_stat.return_value = stat
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.shortfall_tracker = '/tmp/credit'
         mp.config = {
             'auto_deposit_delay_mins': 10
@@ -4206,6 +4318,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
 
         data = [
             {
@@ -4226,6 +4339,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
 
         data = [
             {
@@ -4246,6 +4360,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
 
         data = [
             {
@@ -4267,6 +4382,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
 
         data = [
             {
@@ -4300,6 +4416,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {}
 
         resp = mp.check_pot_payments()
@@ -4327,6 +4444,7 @@ class TestMonzoPayments(BaseTest):
         mock_pot_one.return_value = pot
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {
             'payments_to_pots': [
                 {
@@ -4335,6 +4453,7 @@ class TestMonzoPayments(BaseTest):
                 }
             ]
         }
+        mp.account = Account({'id':1,'name':'test'})
         mp.last_salary_date = datetime.date(2024,1,1)
         mp.account = Account()
         mp.account.attributes = {'account_id': 456}
@@ -4355,6 +4474,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {}
 
         pot = Pot()
@@ -4373,6 +4493,7 @@ class TestMonzoPayments(BaseTest):
         mock_mp.return_value = None
 
         mp = MonzoPayments()
+        mp.account = Account({'id':1,'name':'test'})
         mp.config = {}
 
         pot = Pot()
@@ -4386,5 +4507,3 @@ class TestMonzoPayments(BaseTest):
         resp = mp.get_transfer_amount(pot, payment)
 
         self.assertEqual(resp, 5000)
-
-

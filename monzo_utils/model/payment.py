@@ -9,8 +9,9 @@ class Payment:
     transaction_type = 'money_out'
     always_fixed = False
 
-    def __init__(self, config, payment_list_config, payment_config, last_salary_date, next_salary_date, following_salary_date):
+    def __init__(self, config, account, payment_list_config, payment_config, last_salary_date, next_salary_date, following_salary_date):
         self.config = config
+        self.account = account
         self.payment_list_config = payment_list_config
         self.payment_config = payment_config
         self.last_salary_date = last_salary_date
@@ -231,8 +232,8 @@ class Payment:
         if 'desc' not in self.payment_config:
             self.payment_config['desc'] = type(self).__name__
 
-        where = f"{self.transaction_type} > %s and declined = %s"
-        params = [0, 0]
+        where = f"account_id = %s and {self.transaction_type} > %s and declined = %s"
+        params = [self.account.id, 0, 0]
 
         if type(self.payment_config['desc']) == list:
             desc_list = self.payment_config['desc']

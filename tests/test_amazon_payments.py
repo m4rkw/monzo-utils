@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 from unittest.mock import PropertyMock
 from monzo_utils.model.amazon_payments import AmazonPayments
 from monzo_utils.model.transaction import Transaction
+from monzo_utils.model.account import Account
 from monzo_utils.lib.db import DB
 from monzo_utils.lib.config import Config
 from monzo_utils.lib.transactions_seen import TransactionsSeen
@@ -25,8 +26,14 @@ class TestAmazonPayments(BaseTest):
     @patch('monzo_utils.lib.db.DB.query')
     def test_constructor(self, mock_query, mock_init):
         with freeze_time("2024-01-01"):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = AmazonPayments(
                 'config',
+                account,
                 'payment_list_config',
                 'payment_config',
                 'last_salary_date',
@@ -51,8 +58,14 @@ class TestAmazonPayments(BaseTest):
         mock_db.return_value = None
 
         with freeze_time("2024-01-20"):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = AmazonPayments(
                 'config',
+                account,
                 {
                     'payment_day': 1
                 },
@@ -94,8 +107,14 @@ class TestAmazonPayments(BaseTest):
         mock_db.return_value = None
 
         with freeze_time("2024-01-20"):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = AmazonPayments(
                 'config',
+                account,
                 {
                     'payment_day': 1
                 },
@@ -136,8 +155,14 @@ class TestAmazonPayments(BaseTest):
     def test_abbreviate(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             'config',
+            account,
             {
                 'payment_day': 1
             },
@@ -159,8 +184,14 @@ class TestAmazonPayments(BaseTest):
     def test_short_date(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             'config',
+            account,
             {
                 'payment_day': 1
             },
@@ -185,8 +216,14 @@ class TestAmazonPayments(BaseTest):
         mock_db.return_value = None
 
         with freeze_time("2024-01-20"):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = AmazonPayments(
                 'config',
+                account,
                 {
                     'payment_day': 1
                 },
@@ -221,6 +258,11 @@ class TestAmazonPayments(BaseTest):
         mock_last_payment.return_value = last_payment
 
         with freeze_time('2024-01-22'):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = AmazonPayments(
                 {
                     'last_amount_overrides': {
@@ -229,6 +271,7 @@ class TestAmazonPayments(BaseTest):
                         }
                     }
                 },
+                account,
                 {
                     'payment_day': 1
                 },
@@ -257,8 +300,14 @@ class TestAmazonPayments(BaseTest):
         mock_db.return_value = None
 
         with freeze_time('2024-01-22'):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = AmazonPayments(
                 'config',
+                account,
                 {
                     'payment_day': 1
                 },
@@ -281,8 +330,14 @@ class TestAmazonPayments(BaseTest):
         mock_db.return_value = None
 
         with freeze_time('2024-01-22'):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = AmazonPayments(
                 {},
+                account,
                 {
                     'payment_day': 1
                 },
@@ -305,8 +360,14 @@ class TestAmazonPayments(BaseTest):
         mock_db.return_value = None
 
         with freeze_time('2024-01-22'):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = AmazonPayments(
                 {},
+                account,
                 {
                     'payment_day': 1
                 },
@@ -331,8 +392,14 @@ class TestAmazonPayments(BaseTest):
         mock_db.return_value = None
 
         with freeze_time('2024-01-22'):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = AmazonPayments(
                 {},
+                account,
                 {
                     'payment_day': 1
                 },
@@ -363,8 +430,14 @@ class TestAmazonPayments(BaseTest):
         mock_db.return_value = None
 
         with freeze_time('2024-01-22'):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = AmazonPayments(
                 {},
+                account,
                 {
                     'payment_day': 1
                 },
@@ -391,8 +464,14 @@ class TestAmazonPayments(BaseTest):
         mock_db.return_value = None
 
         with freeze_time('2024-01-22'):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = AmazonPayments(
                 {},
+                account,
                 {
                     'payment_day': 1
                 },
@@ -421,8 +500,14 @@ class TestAmazonPayments(BaseTest):
         mock_last_date.return_value = datetime.date(2024,1,1)
 
         with freeze_time('2024-01-22'):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = AmazonPayments(
                 {},
+                account,
                 {
                     'payment_day': 1
                 },
@@ -451,8 +536,14 @@ class TestAmazonPayments(BaseTest):
         mock_due_date.return_value = datetime.date(2024,1,1)
 
         with freeze_time('2024-01-22'):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = AmazonPayments(
                 {},
+                account,
                 {
                     'payment_day': 1
                 },
@@ -478,8 +569,14 @@ class TestAmazonPayments(BaseTest):
     def test_payment_type(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -501,8 +598,14 @@ class TestAmazonPayments(BaseTest):
     def test_num_paid(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -524,8 +627,14 @@ class TestAmazonPayments(BaseTest):
     def test_num_total(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -551,8 +660,14 @@ class TestAmazonPayments(BaseTest):
     def test_remaining(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -584,8 +699,14 @@ class TestAmazonPayments(BaseTest):
 
         Config._instances = {Config: config}
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -607,8 +728,14 @@ class TestAmazonPayments(BaseTest):
     def test_display_amount_renewal_first_payment_ignore(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -636,8 +763,14 @@ class TestAmazonPayments(BaseTest):
     def test_display_amount_renewal_first_payment_before_renewal_ignore(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -665,8 +798,14 @@ class TestAmazonPayments(BaseTest):
     def test_display_amount_renewal_regular_payment_ignore(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -698,8 +837,14 @@ class TestAmazonPayments(BaseTest):
         mock_last_payment.return_value = last_payment
         mock_last_date.return_value = datetime.date(2024,1,16)
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -729,8 +874,14 @@ class TestAmazonPayments(BaseTest):
         last_payment = Transaction({"money_out": 234, "id":12})
         mock_last_payment.return_value = last_payment
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -753,8 +904,14 @@ class TestAmazonPayments(BaseTest):
     def test_display_amount_default(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -777,8 +934,14 @@ class TestAmazonPayments(BaseTest):
     def test_display_amount_money_in(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -802,8 +965,14 @@ class TestAmazonPayments(BaseTest):
     def test_next_month_amount_renewal_first_payment(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -831,8 +1000,14 @@ class TestAmazonPayments(BaseTest):
     def test_next_month_amount_renewal_regular_amount(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -860,8 +1035,14 @@ class TestAmazonPayments(BaseTest):
     def test_next_month_amount(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -884,8 +1065,14 @@ class TestAmazonPayments(BaseTest):
     def test_last_date_overrides(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -916,8 +1103,14 @@ class TestAmazonPayments(BaseTest):
     def test_last_date_no_desc(self, mock_last_payment, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -946,8 +1139,14 @@ class TestAmazonPayments(BaseTest):
     def test_last_date_last_payment(self, mock_last_payment, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -978,8 +1177,14 @@ class TestAmazonPayments(BaseTest):
     def test_last_date_older_last_payment(self, mock_older_last_payment, mock_last_payment, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -1009,8 +1214,14 @@ class TestAmazonPayments(BaseTest):
     def test_last_date_return_from_cache(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -1035,8 +1246,14 @@ class TestAmazonPayments(BaseTest):
     def test_get_transaction_where_condition__desc_list(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -1054,8 +1271,8 @@ class TestAmazonPayments(BaseTest):
         with freeze_time("2024-01-20"):
             where, params = p.get_transaction_where_condition()
 
-            self.assertEqual(where, 'money_out > %s and declined = %s and (  description like %s  or  description like %s )')
-            self.assertEqual(params, [0, 0, '%desc1%', '%desc2%'])
+            self.assertEqual(where, 'account_id = %s and money_out > %s and declined = %s and (  description like %s  or  description like %s )')
+            self.assertEqual(params, [1, 0, 0, '%desc1%', '%desc2%'])
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
@@ -1063,8 +1280,14 @@ class TestAmazonPayments(BaseTest):
     def test_get_transaction_where_condition__desc_single(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -1082,8 +1305,8 @@ class TestAmazonPayments(BaseTest):
         with freeze_time("2024-01-20"):
             where, params = p.get_transaction_where_condition()
 
-            self.assertEqual(where, 'money_out > %s and declined = %s and (  description like %s )')
-            self.assertEqual(params, [0, 0, '%desc1%'])
+            self.assertEqual(where, 'account_id = %s and money_out > %s and declined = %s and (  description like %s )')
+            self.assertEqual(params, [1, 0, 0, '%desc1%'])
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
@@ -1091,8 +1314,14 @@ class TestAmazonPayments(BaseTest):
     def test_get_transaction_where_condition__start_date(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -1111,8 +1340,8 @@ class TestAmazonPayments(BaseTest):
         with freeze_time("2024-01-20"):
             where, params = p.get_transaction_where_condition()
 
-            self.assertEqual(where, 'money_out > %s and declined = %s and (  description like %s ) and `date` >= %s')
-            self.assertEqual(params, [0, 0, '%desc1%', '2024-01-01'])
+            self.assertEqual(where, 'account_id = %s and money_out > %s and declined = %s and (  description like %s ) and `date` >= %s')
+            self.assertEqual(params, [1, 0, 0, '%desc1%', '2024-01-01'])
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
@@ -1120,8 +1349,14 @@ class TestAmazonPayments(BaseTest):
     def test_get_transaction_where_condition__fixed(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -1141,8 +1376,8 @@ class TestAmazonPayments(BaseTest):
         with freeze_time("2024-01-20"):
             where, params = p.get_transaction_where_condition()
 
-            self.assertEqual(where, 'money_out > %s and declined = %s and (  description like %s ) and `date` >= %s and money_out = %s')
-            self.assertEqual(params, [0, 0, '%desc1%', '2024-01-01', 123])
+            self.assertEqual(where, 'account_id = %s and money_out > %s and declined = %s and (  description like %s ) and `date` >= %s and money_out = %s')
+            self.assertEqual(params, [1, 0, 0, '%desc1%', '2024-01-01', 123])
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
@@ -1150,8 +1385,14 @@ class TestAmazonPayments(BaseTest):
     def test_get_transaction_where_condition__fixed_amounts_list(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -1171,8 +1412,8 @@ class TestAmazonPayments(BaseTest):
         with freeze_time("2024-01-20"):
             where, params = p.get_transaction_where_condition([123,234,456])
 
-            self.assertEqual(where, 'money_out > %s and declined = %s and (  description like %s ) and `date` >= %s and ( money_out = %s or  money_out = %s or  money_out = %s)')
-            self.assertEqual(params, [0, 0, '%desc1%', '2024-01-01', 123, 234, 456])
+            self.assertEqual(where, 'account_id = %s and money_out > %s and declined = %s and (  description like %s ) and `date` >= %s and ( money_out = %s or  money_out = %s or  money_out = %s)')
+            self.assertEqual(params, [1, 0, 0, '%desc1%', '2024-01-01', 123, 234, 456])
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
@@ -1180,8 +1421,14 @@ class TestAmazonPayments(BaseTest):
     def test_get_transaction_where_condition__not_fixed_amounts_list(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -1201,8 +1448,8 @@ class TestAmazonPayments(BaseTest):
         with freeze_time("2024-01-20"):
             where, params = p.get_transaction_where_condition([123,234,456])
 
-            self.assertEqual(where, 'money_out > %s and declined = %s and (  description like %s ) and `date` >= %s and ( money_out = %s or  money_out = %s or  money_out = %s)')
-            self.assertEqual(params, [0, 0, '%desc1%', '2024-01-01', 123, 234, 456])
+            self.assertEqual(where, 'account_id = %s and money_out > %s and declined = %s and (  description like %s ) and `date` >= %s and ( money_out = %s or  money_out = %s or  money_out = %s)')
+            self.assertEqual(params, [1, 0, 0, '%desc1%', '2024-01-01', 123, 234, 456])
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
@@ -1214,8 +1461,14 @@ class TestAmazonPayments(BaseTest):
         mock_get_transaction_where_condition.return_value = 'blah = %s', [12]
         mock_find.return_value = []
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -1256,8 +1509,14 @@ class TestAmazonPayments(BaseTest):
 
         mock_find.return_value = [transaction]
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -1306,8 +1565,14 @@ class TestAmazonPayments(BaseTest):
             })
         ]
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -1357,8 +1622,14 @@ class TestAmazonPayments(BaseTest):
             })
         ]
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -1395,8 +1666,14 @@ class TestAmazonPayments(BaseTest):
         mock_get_transaction_where_condition.return_value = 'blah = %s', [12]
         mock_find.return_value = []
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -1437,8 +1714,14 @@ class TestAmazonPayments(BaseTest):
 
         mock_find.return_value = [transaction]
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -1488,8 +1771,14 @@ class TestAmazonPayments(BaseTest):
             })
         ]
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -1540,8 +1829,14 @@ class TestAmazonPayments(BaseTest):
             })
         ]
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -1574,8 +1869,14 @@ class TestAmazonPayments(BaseTest):
         mock_db.return_value = None
 
         with freeze_time("2024-01-20"):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = AmazonPayments(
                 {},
+                account,
                 {
                     'payment_day': 1
                 },
@@ -1601,8 +1902,14 @@ class TestAmazonPayments(BaseTest):
         mock_db.return_value = None
 
         with freeze_time("2024-01-20"):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = AmazonPayments(
                 {},
+                account,
                 {
                     'payment_day': 1
                 },
@@ -1627,8 +1934,14 @@ class TestAmazonPayments(BaseTest):
         mock_db.return_value = None
 
         with freeze_time("2024-01-20"):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = AmazonPayments(
                 {},
+                account,
                 {
                     'payment_day': 1
                 },
@@ -1653,8 +1966,14 @@ class TestAmazonPayments(BaseTest):
         mock_db.return_value = None
 
         with freeze_time("2024-01-20"):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = AmazonPayments(
                 {},
+                account,
                 {
                     'payment_day': 1
                 },
@@ -1681,8 +2000,14 @@ class TestAmazonPayments(BaseTest):
         mock_last_date.return_value = datetime.date(2024,4,1)
 
         with freeze_time("2024-01-20"):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = AmazonPayments(
                 {},
+                account,
                 {
                     'payment_day': 1
                 },
@@ -1713,8 +2038,14 @@ class TestAmazonPayments(BaseTest):
         mock_last_date.return_value = datetime.date(2023,12,28)
 
         with freeze_time("2024-01-20"):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = AmazonPayments(
                 {},
+                account,
                 {
                     'payment_day': 1
                 },
@@ -1742,8 +2073,14 @@ class TestAmazonPayments(BaseTest):
         mock_last_date.return_value = datetime.date(2023,12,28)
 
         with freeze_time("2024-01-20"):
+            account = Account({
+                'id': 1,
+                'name': 'test'
+            })
+
             p = AmazonPayments(
                 {},
+                account,
                 {
                     'payment_day': 1
                 },
@@ -1776,8 +2113,14 @@ class TestAmazonPayments(BaseTest):
 
         mock_all_finance_transactions.return_value = [1,2,3,4,5]
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -1801,8 +2144,14 @@ class TestAmazonPayments(BaseTest):
     def test_due_next_month_renew_date(self, mock_query, mock_db):
         mock_db.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -1832,8 +2181,14 @@ class TestAmazonPayments(BaseTest):
         mock_db.return_value = None
         mock_due_date.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -1863,8 +2218,14 @@ class TestAmazonPayments(BaseTest):
         mock_db.return_value = None
         mock_due_date.return_value = None
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -1889,8 +2250,14 @@ class TestAmazonPayments(BaseTest):
         mock_db.return_value = None
         mock_due_date.return_value = datetime.date(2024,3,31)
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -1919,10 +2286,16 @@ class TestAmazonPayments(BaseTest):
         mock_db.return_value = None
         mock_due_date.return_value = datetime.date(2024,3,31)
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {
                 'salary_payment_day': 1
             },
+            account,
             {
                 'payment_day': 1
             },
@@ -1956,8 +2329,14 @@ class TestAmazonPayments(BaseTest):
         mock_get_transaction_where_condition.return_value = 'blah = %s', [2]
         mock_find.return_value = ['data']
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -1992,8 +2371,14 @@ class TestAmazonPayments(BaseTest):
         mock_get_transaction_where_condition.return_value = 'blah = %s', [2]
         mock_find.return_value = ['data']
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -2035,8 +2420,14 @@ class TestAmazonPayments(BaseTest):
             })
         ]
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -2072,8 +2463,14 @@ class TestAmazonPayments(BaseTest):
             })
         ]
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
@@ -2109,8 +2506,14 @@ class TestAmazonPayments(BaseTest):
             })
         ]
 
+        account = Account({
+            'id': 1,
+            'name': 'test'
+        })
+
         p = AmazonPayments(
             {},
+            account,
             {
                 'payment_day': 1
             },
