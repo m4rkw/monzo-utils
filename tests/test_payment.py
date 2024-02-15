@@ -273,7 +273,7 @@ class TestPayment(BaseTest):
 
             p.display()
 
-            mock_print.assert_called_with('    DUE: Payment         payment                         £2020.00 ->£123.00                        ')
+            mock_print.assert_called_with('    DUE: Payment         payment                         £123.00                                   ')
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
@@ -733,7 +733,7 @@ class TestPayment(BaseTest):
         )
 
         with freeze_time("2024-01-14"):
-            self.assertEqual(p.display_amount, 123)
+            self.assertEqual(p.display_amount, 789)
 
 
     @patch('monzo_utils.lib.db.DB.__init__')
@@ -806,7 +806,7 @@ class TestPayment(BaseTest):
         )
 
         with freeze_time("2024-01-20"):
-            self.assertEqual(p.display_amount, 234)
+            self.assertEqual(p.display_amount, 456)
 
 
     @patch('monzo_utils.lib.db.DB.__init__')

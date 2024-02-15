@@ -72,10 +72,13 @@ class Payment:
         if self.__class__.__name__ == 'Flex':
             amount = ('£%.2f' % (data['amount'])).ljust(19)
         elif self.__class__.__name__ == 'FlexSummary':
-            amount = ('£%.2f' % (data['amount'])).ljust(9) + \
-                ('->£%.2f' % (self.flex_total_next_month)).ljust(10)
+            if ('%.2f' % (data['amount'])) != ('%.2f' % (self.flex_total_next_month)):
+                amount = ('£%.2f' % (data['amount'])).ljust(9) + \
+                    ('->£%.2f' % (self.flex_total_next_month)).ljust(10)
+            else:
+                amount = ('£%.2f' % (data['amount'])).ljust(19)
         else:
-            if self.last_payment and self.last_payment.money_out:
+            if data['status'] != 'DUE' and self.last_payment and self.last_payment.money_out:
                 if 'last_amount_overrides' in self.config and \
                     self.payment_config['name'] in self.config['last_amount_overrides'] and \
                     self.last_salary_date in self.config['last_amount_overrides'][self.payment_config['name']]:
@@ -168,14 +171,11 @@ class Payment:
             self.last_salary_date in Config().last_amount_overrides[self.payment_config['name']]:
 
             amount = Config().last_amount_overrides[self.payment_config['name']][self.last_salary_date]
-        elif 'renewal' in self.payment_config and (today >= self.payment_config['renewal']['date'] or self.status == 'PAID'):
+        elif 'renewal' in self.payment_config and (self.payment_config['renewal']['date'] < self.next_salary_date or self.status == 'PAID'):
             if 'first_payment' in self.payment_config['renewal'] and today <= self.payment_config['renewal']['date']:
                 amount = self.payment_config['renewal']['first_payment']
             else:
-                if self.last_payment and self.last_date and self.last_date >= self.payment_config['renewal']['date']:
-                    amount = float(getattr(self.last_payment, self.transaction_type))
-                else:
-                    amount = self.payment_config['renewal']['amount']
+                amount = self.payment_config['renewal']['amount']
 
         elif self.last_payment:
             amount = float(getattr(self.last_payment, self.transaction_type))

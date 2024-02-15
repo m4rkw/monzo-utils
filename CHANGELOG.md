@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.77 - 15/02/2024
+
+- Fixed incorrect display of payment amounts in months when renewals occur
+
 ## 0.0.76 - 09/02/2024
 
 - Fixed a bug where transactions found by monzo-payments aren't limited to the
