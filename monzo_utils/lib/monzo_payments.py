@@ -487,7 +487,7 @@ class MonzoPayments:
                     )
             else:
                 if os.path.exists(self.shortfall_tracker):
-                    os.remove(shortfall_tracker)
+                    os.remove(self.shortfall_tracker)
 
                 if 'notify_deposit' in self.config and self.config['notify_deposit']:
                     self.notify(
@@ -550,7 +550,7 @@ class MonzoPayments:
                     )
             else:
                 if os.path.exists(self.credit_tracker):
-                    os.remove(credit_tracker)
+                    os.remove(self.credit_tracker)
 
                 if 'notify_withdraw' in self.config and self.config['notify_withdraw']:
                     self.notify(

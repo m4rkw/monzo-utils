@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.78 - 16/02/2024
+
+- Bugfix
+
 ## 0.0.77 - 15/02/2024
 
 - Fixed incorrect display of payment amounts in months when renewals occur
