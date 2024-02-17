@@ -248,6 +248,21 @@ class Payment:
             where += " description like %s "
             params.append('%' + desc_list[i] + '%')
 
+        if 'metadata' in self.payment_config:
+            where += " or ("
+
+            keys = list(sorted(list(self.payment_config['metadata'].keys())))
+
+            for i in range(0, len(keys)):
+                if i >0:
+                    where += " and "
+
+                where += " meta1.key = %s and meta1.value = %s"
+                params.append(keys[i])
+                params.append(self.payment_config['metadata'][keys[i]])
+
+            where += " ) "
+
         where += ")"
 
         if 'start_date' in self.payment_config:
@@ -281,7 +296,13 @@ class Payment:
 
         where, params = self.get_transaction_where_condition()
 
-        transactions = Transaction.find(f"select * from transaction where {where} order by created_at desc", params)
+        sql = "select * from transaction"
+
+        if 'metadata' in self.payment_config:
+            for i in range(0, len(self.payment_config['metadata'])):
+                sql += " join transaction_metadata meta%d on transaction.id = meta%d.transaction_id" % (i+1, i+1)
+
+        transactions = Transaction.find(f"{sql} where {where} order by created_at desc", params)
 
         for transaction in transactions:
             if 'start_date' in self.payment_config and transaction.date < self.payment_config['start_date']:

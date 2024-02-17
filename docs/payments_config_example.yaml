@@ -163,6 +163,16 @@ refunds_due:
       start_date: 2023-11-05   # date purchased
       desc:                    # string to match in the description of the transaction
 
+    - name: My amazon product2 # name for your reference
+      amount: 114.44           # total amount to pay
+      months: 5                # how many months this is split over
+      start_date: 2023-11-05   # date purchased
+      desc:                    # string to match in the description of the transaction
+      # match transactions by optional metadata
+      # this forms an "or" condition, either the description or the metadata keys need to match
+      metadata:
+        metadata_external_id: 'standing-order-withdrawal:series_0000111111111111111111:4:pot_2222aaaaaaaaaaaaaaaaaa'
+
 # config parameters for direct debits is the same as for Card payments
 - type: Direct Debit
 

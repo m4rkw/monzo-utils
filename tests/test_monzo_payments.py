@@ -1826,42 +1826,43 @@ class TestMonzoPayments(BaseTest):
     def test_display_payment_list_amazon_payments_summary_monthly(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
         mock_mp.return_value = None
 
-        mp = MonzoPayments()
-        mp.account = Account({'id':1,'name':'test'})
-        mp.last_salary_date = datetime.date(2024,1,1)
-        mp.next_salary_date = datetime.date(2024,2,1)
-        mp.following_salary_date = datetime.date(2024,3,1)
-        mp.config = {
-        }
-        mp.next_month_bills_pot = 0
-        mp.json = False
+        with freeze_time("2024-01-17"):
+            mp = MonzoPayments()
+            mp.account = Account({'id':1,'name':'test'})
+            mp.last_salary_date = datetime.date(2024,1,1)
+            mp.next_salary_date = datetime.date(2024,2,1)
+            mp.following_salary_date = datetime.date(2024,3,1)
+            mp.config = {
+            }
+            mp.next_month_bills_pot = 0
+            mp.json = False
 
-        mock_get_payments.return_value = [
-            AmazonPayments(
-                mp.config,
-                mp.account,
+            mock_get_payments.return_value = [
+                AmazonPayments(
+                    mp.config,
+                    mp.account,
+                    {
+                        'payment_day': 16
+                    },
+                    {
+                        'name': "thing i bought",
+                        'amount': 100,
+                        'start_date': datetime.date(2024,1,10),
+                        'months': 3,
+                    },
+                    mp.last_salary_date,
+                    mp.next_salary_date,
+                    mp.following_salary_date
+                )
+            ]
+
+            due, total_due_this_month, total_due_next_month = mp.display_payment_list(
                 {
-                    'payment_day': 16
+                    'type': 'AmazonPayments',
+                    'payments': []
                 },
-                {
-                    'name': "thing i bought",
-                    'amount': 100,
-                    'start_date': datetime.date(2024,1,10),
-                    'months': 3,
-                },
-                mp.last_salary_date,
-                mp.next_salary_date,
-                mp.following_salary_date
+                False
             )
-        ]
-
-        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
-            {
-                'type': 'AmazonPayments',
-                'payments': []
-            },
-            False
-        )
 
         mock_display.assert_called_with()
 
@@ -1877,42 +1878,43 @@ class TestMonzoPayments(BaseTest):
     def test_display_payment_list_amazon_payments_summary_annual(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
         mock_mp.return_value = None
 
-        mp = MonzoPayments()
-        mp.account = Account({'id':1,'name':'test'})
-        mp.last_salary_date = datetime.date(2024,1,1)
-        mp.next_salary_date = datetime.date(2024,2,1)
-        mp.following_salary_date = datetime.date(2024,3,1)
-        mp.config = {
-        }
-        mp.next_month_bills_pot = 0
-        mp.json = False
+        with freeze_time("2024-01-17"):
+            mp = MonzoPayments()
+            mp.account = Account({'id':1,'name':'test'})
+            mp.last_salary_date = datetime.date(2024,1,1)
+            mp.next_salary_date = datetime.date(2024,2,1)
+            mp.following_salary_date = datetime.date(2024,3,1)
+            mp.config = {
+            }
+            mp.next_month_bills_pot = 0
+            mp.json = False
 
-        mock_get_payments.return_value = [
-            AmazonPayments(
-                mp.config,
-                mp.account,
+            mock_get_payments.return_value = [
+                AmazonPayments(
+                    mp.config,
+                    mp.account,
+                    {
+                        'payment_day': 16
+                    },
+                    {
+                        'name': "thing i bought",
+                        'amount': 100,
+                        'start_date': datetime.date(2024,1,10),
+                        'months': 3,
+                    },
+                    mp.last_salary_date,
+                    mp.next_salary_date,
+                    mp.following_salary_date
+                )
+            ]
+
+            due, total_due_this_month, total_due_next_month = mp.display_payment_list(
                 {
-                    'payment_day': 16
+                    'type': 'AmazonPayments',
+                    'payments': []
                 },
-                {
-                    'name': "thing i bought",
-                    'amount': 100,
-                    'start_date': datetime.date(2024,1,10),
-                    'months': 3,
-                },
-                mp.last_salary_date,
-                mp.next_salary_date,
-                mp.following_salary_date
+                True
             )
-        ]
-
-        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
-            {
-                'type': 'AmazonPayments',
-                'payments': []
-            },
-            True
-        )
 
         mock_display.assert_called_with()
 
@@ -1928,44 +1930,45 @@ class TestMonzoPayments(BaseTest):
     def test_display_payment_list_amazon_payments_json_monthly(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
         mock_mp.return_value = None
 
-        mp = MonzoPayments()
-        mp.account = Account({'id':1,'name':'test'})
-        mp.last_salary_date = datetime.date(2024,1,1)
-        mp.next_salary_date = datetime.date(2024,2,1)
-        mp.following_salary_date = datetime.date(2024,3,1)
-        mp.config = {
-        }
-        mp.json = True
-        mp.next_month_bills_pot = 0
-        mp.output = []
-        mp.abbreviate = False
+        with freeze_time("2024-01-17"):
+            mp = MonzoPayments()
+            mp.account = Account({'id':1,'name':'test'})
+            mp.last_salary_date = datetime.date(2024,1,1)
+            mp.next_salary_date = datetime.date(2024,2,1)
+            mp.following_salary_date = datetime.date(2024,3,1)
+            mp.config = {
+            }
+            mp.json = True
+            mp.next_month_bills_pot = 0
+            mp.output = []
+            mp.abbreviate = False
 
-        mock_get_payments.return_value = [
-            AmazonPayments(
-                mp.config,
-                mp.account,
+            mock_get_payments.return_value = [
+                AmazonPayments(
+                    mp.config,
+                    mp.account,
+                    {
+                        'payment_day': 16
+                    },
+                    {
+                        'name': "thing i bought",
+                        'amount': 100,
+                        'start_date': datetime.date(2024,1,10),
+                        'months': 3
+                    },
+                    mp.last_salary_date,
+                    mp.next_salary_date,
+                    mp.following_salary_date
+                )
+            ]
+
+            due, total_due_this_month, total_due_next_month = mp.display_payment_list(
                 {
-                    'payment_day': 16
+                    'type': 'AmazonPayments',
+                    'payments': []
                 },
-                {
-                    'name': "thing i bought",
-                    'amount': 100,
-                    'start_date': datetime.date(2024,1,10),
-                    'months': 3
-                },
-                mp.last_salary_date,
-                mp.next_salary_date,
-                mp.following_salary_date
+                False
             )
-        ]
-
-        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
-            {
-                'type': 'AmazonPayments',
-                'payments': []
-            },
-            False
-        )
 
         mock_display.assert_not_called()
 
@@ -2002,44 +2005,45 @@ class TestMonzoPayments(BaseTest):
     def test_display_payment_list_amazon_payments_json_annual(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
         mock_mp.return_value = None
 
-        mp = MonzoPayments()
-        mp.account = Account({'id':1,'name':'test'})
-        mp.last_salary_date = datetime.date(2024,1,1)
-        mp.next_salary_date = datetime.date(2024,2,1)
-        mp.following_salary_date = datetime.date(2024,3,1)
-        mp.config = {
-        }
-        mp.json = True
-        mp.next_month_bills_pot = 0
-        mp.output = []
-        mp.abbreviate = False
+        with freeze_time("2024-01-17"):
+            mp = MonzoPayments()
+            mp.account = Account({'id':1,'name':'test'})
+            mp.last_salary_date = datetime.date(2024,1,1)
+            mp.next_salary_date = datetime.date(2024,2,1)
+            mp.following_salary_date = datetime.date(2024,3,1)
+            mp.config = {
+            }
+            mp.json = True
+            mp.next_month_bills_pot = 0
+            mp.output = []
+            mp.abbreviate = False
 
-        mock_get_payments.return_value = [
-            AmazonPayments(
-                mp.config,
-                mp.account,
+            mock_get_payments.return_value = [
+                AmazonPayments(
+                    mp.config,
+                    mp.account,
+                    {
+                        'payment_day': 16
+                    },
+                    {
+                        'name': "thing i bought",
+                        'amount': 100,
+                        'start_date': datetime.date(2024,1,10),
+                        'months': 3
+                    },
+                    mp.last_salary_date,
+                    mp.next_salary_date,
+                    mp.following_salary_date
+                )
+            ]
+
+            due, total_due_this_month, total_due_next_month = mp.display_payment_list(
                 {
-                    'payment_day': 16
+                    'type': 'AmazonPayments',
+                    'payments': []
                 },
-                {
-                    'name': "thing i bought",
-                    'amount': 100,
-                    'start_date': datetime.date(2024,1,10),
-                    'months': 3
-                },
-                mp.last_salary_date,
-                mp.next_salary_date,
-                mp.following_salary_date
+                True
             )
-        ]
-
-        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
-            {
-                'type': 'AmazonPayments',
-                'payments': []
-            },
-            True
-        )
 
         mock_display.assert_not_called()
 
@@ -2076,44 +2080,45 @@ class TestMonzoPayments(BaseTest):
     def test_display_payment_list_amazon_payments_json_abbreviated_monthly(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
         mock_mp.return_value = None
 
-        mp = MonzoPayments()
-        mp.account = Account({'id':1,'name':'test'})
-        mp.last_salary_date = datetime.date(2024,1,1)
-        mp.next_salary_date = datetime.date(2024,2,1)
-        mp.following_salary_date = datetime.date(2024,3,1)
-        mp.config = {
-        }
-        mp.json = True
-        mp.next_month_bills_pot = 0
-        mp.output = []
-        mp.abbreviate = True
+        with freeze_time("2024-01-17"):
+            mp = MonzoPayments()
+            mp.account = Account({'id':1,'name':'test'})
+            mp.last_salary_date = datetime.date(2024,1,1)
+            mp.next_salary_date = datetime.date(2024,2,1)
+            mp.following_salary_date = datetime.date(2024,3,1)
+            mp.config = {
+            }
+            mp.json = True
+            mp.next_month_bills_pot = 0
+            mp.output = []
+            mp.abbreviate = True
 
-        mock_get_payments.return_value = [
-            AmazonPayments(
-                mp.config,
-                mp.account,
+            mock_get_payments.return_value = [
+                AmazonPayments(
+                    mp.config,
+                    mp.account,
+                    {
+                        'payment_day': 16
+                    },
+                    {
+                        'name': "thing i bought",
+                        'amount': 100,
+                        'start_date': datetime.date(2024,1,10),
+                        'months': 3
+                    },
+                    mp.last_salary_date,
+                    mp.next_salary_date,
+                    mp.following_salary_date
+                )
+            ]
+
+            due, total_due_this_month, total_due_next_month = mp.display_payment_list(
                 {
-                    'payment_day': 16
+                    'type': 'AmazonPayments',
+                    'payments': []
                 },
-                {
-                    'name': "thing i bought",
-                    'amount': 100,
-                    'start_date': datetime.date(2024,1,10),
-                    'months': 3
-                },
-                mp.last_salary_date,
-                mp.next_salary_date,
-                mp.following_salary_date
+                False
             )
-        ]
-
-        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
-            {
-                'type': 'AmazonPayments',
-                'payments': []
-            },
-            False
-        )
 
         mock_display.assert_not_called()
 
@@ -2150,44 +2155,45 @@ class TestMonzoPayments(BaseTest):
     def test_display_payment_list_amazon_payments_json_abbreviated_annual(self, mock_stdout, mock_get_payments, mock_display, mock_mp):
         mock_mp.return_value = None
 
-        mp = MonzoPayments()
-        mp.account = Account({'id':1,'name':'test'})
-        mp.last_salary_date = datetime.date(2024,1,1)
-        mp.next_salary_date = datetime.date(2024,2,1)
-        mp.following_salary_date = datetime.date(2024,3,1)
-        mp.config = {
-        }
-        mp.json = True
-        mp.next_month_bills_pot = 0
-        mp.output = []
-        mp.abbreviate = True
+        with freeze_time("2024-01-20"):
+            mp = MonzoPayments()
+            mp.account = Account({'id':1,'name':'test'})
+            mp.last_salary_date = datetime.date(2024,1,1)
+            mp.next_salary_date = datetime.date(2024,2,1)
+            mp.following_salary_date = datetime.date(2024,3,1)
+            mp.config = {
+            }
+            mp.json = True
+            mp.next_month_bills_pot = 0
+            mp.output = []
+            mp.abbreviate = True
 
-        mock_get_payments.return_value = [
-            AmazonPayments(
-                mp.config,
-                mp.account,
+            mock_get_payments.return_value = [
+                AmazonPayments(
+                    mp.config,
+                    mp.account,
+                    {
+                        'payment_day': 16
+                    },
+                    {
+                        'name': "thing i bought",
+                        'amount': 100,
+                        'start_date': datetime.date(2024,1,10),
+                        'months': 3
+                    },
+                    mp.last_salary_date,
+                    mp.next_salary_date,
+                    mp.following_salary_date
+                )
+            ]
+
+            due, total_due_this_month, total_due_next_month = mp.display_payment_list(
                 {
-                    'payment_day': 16
+                    'type': 'AmazonPayments',
+                    'payments': []
                 },
-                {
-                    'name': "thing i bought",
-                    'amount': 100,
-                    'start_date': datetime.date(2024,1,10),
-                    'months': 3
-                },
-                mp.last_salary_date,
-                mp.next_salary_date,
-                mp.following_salary_date
+                True
             )
-        ]
-
-        due, total_due_this_month, total_due_next_month = mp.display_payment_list(
-            {
-                'type': 'AmazonPayments',
-                'payments': []
-            },
-            True
-        )
 
         mock_display.assert_not_called()
 

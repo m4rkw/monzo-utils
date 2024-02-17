@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.79 - 17/02/2024
+
+- Added support for matching transactions by metadata keys
+
 ## 0.0.78 - 16/02/2024
 
 - Bugfix
