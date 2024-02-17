@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.0.80 - 17/02/2024
+## 0.0.81 - 17/02/2024
 
 - Added support for looking up historical transactions made on other accounts
 - When monzo-payments initiates transfers to or from the bills pot, only sync the
