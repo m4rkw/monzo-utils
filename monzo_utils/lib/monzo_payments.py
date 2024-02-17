@@ -237,7 +237,7 @@ class MonzoPayments:
 
         if sync_required:
             ms = MonzoSync()
-            ms.sync()
+            ms.sync(days=3, self.account)
 
 
     def display_columns(self, title):

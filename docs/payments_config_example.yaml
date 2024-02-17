@@ -147,6 +147,17 @@ refunds_due:
         # first_payment: 168.76   # set this if the first payment on the renewal date is different
         # amount: 166.65          # new regular amount
 
+      # you can optionally match by metadata keys, these are added as an OR condition
+      # with the description
+      # metadata:
+      #   metadata_external_id: 'standing-order-withdrawal:series_0000111111111111111111:4:pot_2222aaaaaaaaaaaaaaaaaa'
+
+      # include other accounts when looking for transactions, this is useful if a finance
+      # payment was made with another account in previous months
+      # other_accounts:
+      #   - provider: Barclays
+      #     account: Current
+
 # config for Amazon Payments purchases (not Barclays Partner Finance for Amazon)
 # this is intended for Amazon's own financing where you pay over 5 monthly payments
 # with 0% interest
@@ -168,10 +179,6 @@ refunds_due:
       months: 5                # how many months this is split over
       start_date: 2023-11-05   # date purchased
       desc:                    # string to match in the description of the transaction
-      # match transactions by optional metadata
-      # this forms an "or" condition, either the description or the metadata keys need to match
-      metadata:
-        metadata_external_id: 'standing-order-withdrawal:series_0000111111111111111111:4:pot_2222aaaaaaaaaaaaaaaaaa'
 
 # config parameters for direct debits is the same as for Card payments
 - type: Direct Debit

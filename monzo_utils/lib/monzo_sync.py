@@ -438,7 +438,7 @@ class MonzoSync:
         return provider
 
 
-    def sync(self, days=3):
+    def sync(self, days=3, account=None):
         mo_accounts = self.api.accounts()
 
         for mo_account in mo_accounts:
@@ -448,7 +448,8 @@ class MonzoSync:
             if mo_account.account_id not in Config().accounts:
                 continue
 
-            self.sync_account(mo_account, days)
+            if account is None or account.account_id == mo_account.account_id:
+                self.sync_account(mo_account, days)
 
         if 'touch_file' in Config().keys:
             Path(Config().touch_file).touch()

@@ -2,6 +2,8 @@ import re
 import datetime
 from monzo_utils.lib.config import Config
 from monzo_utils.model.transaction import Transaction
+from monzo_utils.model.provider import Provider
+from monzo_utils.model.account import Account
 from monzo_utils.lib.transactions_seen import TransactionsSeen
 
 class Payment:
@@ -232,8 +234,19 @@ class Payment:
         if 'desc' not in self.payment_config:
             self.payment_config['desc'] = type(self).__name__
 
-        where = f"account_id = %s and {self.transaction_type} > %s and declined = %s"
-        params = [self.account.id, 0, 0]
+        where = "( account_id = %s"
+        params = [self.account.id]
+
+        if 'other_accounts' in self.payment_config:
+            for other_account in self.payment_config['other_accounts']:
+                provider = Provider.one("select * from provider where name = %s", [other_account['provider']])
+                account = Account.one("select * from account where provider_id = %s and name = %s", [provider.id, other_account['name']])
+
+                where += " or account_id = %s"
+                params.append(account.id)
+
+        where += f") and {self.transaction_type} > %s and declined = %s"
+        params += [0, 0]
 
         if type(self.payment_config['desc']) == list:
             desc_list = self.payment_config['desc']
