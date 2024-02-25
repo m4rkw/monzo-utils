@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.82 - 25/02/2024
+
+- Support executing a shell command prior to authentication
+
 ## 0.0.81 - 17/02/2024
 
 - Added support for looking up historical transactions made on other accounts

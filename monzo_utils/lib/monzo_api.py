@@ -59,6 +59,9 @@ class MonzoAPI:
         if os.path.exists(Config().oauth_token_file):
             os.remove(Config().oauth_token_file)
 
+        if 'execute_on_auth' in Config().keys:
+            os.system(Config().execute_on_auth)
+
         while not os.path.exists(Config().oauth_token_file):
             time.sleep(1)
 
