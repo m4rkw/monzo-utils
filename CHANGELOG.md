@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.83 - 25/02/2024
+
+- Support executing a shell command before and after authentication
+
 ## 0.0.82 - 25/02/2024
 
 - Support executing a shell command prior to authentication
