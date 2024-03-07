@@ -21,8 +21,8 @@ class MonzoAPI:
 
     def __init__(self):
         homedir = pwd.getpwuid(os.getuid()).pw_dir
-        monzo_dir = f"{homedir}/.monzo"
-        self.token_file = f"{monzo_dir}/tokens"
+        self.monzo_dir = f"{homedir}/.monzo"
+        self.token_file = f"{self.monzo_dir}/tokens"
 
         self.load_tokens()
 
@@ -47,9 +47,16 @@ class MonzoAPI:
             redirect_url=Config().redirect_url
         )
 
+        auth_required_file = f"{self.monzo_dir}/.auth_required"
+
         if not sys.stdout.isatty():
             if 'email' in Config().keys:
-                os.system("echo '%s'| mail -s 'Monzo auth required' '%s'" % (client.authentication_url, Config().email))
+                if not os.path.exists(auth_required_file):
+                    with open(auth_required_file,'w') as f:
+                        pass
+
+                    os.system("echo '%s'| mail -s 'Monzo auth required' '%s'" % (client.authentication_url, Config().email))
+
             Log().error('Authentication required, unable to sync.')
             sys.exit(1)
 
@@ -83,6 +90,9 @@ class MonzoAPI:
         self.refresh_token = client.refresh_token
 
         self.save_tokens()
+
+        if os.path.exists(auth_required_file):
+            os.remove(auth_required_file)
 
         if 'execute_after_auth' in Config().keys:
             os.system(Config().execute_after_auth)

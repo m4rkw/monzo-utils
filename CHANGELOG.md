@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.84 - 07/03/2024
+
+- Don't spam emails if unable to authenticate
+
 ## 0.0.83 - 25/02/2024
 
 - Support executing a shell command before and after authentication
