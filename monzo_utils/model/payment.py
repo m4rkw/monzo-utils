@@ -270,7 +270,7 @@ class Payment:
                 if i >0:
                     where += " and "
 
-                where += " meta1.key = %s and meta1.value = %s"
+                where += " meta1.key = %s and meta1.value like %s"
                 params.append(keys[i])
                 params.append(self.payment_config['metadata'][keys[i]])
 

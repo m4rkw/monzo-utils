@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.85 - 16/03/2024
+
+- Support % wildcard in metadata match values for payments
+
 ## 0.0.84 - 07/03/2024
 
 - Don't spam emails if unable to authenticate
