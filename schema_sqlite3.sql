@@ -86,7 +86,7 @@ CREATE TABLE "transaction" (
   "updated_at" datetime NOT NULL,
   "currency" varchar(5) DEFAULT NULL,
   "local_currency" varchar(5) DEFAULT NULL,
-  "local_amount" decimal(8,2) DEFAULT NULL,
+  "local_amount" decimal(10,2) DEFAULT NULL,
   "notes" varchar(255) DEFAULT NULL,
   "originator" tinyint(1) DEFAULT NULL,
   "scheme" varchar(64) DEFAULT NULL,
