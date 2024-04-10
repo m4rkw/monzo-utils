@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.86 - 10/04/2024
+
+- Add support for currency conversion
+
 ## 0.0.85 - 16/03/2024
 
 - Support % wildcard in metadata match values for payments

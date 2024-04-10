@@ -5,6 +5,7 @@ from monzo_utils.model.transaction import Transaction
 from monzo_utils.model.provider import Provider
 from monzo_utils.model.account import Account
 from monzo_utils.lib.transactions_seen import TransactionsSeen
+from currency_converter import CurrencyConverter
 
 class Payment:
 
@@ -165,6 +166,9 @@ class Payment:
 
     @property
     def display_amount(self):
+        if 'display_amount' in self.cache:
+            return self.cache['display_amount']
+
         today = datetime.datetime.now()
         today = datetime.date(today.year, today.month, today.day)
 
@@ -173,6 +177,11 @@ class Payment:
             self.last_salary_date in Config().last_amount_overrides[self.payment_config['name']]:
 
             amount = Config().last_amount_overrides[self.payment_config['name']][self.last_salary_date]
+
+            self.cache['display_amount'] = amount
+
+            return amount
+
         elif 'renewal' in self.payment_config and (self.payment_config['renewal']['date'] < self.next_salary_date or self.status == 'PAID'):
             if 'first_payment' in self.payment_config['renewal'] and today <= self.payment_config['renewal']['date']:
                 amount = self.payment_config['renewal']['first_payment']
@@ -181,24 +190,47 @@ class Payment:
 
         elif self.last_payment:
             amount = float(getattr(self.last_payment, self.transaction_type))
-        else:
-            amount = self.payment_config['amount']
+
+            if self.transaction_type == 'money_in':
+                return 0 - amount
+
+            self.cache['display_amount'] = amount
+
+            return amount
+
+        amount = self.payment_config['amount']
 
         if self.transaction_type == 'money_in':
             return 0 - amount
 
+        if 'currency' in self.payment_config and self.payment_config['currency'] != 'GBP':
+            amount = self.convert_currency(amount, self.payment_config['currency'])
+
+        self.cache['display_amount'] = amount
+
         return amount
+
+
+    def convert_currency(self, amount, currency):
+        c = CurrencyConverter()
+
+        return c.convert(amount, currency, 'GBP')
 
 
     @property
     def next_month_amount(self):
-        if 'renewal' in self.payment_config:
-            if 'first_payment' in self.payment_config['renewal'] and self.payment_config['renewal']['date'] >= self.next_salary_date:
-                return self.payment_config['renewal']['first_payment']
+        if 'renewal' not in self.payment_config:
+            return self.display_amount
 
-            return self.payment_config['renewal']['amount']
+        if 'first_payment' in self.payment_config['renewal'] and self.payment_config['renewal']['date'] >= self.next_salary_date:
+            amount = self.payment_config['renewal']['first_payment']
+        else:
+            amount = self.payment_config['renewal']['amount']
 
-        return self.display_amount
+        if 'currency' in self.payment_config and self.payment_config['currency'] != 'GBP':
+            amount = self.convert_currency(amount, self.payment_config['currency'])
+
+        return amount
 
 
     @property

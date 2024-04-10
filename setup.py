@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(name='monzo-utils',
-    version='0.0.85',
+    version='0.0.86',
     description='Monzo Utils',
     author='Mark Wadham',
     url='https://github.com/m4rkw/monzo-utils',
@@ -22,6 +22,7 @@ setup(name='monzo-utils',
         'python-pushover2==0.5',
         'dateparser',
         'PyYAML',
-        'govuk-bank-holidays'
+        'govuk-bank-holidays',
+        'currencyconverter'
     ]
 )
