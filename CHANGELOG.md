@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.88 - 13/04/2024
+
+- Fixed renewal payment amount calculation
+
 ## 0.0.87 - 13/04/2024
 
 - Fixed bug calculating the payment amount post-renewal

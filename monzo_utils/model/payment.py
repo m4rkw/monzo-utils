@@ -183,7 +183,7 @@ class Payment:
             return amount
 
         elif 'renewal' in self.payment_config and ((self.payment_config['renewal']['date'] < self.next_salary_date and self.payment_config['renewal']['date'] > self.last_salary_date) or self.status == 'PAID'):
-            if 'first_payment' in self.payment_config['renewal'] and today <= self.payment_config['renewal']['date']:
+            if 'first_payment' in self.payment_config['renewal'] and self.payment_config['renewal']['date'] >= self.last_salary_date:
                 amount = self.payment_config['renewal']['first_payment']
             else:
                 amount = self.payment_config['renewal']['amount']
@@ -197,8 +197,8 @@ class Payment:
             self.cache['display_amount'] = amount
 
             return amount
-
-        amount = self.payment_config['amount']
+        else:
+            amount = self.payment_config['amount']
 
         if self.transaction_type == 'money_in':
             return 0 - amount
