@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.87 - 13/04/2024
+
+- Fixed bug calculating the payment amount post-renewal
+
 ## 0.0.86 - 10/04/2024
 
 - Add support for currency conversion

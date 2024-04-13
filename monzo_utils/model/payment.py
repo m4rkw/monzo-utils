@@ -182,7 +182,7 @@ class Payment:
 
             return amount
 
-        elif 'renewal' in self.payment_config and (self.payment_config['renewal']['date'] < self.next_salary_date or self.status == 'PAID'):
+        elif 'renewal' in self.payment_config and ((self.payment_config['renewal']['date'] < self.next_salary_date and self.payment_config['renewal']['date'] > self.last_salary_date) or self.status == 'PAID'):
             if 'first_payment' in self.payment_config['renewal'] and today <= self.payment_config['renewal']['date']:
                 amount = self.payment_config['renewal']['first_payment']
             else:
