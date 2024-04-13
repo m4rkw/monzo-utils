@@ -23,6 +23,7 @@ setup(name='monzo-utils',
         'dateparser',
         'PyYAML',
         'govuk-bank-holidays',
-        'currencyconverter'
+        'currencyconverter',
+        'freezegun'
     ]
 )
