@@ -69,7 +69,7 @@ class Payment:
         return date.strftime('%d/%m/%y')
 
 
-    def display(self):
+    def display_output(self):
         data = self.data()
 
         if self.__class__.__name__ == 'Flex':
@@ -100,16 +100,16 @@ class Payment:
                 amount = ('£%.2f' % (last_amount)).ljust(9) + \
                     ('->£%.2f' % (self.next_month_amount)).ljust(10)
 
-        print("%s: %s %s %s %s %s %s %s" % (
-            data['status'].rjust(7),
-            data['payment_type'].ljust(15),
-            data['name'].ljust(25),
-            data['suffix'].ljust(5),
-            amount,
-            ('£%.2f' % (data['remaining'])).ljust(8) if data['remaining'] else ''.ljust(8),
-            data['last_date'].strftime('%Y-%m-%d').ljust(12) if data['last_date'] else ''.ljust(12),
-            data['due_date'].strftime('%Y-%m-%d').ljust(10) if data['due_date'] else ''
-        ))
+        return {
+            'Status': data['status'] + ':',
+            'Type': data['payment_type'],
+            'Name': data['name'],
+            'Count': data['suffix'],
+            'Amount': amount,
+            'Left': '£%.2f' % (data['remaining']) if data['remaining'] else '',
+            'Last date': data['last_date'].strftime('%Y-%m-%d') if data['last_date'] else '',
+            'Due date': data['due_date'].strftime('%Y-%m-%d') if data['due_date'] else ''
+        }
 
 
     @property

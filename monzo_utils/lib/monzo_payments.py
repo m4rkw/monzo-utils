@@ -118,27 +118,43 @@ class MonzoPayments:
         self.following_salary_date = self.get_next_salary_date(self.next_salary_date)
 
         if self.json is False:
-            self.display_columns('yearly')
+            self.widths = {
+                'Status': 9,
+                'Type': 15,
+                'Name': 25,
+                'Count': 5,
+                'Amount': 19,
+                'Left': 8,
+                'Last date': 12,
+                'Due date': 10
+            }
+            self.fields = ['Status','Type','Name','Count','Amount','Left','Last date','Due date']
+
+        payment_lists = {
+            'yearly': [],
+            'monthly': []
+        }
 
         if 'payments' in self.config:
             for payment_list in self.config['payments']:
                 if not payment_list['payments']:
                     continue
 
-                due, total_due_this_month, total_due_next_month = self.display_payment_list(payment_list, True)
+                due, total_due_this_month, total_due_next_month, payments = self.process_payment_list(payment_list, True)
+
+                payment_lists['yearly'] += payments
 
                 self.due += due
                 self.total_this_month += total_due_this_month
                 self.next_month += total_due_next_month
 
-            if self.json is False:
-                self.display_spacer('monthly')
-
             for payment_list in self.config['payments']:
                 if not payment_list['payments']:
                     continue
 
-                due, total_due_this_month, total_due_next_month = self.display_payment_list(payment_list, False)
+                due, total_due_this_month, total_due_next_month, payments = self.process_payment_list(payment_list, False)
+
+                payment_lists['monthly'] += payments
 
                 self.due += due
                 self.total_this_month += total_due_this_month
@@ -176,29 +192,41 @@ class MonzoPayments:
             print(json.dumps(data,indent=4))
             return
 
+        self.adjust_column_widths(payment_lists)
+
+        self.display_columns('yearly')
+        self.display_table(payment_lists['yearly'])
+
+        self.display_spacer('monthly')
+        self.display_table(payment_lists['monthly'])
+
         sys.stdout.write("\n")
 
-        sys.stdout.write(" " * 25)
-        sys.stdout.write("TOTAL THIS MONTH:".ljust(32))
+        indent = self.widths['Status'] + self.widths['Type'] + 2
+        width = self.widths['Name'] + self.widths['Count'] + 2
+
+        sys.stdout.write(" " * indent)
+
+        sys.stdout.write("TOTAL THIS MONTH:".ljust(width))
         print("£%.2f" % (self.total_this_month / 100))
 
         if 'exclude_yearly_from_bills' in self.config and self.config['exclude_yearly_from_bills']:
             sys.stdout.write("\n")
 
-        sys.stdout.write(" " * 25)
-        sys.stdout.write("TOTAL NEXT MONTH:".ljust(32))
+        sys.stdout.write(" " * indent)
+        sys.stdout.write("TOTAL NEXT MONTH:".ljust(width))
         print("£%.2f" % (self.next_month / 100))
 
         credit = (round(pot.balance * 100) - self.due) / 100
 
         if round(shortfall * 100) <0:
-            sys.stdout.write(" " * 25)
-            sys.stdout.write("LESS CREDIT BALANCE:".ljust(32))
+            sys.stdout.write(" " * indent)
+            sys.stdout.write("LESS CREDIT BALANCE:".ljust(width))
             print("£%.2f" % ((self.next_month / 100) - credit))
 
         if 'exclude_yearly_from_bills' in self.config and self.config['exclude_yearly_from_bills']:
-            sys.stdout.write(" " * 25)
-            sys.stdout.write("Bills pot payment:".ljust(31))
+            sys.stdout.write(" " * indent)
+            sys.stdout.write("Bills pot payment:".ljust(width))
             print("£%.2f" % (self.next_month_bills_pot / 100))
 
         sync_required = False
@@ -241,23 +269,22 @@ class MonzoPayments:
 
 
     def display_columns(self, title):
-        print("%s %s %s %s %s %s %s %s" % (
-            'Status'.rjust(8),
-            'Type'.ljust(15),
-            'Name'.ljust(25),
-            ''.ljust(5),
-            'Amount'.ljust(19),
-            'Left'.ljust(8),
-            'Last date'.ljust(12),
-            'Due date'.ljust(10)
-        ))
+        for i in range(0, len(self.fields)):
+            if i > 0:
+                sys.stdout.write(" ")
+            if self.fields[i] == 'Count':
+                sys.stdout.write(''.ljust(self.widths[self.fields[i]]))
+            else:
+                sys.stdout.write(self.fields[i].ljust(self.widths[self.fields[i]]))
+
+        sys.stdout.write("\n")
 
         if self.json is False:
             self.display_spacer(title)
 
 
     def display_spacer(self, title):
-        sys.stdout.write("-" * 100)
+        sys.stdout.write("-" * (sum(self.widths.values()) - 2))
         sys.stdout.write(title.ljust(9,'-') + "\n")
 
 
@@ -274,13 +301,15 @@ class MonzoPayments:
         return i == 'y'
 
  
-    def display_payment_list(self, payment_list, annual):
+    def process_payment_list(self, payment_list, annual):
         payments = self.get_payments(payment_list, annual)
 
         summary = None
         due = 0
         total_due_this_month = 0
         total_due_next_month = 0
+
+        output = []
 
         if payment_list['type'] == 'Flex' and annual is False:
             total_this_month = 0
@@ -302,7 +331,7 @@ class MonzoPayments:
             if self.json:
                 self.output.append(summary.data(self.abbreviate))
             else:
-                summary.display()
+                output.append(summary.display_output())
 
         for payment in payments:
             if summary:
@@ -324,9 +353,9 @@ class MonzoPayments:
             if self.json:
                 self.output.append(payment.data(self.abbreviate))
             else:
-                payment.display()
+                output.append(payment.display_output())
 
-        return due, total_due_this_month, total_due_next_month
+        return due, total_due_this_month, total_due_next_month, output
 
 
     def get_payments(self, payment_list, annual):
@@ -683,6 +712,26 @@ class MonzoPayments:
             to_transfer = amount
 
         return to_transfer
+
+
+    def adjust_column_widths(self, payment_lists):
+        for list_type in payment_lists:
+            for item in payment_lists[list_type]:
+                for key in item:
+                    if len(item[key]) > self.widths[key]:
+                        self.widths[key] = len(item[key])
+
+
+    def display_table(self, data):
+        for item in data:
+            for key in self.fields:
+                if key in ['Status']:
+                    sys.stdout.write(item[key].rjust(self.widths[key]))
+                else:
+                    sys.stdout.write(item[key].ljust(self.widths[key]))
+                sys.stdout.write(" ")
+
+            sys.stdout.write("\n")
 
 
 if __name__ == '__main__':

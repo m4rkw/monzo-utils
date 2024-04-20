@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.89 - 20/04/2024
+
+- Fixed output when columns are wider than the default widths
+
 ## 0.0.88 - 13/04/2024
 
 - Fixed renewal payment amount calculation
