@@ -19,17 +19,17 @@ from monzo_utils.lib.config import Config
 
 class MonzoAPI:
 
-    def __init__(self):
+    def __init__(self, tmp=None):
         homedir = pwd.getpwuid(os.getuid()).pw_dir
         self.monzo_dir = f"{homedir}/.monzo"
         self.token_file = f"{self.monzo_dir}/tokens"
 
-        self.load_tokens()
+        self.load_tokens(tmp)
 
         self.client = self.get_client()
 
 
-    def load_tokens(self):
+    def load_tokens(self, tmp=None):
         if os.path.exists(self.token_file):
             data = json.loads(open(self.token_file).read())
 
@@ -37,10 +37,10 @@ class MonzoAPI:
             self.access_token_expiry = data['expiry']
             self.refresh_token = data['refresh_token']
         else:
-            self.authenticate()
+            self.authenticate(tmp)
 
  
-    def authenticate(self):
+    def authenticate(self, tmp=None):
         client = Authentication(
             client_id=Config().client_id,
             client_secret=Config().client_secret,
@@ -60,8 +60,14 @@ class MonzoAPI:
             Log().error('Authentication required, unable to sync.')
             sys.exit(1)
 
-        print("\nAuthentication required, check email or visit:\n")
-        print(client.authentication_url)
+        if tmp:
+            with open(tmp + '.tmp','w') as f:
+                f.write(client.authentication_url)
+
+            os.rename(tmp + '.tmp', tmp)
+        else:
+            print("\nAuthentication required, check email or visit:\n")
+            print(client.authentication_url)
 
         if os.path.exists(Config().oauth_token_file):
             os.remove(Config().oauth_token_file)
@@ -141,7 +147,7 @@ class MonzoAPI:
         return monzo.endpoints.account.Account.fetch(self.client, account_id=account_id)
 
 
-    def accounts(self, first=True):
+    def accounts(self, first=True, tmp=None):
         for i in range(0, 3):
             try:
                 accounts = monzo.endpoints.account.Account.fetch(self.client)
@@ -155,7 +161,7 @@ class MonzoAPI:
                     if 'NO_AUTH' in os.environ:
                         raise Exception("token expired")
 
-                    self.authenticate()
+                    self.authenticate(tmp)
 
                     return self.accounts(False)
 
@@ -163,7 +169,7 @@ class MonzoAPI:
                 sys.exit(1)
             except MonzoAuthenticationError:
                 if first:
-                    self.authenticate()
+                    self.authenticate(tmp)
 
                     return self.accounts(False)
 
@@ -224,7 +230,7 @@ class MonzoAPI:
         sys.exit(1)
 
 
-    def pots(self, account_id, first=True):
+    def pots(self, account_id, first=True, tmp=None):
         try:
             pots = monzo.endpoints.pot.Pot.fetch(self.client, account_id=account_id)
         except MonzoHTTPError:
@@ -232,7 +238,7 @@ class MonzoAPI:
                 if 'NO_AUTH' in os.environ:
                     raise Exception("token expired")
 
-                self.authenticate()
+                self.authenticate(tmp)
                 self.client = self.get_client()
 
                 return self.pots(account_id, False)
@@ -241,7 +247,7 @@ class MonzoAPI:
             sys.exit(1)
         except MonzoAuthenticationError:
             if first:
-                self.authenticate()
+                self.authenticate(tmp)
                 self.client = self.get_client()
 
                 return self.pots(account_id, False)

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.90 - 24/04/2024
+
+- Added a parameter to specify a tmpfile to write the redirect url to for handling re-auth flows
+
 ## 0.0.89 - 20/04/2024
 
 - Fixed output when columns are wider than the default widths
