@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.91 - 24/04/2024
+
+- Write the tokens to the tmpfile during the tmpfile reauth flow
+
 ## 0.0.90 - 24/04/2024
 
 - Added a parameter to specify a tmpfile to write the redirect url to for handling re-auth flows

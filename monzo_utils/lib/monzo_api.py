@@ -95,6 +95,14 @@ class MonzoAPI:
         self.access_token_expiry = client.access_token_expiry
         self.refresh_token = client.refresh_token
 
+        if tmp:
+            self.set_file_contents(tmp, json.dumps({
+                'access_token': self.access_token,
+                'expiry': self.access_token_expiry,
+                'refresh_token': self.refresh_token
+            }))
+            sys.exit(0)
+
         self.save_tokens()
 
         if os.path.exists(auth_required_file):
