@@ -9,20 +9,13 @@ if 'setup' in sys.argv:
     m.setup()
     sys.exit()
 
-tmp = None
-
-for i in range(0, len(sys.argv)):
-    if sys.argv[i] == '--tmp' and i+1 < len(sys.argv):
-        tmp = sys.argv[i+1]
-        break
-
-m = MonzoSync(False, tmp)
+m = MonzoSync()
 
 if 'scan-accounts' in sys.argv:
     m.scan_accounts()
 else:
     try:
-        m.sync(3, None, tmp)
+        m.sync()
     except URLError as e:
         if 'timed out' in str(e):
             sys.stdout.write("timeout encountered, service may be busy.\n")

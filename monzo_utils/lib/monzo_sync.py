@@ -27,7 +27,7 @@ PROVIDER = 'Monzo'
 
 class MonzoSync:
 
-    def __init__(self, no_init=False, tmp=None):
+    def __init__(self, no_init=False):
         homedir = pwd.getpwuid(os.getuid()).pw_dir
         self.monzo_dir = f"{homedir}/.monzo"
 
@@ -42,7 +42,7 @@ class MonzoSync:
 
         Config()
 
-        self.api = MonzoAPI(tmp)
+        self.api = MonzoAPI()
 
         self.db = DB()
 
@@ -438,8 +438,8 @@ class MonzoSync:
         return provider
 
 
-    def sync(self, days=3, account=None, tmp=None):
-        mo_accounts = self.api.accounts(True, tmp)
+    def sync(self, days=3, account=None):
+        mo_accounts = self.api.accounts()
 
         for mo_account in mo_accounts:
             if 'monzoflexbackingloan' in mo_account.description:

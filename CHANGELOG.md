@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.92 - 25/04/2024
+
+- Reverted previous two releases as the idea wasn't sensible
+- Better way of handling re-auth, push notification with auth url
+
 ## 0.0.91 - 24/04/2024
 
 - Write the tokens to the tmpfile during the tmpfile reauth flow
