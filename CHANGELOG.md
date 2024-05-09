@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.93 - 09/05/2024
+
+- Don't notify about credit/shortfall more than once a day
+
 ## 0.0.92 - 25/04/2024
 
 - Reverted previous two releases as the idea wasn't sensible

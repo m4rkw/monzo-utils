@@ -56,7 +56,9 @@ class MonzoPayments:
 
         homedir = pwd.getpwuid(os.getuid()).pw_dir
         self.credit_tracker = f"{homedir}/.monzo/{self.config['account']}.credit"
+        self.credit_notify_tracker = f"{homedir}/.monzo/{self.config['account']}.credit_notify"
         self.shortfall_tracker = f"{homedir}/.monzo/{self.config['account']}.shortfall"
+        self.shortfall_notify_tracker = f"{homedir}/.monzo/{self.config['account']}.shortfall_notify"
 
 
     def get_db(self):
@@ -531,16 +533,63 @@ class MonzoPayments:
                 return True
 
         elif notify:
-            self.notify(
-                '%s - shortfall' % (self.account.name),
-                "£%.2f\n£%.2f due, £%.2f available" % (
-                    shortfall,
-                    self.due / 100,
-                    pot.balance
+            if not self.shortfall_notified(self.account.name, shortfall):
+                self.notify(
+                    '%s - shortfall' % (self.account.name),
+                    "£%.2f\n£%.2f due, £%.2f available" % (
+                        shortfall,
+                        self.due / 100,
+                        pot.balance
+                    )
                 )
-            )
+
+                self.set_shortfall_notified(self.account.name, shortfall)
 
         return False
+
+
+    def shortfall_notified(self, account_name, shortfall):
+        today = datetime.datetime.now().strftime('%Y%m%d')
+
+        if os.path.exists(self.shortfall_notify_tracker):
+            data = json.loads(open(self.shortfall_notify_tracker).read())
+
+            if data['date'] == today and data['amount'] == shortfall:
+                return True
+
+        return False
+
+
+    def set_shortfall_notified(self, account_name, shortfall):
+        today = datetime.datetime.now().strftime('%Y%m%d')
+
+        with open(self.shortfall_notify_tracker,'w') as f:
+            f.write(json.dumps({
+                'date': today,
+                'amount': shortfall
+            }))
+
+
+    def credit_notified(self, account_name, credit):
+        today = datetime.datetime.now().strftime('%Y%m%d')
+
+        if os.path.exists(self.credit_notify_tracker):
+            data = json.loads(open(self.credit_notify_tracker).read())
+
+            if data['date'] == today and data['amount'] == credit:
+                return True
+
+        return False
+
+
+    def set_credit_notified(self, account_name, credit):
+        today = datetime.datetime.now().strftime('%Y%m%d')
+
+        with open(self.credit_notify_tracker,'w') as f:
+            f.write(json.dumps({
+                'date': today,
+                'amount': credit
+            }))
 
 
     def handle_credit(self, pot, credit):
