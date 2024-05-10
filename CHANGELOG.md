@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.94 - 10/05/2024
+
+- Support reserve amounts for subscriptions that regularly change
+
 ## 0.0.93 - 09/05/2024
 
 - Don't notify about credit/shortfall more than once a day

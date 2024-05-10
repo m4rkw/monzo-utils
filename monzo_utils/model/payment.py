@@ -169,6 +169,11 @@ class Payment:
         if 'display_amount' in self.cache:
             return self.cache['display_amount']
 
+        if self.status == 'DUE' and 'reserve_amount' in self.payment_config:
+            self.cache['display_amount'] = self.payment_config['reserve_amount']
+
+            return self.payment_config['reserve_amount']
+
         today = datetime.datetime.now()
         today = datetime.date(today.year, today.month, today.day)
 
