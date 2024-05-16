@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.95 - 16/05/2024
+
+- tidied up code related to Flex payments
+
 ## 0.0.94 - 10/05/2024
 
 - Support reserve amounts for subscriptions that regularly change

@@ -337,7 +337,7 @@ class MonzoPayments:
 
         for payment in payments:
             if summary:
-                payment.last_flex_payment = summary.last_payment
+                payment.cache['last_payment'] = summary.last_payment
 
             if payment.status in ['DUE','PAID']:
                 total_due_this_month += payment.display_amount * 100
