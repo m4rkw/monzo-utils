@@ -399,7 +399,7 @@ class Payment:
     @property
     def due_date(self):
         if 'yearly_month' in self.payment_config:
-            day = self.today + datetime.timedelta(days=1)
+            day = self.last_salary_date
 
             while day.month != self.payment_config['yearly_month'] or day.day != self.payment_config['yearly_day']:
                 day += datetime.timedelta(days=1)

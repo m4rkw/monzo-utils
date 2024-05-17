@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.96 - 17/05/2024
+
+- bugfix
+
 ## 0.0.95 - 16/05/2024
 
 - tidied up code related to Flex payments
