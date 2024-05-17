@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.97 - 17/05/2024
+
+- allow specifying specific day for payments
+
 ## 0.0.96 - 17/05/2024
 
 - bugfix

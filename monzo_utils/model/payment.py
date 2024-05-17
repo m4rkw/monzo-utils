@@ -336,6 +336,10 @@ class Payment:
 
             where += ')'
 
+        if 'monthly_day' in self.payment_config:
+            where += " and `date` like %s"
+            params.append('%-' + str(self.payment_config['monthly_day']).rjust(2,'0'))
+
         return where, params
 
 
