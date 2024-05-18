@@ -163,10 +163,19 @@ class MonzoPayments:
                 self.next_month += total_due_next_month
 
         if 'refunds_due' in self.config and self.config['refunds_due']:
-            self.display_payment_list({
-                'type': 'Refund',
-                'payments': self.config['refunds_due']
-            }, False)
+            due, total_due_this_month, total_due_next_month, payments = self.process_payment_list(
+                {
+                    'type': 'Refund',
+                    'payments': self.config['refunds_due']
+                },
+                False
+            )
+
+            payment_lists['monthly'] += payments
+
+            self.due += due
+            self.total_this_month += total_due_this_month
+            self.next_month += total_due_next_month
 
         if 'pot' in self.config:
             pot = self.account.get_pot(self.config['pot'])

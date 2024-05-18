@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.99 - 18/05/2024
+
+- fixed crash when processing refunds due
+
 ## 0.0.98 - 18/05/2024
 
 - always use the reserve amount for next month's total
