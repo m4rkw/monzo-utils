@@ -17,6 +17,9 @@ jobs:
           latest_release=`curl -s https://pypi.org/pypi/monzo-utils/json | jq -r '.info.version'`
           version=`grep '^##' CHANGELOG.md |head -n1 |cut -d ' ' -f2`
 
+          echo "$latest_release"
+          echo "$version"
+
           if [ "$latest_release" == "$version" ] ; then
             echo "no new version to release, stopping."
             echo "::set-output name=should-stop::true"
