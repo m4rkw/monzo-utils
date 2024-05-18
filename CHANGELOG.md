@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.98 - 18/05/2024
+
+- always use the reserve amount for next month's total
+
 ## 0.0.97 - 17/05/2024
 
 - allow specifying specific day for payments

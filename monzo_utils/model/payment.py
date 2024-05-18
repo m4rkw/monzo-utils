@@ -225,7 +225,13 @@ class Payment:
     @property
     def next_month_amount(self):
         if 'renewal' not in self.payment_config:
-            return self.display_amount
+
+            if 'reserve_amount' in self.payment_config:
+                amount = self.payment_config['reserve_amount']
+            else:
+                amount = self.display_amount
+
+            return amount
 
         if 'first_payment' in self.payment_config['renewal'] and self.payment_config['renewal']['date'] >= self.next_salary_date:
             amount = self.payment_config['renewal']['first_payment']
