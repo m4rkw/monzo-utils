@@ -25,6 +25,7 @@ jobs:
 
       - name: deploy to pypi
         run: |
+          source venv/bin/activate
           twine upload dist/*.whl
         env:
           PYPI_CRED_MAPPED: ${{ secrets.PYPI_CRED_MAPPED }}
