@@ -13,7 +13,6 @@ jobs:
           fetch-depth: 0 # Fetches all history for all tags and branches
 
       - name: build monzo-utils
-        if: steps.check.outputs.should-stop == 'false'
         run: |
           latest_release=`curl -s https://pypi.org/pypi/monzo-utils/json | jq -r '.info.version'`
           version=`grep '^##' CHANGELOG.md |head -n1 |cut -d ' ' -f2`
@@ -30,7 +29,6 @@ jobs:
           fi
 
       - name: deploy to pypi
-        if: steps.check.outputs.should-stop == 'false'
         run: |
           latest_release=`curl -s https://pypi.org/pypi/monzo-utils/json | jq -r '.info.version'`
           version=`grep '^##' CHANGELOG.md |head -n1 |cut -d ' ' -f2`
@@ -44,7 +42,6 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
 
       - name: create github release
-        if: steps.check.outputs.should-stop == 'false'
         run: |
           latest_release=`curl -s https://pypi.org/pypi/monzo-utils/json | jq -r '.info.version'`
           version=`grep '^##' CHANGELOG.md |head -n1 |cut -d ' ' -f2`
