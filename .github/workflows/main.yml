@@ -12,38 +12,33 @@ jobs:
         with:
           fetch-depth: 0 # Fetches all history for all tags and branches
 
-      - name: check for new release
+      - name: build monzo-utils
+        if: steps.check.outputs.should-stop == 'false'
         run: |
           latest_release=`curl -s https://pypi.org/pypi/monzo-utils/json | jq -r '.info.version'`
           version=`grep '^##' CHANGELOG.md |head -n1 |cut -d ' ' -f2`
 
-          echo "$latest_release"
-          echo "$version"
-
-          if [ "$latest_release" == "$version" ] ; then
-            echo "no new version to release, stopping."
-            echo "::set-output name=should-stop::true"
-          else
-            echo "::set-output name=should-stop::false"
+          if [ "$latest_release" != "$version" ] ; then
+            mkdir venv
+            python3 -m venv venv
+            source venv/bin/activate
+            pip3 install twine wheel
+            if [ -e dist ] ; then
+                rm -f dist/*
+            fi
+            python3 setup.py bdist_wheel
           fi
-
-      - name: build monzo-utils
-        if: steps.check.outputs.should-stop == 'false'
-        run: |
-          mkdir venv
-          python3 -m venv venv
-          source venv/bin/activate
-          pip3 install twine wheel
-          if [ -e dist ] ; then
-              rm -f dist/*
-          fi
-          python3 setup.py bdist_wheel
 
       - name: deploy to pypi
         if: steps.check.outputs.should-stop == 'false'
         run: |
-          source venv/bin/activate
-          twine upload dist/*.whl
+          latest_release=`curl -s https://pypi.org/pypi/monzo-utils/json | jq -r '.info.version'`
+          version=`grep '^##' CHANGELOG.md |head -n1 |cut -d ' ' -f2`
+
+          if [ "$latest_release" != "$version" ] ; then
+            source venv/bin/activate
+            twine upload dist/*.whl
+          fi
         env:
           TWINE_USERNAME: ${{ secrets.TWINE_USERNAME }}
           TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
@@ -51,8 +46,12 @@ jobs:
       - name: create github release
         if: steps.check.outputs.should-stop == 'false'
         run: |
+          latest_release=`curl -s https://pypi.org/pypi/monzo-utils/json | jq -r '.info.version'`
           version=`grep '^##' CHANGELOG.md |head -n1 |cut -d ' ' -f2`
-          change=`awk '/^## /{if (p) exit; p=1} p && /^- /' CHANGELOG.md`
-          gh release create $version --target master --notes "$change"
+
+          if [ "$latest_release" != "$version" ] ; then
+            change=`awk '/^## /{if (p) exit; p=1} p && /^- /' CHANGELOG.md`
+            gh release create $version --target master --notes "$change"
+          fi
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
