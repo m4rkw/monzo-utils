@@ -1,0 +1,38 @@
+name: deploy monzo-utils
+on: push
+defaults:
+  run:
+    shell: bash
+jobs:
+  push_sieve:
+    name: deploy monzo-utils
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # Fetches all history for all tags and branches
+
+      - name: build monzo-utils
+        run: |
+          mkdir venv
+          python3 -m venv venv
+          source venv/bin/activate
+          pip3 install twine wheel
+          if [ -e dist ] ; then
+              rm -f dist/*
+          fi
+          python3 setup.py bdist_wheel
+
+      - name: deploy to pypi
+        run: |
+          twine upload dist/*.whl
+        env:
+          PYPI_CRED_MAPPED: ${{ secrets.PYPI_CRED_MAPPED }}
+
+      - name: create github release
+        run: |
+          version=`grep '^##' CHANGELOG.md |head -n1 |cut -d ' ' -f2`
+          change=`awk '/^## /{if (p) exit; p=1} p && /^- /' CHANGELOG.md`
+          gh release create $version --target master --notes "$change"
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
