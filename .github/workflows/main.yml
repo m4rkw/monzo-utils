@@ -19,10 +19,13 @@ jobs:
 
           if [ "$latest_release" = "$version" ] ; then
             echo "no new version to release, stopping."
-            exit 0
+            echo "::set-output name=should-stop::true"
+          else
+            echo "::set-output name=should-stop::false"
           fi
 
       - name: build monzo-utils
+        if: steps.check.outputs.should-stop == 'false'
         run: |
           mkdir venv
           python3 -m venv venv
@@ -34,6 +37,7 @@ jobs:
           python3 setup.py bdist_wheel
 
       - name: deploy to pypi
+        if: steps.check.outputs.should-stop == 'false'
         run: |
           source venv/bin/activate
           twine upload dist/*.whl
@@ -42,6 +46,7 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
 
       - name: create github release
+        if: steps.check.outputs.should-stop == 'false'
         run: |
           version=`grep '^##' CHANGELOG.md |head -n1 |cut -d ' ' -f2`
           change=`awk '/^## /{if (p) exit; p=1} p && /^- /' CHANGELOG.md`
