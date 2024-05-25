@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0 - 25/05/2024
+
+- bugfix
+
 ## 0.0.99 - 18/05/2024
 
 - fixed crash when processing refunds due

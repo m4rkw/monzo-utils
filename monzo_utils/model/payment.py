@@ -388,8 +388,14 @@ class Payment:
 
         where, params = self.get_transaction_where_condition()
 
+        sql = "select * from transaction"
+
+        if 'metadata' in self.payment_config:
+            for i in range(0, len(self.payment_config['metadata'])):
+                sql += " join transaction_metadata meta%d on transaction.id = meta%d.transaction_id" % (i+1, i+1)
+
         transactions = Transaction.find(
-            f"select * from transaction where {where} order by created_at desc",
+            f"{sql} where {where} order by created_at desc",
             params
         )
 
