@@ -9,7 +9,7 @@ from monzo_utils.lib.db import DB
 class BaseModel:
 
     @classmethod
-    def one(cls, sql, params):
+    def one(cls, sql, params=[]):
         row = DB().one(sql, params)
 
         if row:
@@ -21,7 +21,7 @@ class BaseModel:
 
 
     @classmethod
-    def find(cls, sql, params):
+    def find(cls, sql, params=[]):
         table = re.sub(r'(?<!^)(?=[A-Z])', '_', cls.__name__).lower()
 
         data = DB().query(sql, params)

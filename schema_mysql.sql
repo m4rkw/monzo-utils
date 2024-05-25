@@ -32,6 +32,7 @@ CREATE TABLE `account` (
   `sortcode` varchar(8) DEFAULT NULL,
   `account_no` varchar(8) DEFAULT NULL,
   `account_id` varchar(64) DEFAULT NULL,
+  `active` tinyint(1) unsigned NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`),
   KEY `account_provider_id_foreign` (`provider_id`),
   CONSTRAINT `account_provider_id_foreign` FOREIGN KEY (`provider_id`) REFERENCES `provider` (`id`)

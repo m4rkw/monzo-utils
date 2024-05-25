@@ -11,6 +11,7 @@ CREATE TABLE "account" (
   "sortcode" varchar(8) DEFAULT NULL,
   "account_no" varchar(8) DEFAULT NULL,
   "account_id" varchar(64) DEFAULT NULL,
+  "active" tinyint(1) NOT NULL DEFAULT 1,
   CONSTRAINT "account_provider_id_foreign" FOREIGN KEY ("provider_id") REFERENCES "provider" ("id")
 );
 CREATE TABLE "counterparty" (

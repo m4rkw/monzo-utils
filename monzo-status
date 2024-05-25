@@ -34,23 +34,34 @@ class Monzo:
                 if i+1 < len(sys.argv) and sys.argv[i+1].isdigit():
                     n = int(sys.argv[i+1])
 
-        provider = Provider.one("select * from provider where name = %s", [PROVIDER])
-        accounts = provider.accounts(order=Config().account_order if 'account_order' in Config().keys else None)
-
         count = 0
-        for account in accounts:
-            self.display([account], account.keys, show_headers=(count == 0 or transactions))
 
-            if transactions:
-                sys.stdout.write("\n")
+        providers = [Provider.one("select * from provider where name = %s", [PROVIDER])] + \
+            Provider.find("select * from provider where name != %s order by name asc", [PROVIDER])
 
-                rows = list(reversed(account.transactions(orderby='created_at', orderdir='desc', limit=n)))
+        for provider in providers:
+            for account in provider.accounts(order=Config().account_order if 'account_order' in Config().keys else None):
+                self.get_column_widths([account], account.keys)
 
-                self.display(rows, Transaction.DISPLAY_KEYS)
+        for provider in providers:
+            accounts = provider.accounts(order=Config().account_order if 'account_order' in Config().keys else None)
 
-                sys.stdout.write("\n")
+            for account in accounts:
+                if account.active == 0:
+                    continue
 
-            count += 1
+                self.display([account], account.keys, show_headers=(count == 0 or transactions))
+
+                if transactions:
+                    sys.stdout.write("\n")
+
+                    rows = list(reversed(account.transactions(orderby='created_at', orderdir='desc', limit=n)))
+
+                    self.display(rows, Transaction.DISPLAY_KEYS)
+
+                    sys.stdout.write("\n")
+
+                count += 1
 
 
     def get_column_widths(self, data, columns):
@@ -87,7 +98,10 @@ class Monzo:
 
         if show_headers:
             for key in columns:
-                sys.stdout.write(self.capitalise(key).ljust(self.widths[key]+2))
+                if key != 'name':
+                    sys.stdout.write(self.capitalise(key).rjust(self.widths[key]+2))
+                else:
+                    sys.stdout.write(self.capitalise(key).ljust(self.widths[key]+2))
             sys.stdout.write("\n")
 
             for key in columns:
@@ -101,7 +115,10 @@ class Monzo:
                 obj = data[i]
 
             for key in columns:
-                sys.stdout.write(str(obj[key]).ljust(self.widths[key]+2))
+                if key != 'name':
+                    sys.stdout.write(str(obj[key]).rjust(self.widths[key]+2))
+                else:
+                    sys.stdout.write(str(obj[key]).ljust(self.widths[key]+2))
 
             sys.stdout.write("\n")
 

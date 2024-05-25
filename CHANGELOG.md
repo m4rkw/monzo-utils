@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2 - 25/05/2024
+
+- show all accounts in summary
+
 ## 0.1.1 - 25/05/2024
 
 - bugfix

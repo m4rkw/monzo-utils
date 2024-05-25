@@ -15,6 +15,10 @@ class Provider(BaseModel):
                         sorted_accounts.append(account)
                         break
 
+            for account in accounts:
+                if account.name not in order:
+                    sorted_accounts.append(account)
+
             return sorted_accounts
 
         return accounts
