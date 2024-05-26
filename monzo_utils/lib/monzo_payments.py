@@ -274,6 +274,9 @@ class MonzoPayments:
             if self.check_pot_payments():
                 sync_required = True
 
+        if self.check_pot_auto_topup():
+            sync_required = True
+
         if sync_required:
             ms = MonzoSync()
             ms.sync(3, self.account)
@@ -752,6 +755,49 @@ class MonzoPayments:
                     pot.save()
 
                     sync_required = True
+                else:
+                    sys.stdout.write("FAILED\n\n")
+
+                    sys.stderr.write("ERROR: failed to transfer £%.2f to pot: %s\n" % (amount_to_transfer / 100, pot.name))
+
+        return sync_required
+
+
+    def check_pot_auto_topup(self):
+        m = None
+        sync_required = False
+
+        if 'pot_auto_topup' not in self.config or type(self.config['pot_auto_topup']) != list:
+            return sync_required
+
+        for payment in self.config['pot_auto_topup']:
+            pot = Pot.one("select * from pot where name = %s and deleted = %s", [payment['name'], 0])
+
+            if not pot:
+                continue
+
+            if pot.balance < payment['threshold']:
+                if 'topup_amount' not in payment:
+                    amount_to_transfer = int(payment['threshold'] * 100) - int(pot.balance * 100)
+                else:
+                    amount_to_transfer = int(payment['topup_amount'] * 100)
+
+                if not m:
+                    m = MonzoAPI()
+                    sys.stdout.write("\n")
+
+                sys.stdout.write("Topping up pot %s with £%.2f ... " % (pot.name, amount_to_transfer / 100))
+                sys.stdout.flush()
+
+                if m.deposit_to_pot(self.account.account_id, pot, amount_to_transfer / 100):
+                    sys.stdout.write("OK\n")
+
+                    pot.last_monthly_transfer_date = self.last_salary_date
+                    pot.save()
+
+                    sync_required = True
+
+                    self.notify(pot.name, "Topped up by £%.2f\nNew balance: £%.2f" % (amount_to_transfer / 100, float(pot.balance) + (amount_to_transfer / 100)))
                 else:
                     sys.stdout.write("FAILED\n\n")
 

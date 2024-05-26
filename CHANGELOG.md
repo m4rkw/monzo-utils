@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3 - 26/05/2024
+
+- support auto topup of pots
+
 ## 0.1.2 - 25/05/2024
 
 - show all accounts in summary

@@ -86,6 +86,13 @@ payments_to_pots:
     amount: 50
     topup: true # if this is set top up the pot to the specified value
 
+# top up pot if it drops below the threshold
+# if topup_amount is omited it will be topped up to the threshold amount
+pot_auto_topup:
+  - name: Travel
+    threshold: 20
+    topup_amount: 10
+
 # indicate when a refund is pending
 # this amount will be deducted from the total due in the salary period
 # immediately after its due_after date
