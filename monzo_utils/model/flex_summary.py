@@ -3,6 +3,7 @@ import math
 from monzo_utils.model.payment import Payment
 from monzo_utils.model.account import Account
 from monzo_utils.model.transaction import Transaction
+from monzo_utils.lib.transactions_seen import TransactionsSeen
 
 class FlexSummary(Payment):
 
@@ -85,3 +86,38 @@ class FlexSummary(Payment):
         self.cache['last_payment'] = transaction
 
         return transaction
+
+
+    # older last payment, may be before start_date
+    @property
+    def older_last_payment(self):
+        if 'older_last_payment' in self.cache:
+            return self.cache['older_last_payment']
+
+        where, params = self.get_transaction_where_condition()
+
+        sql = "select * from transaction"
+
+        if 'metadata' in self.payment_config:
+            for i in range(0, len(self.payment_config['metadata'])):
+                sql += " join transaction_metadata meta%d on transaction.id = meta%d.transaction_id" % (i+1, i+1)
+
+        transactions = Transaction.find(
+            f"{sql} where {where} order by created_at desc",
+            params
+        )
+
+        for transaction in transactions:
+            if transaction.date.day != self.config['flex_payment_date']:
+                continue
+
+            if transaction.id not in TransactionsSeen().seen:
+                TransactionsSeen().seen[transaction.id] = 1
+
+                self.cache['older_last_payment'] = transaction
+
+                return self.cache['older_last_payment']
+
+        self.cache['older_last_payment'] = None
+
+        return self.cache['older_last_payment']

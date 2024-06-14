@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4 - 14/06/2024
+
+- fixed incorrect payment status for Flex transactions
+
 ## 0.1.3 - 26/05/2024
 
 - support auto topup of pots
