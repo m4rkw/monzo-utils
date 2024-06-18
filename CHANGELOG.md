@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.5 - 18/06/2024
+
+- fixed incorrect payment status for Flex transactions
+
 ## 0.1.4 - 14/06/2024
 
 - fixed incorrect payment status for Flex transactions
