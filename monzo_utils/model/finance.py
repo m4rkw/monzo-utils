@@ -30,9 +30,29 @@ class Finance(Payment):
         if 'all_finance_transactions' in self.cache:
             return self.cache['all_finance_transactions']
 
-        amounts = [int(self.payment_config['amount'] / self.payment_config['months'] * 100) / 100]
+        total = int(self.payment_config['amount'] * 100)
 
-        final_payment = round(self.payment_config['amount'] - (amounts[0] * (self.payment_config['months']-1)), 2)
+        if 'round' in self.payment_config and self.payment_config['round'] == 'up':
+            if total % self.payment_config['months'] != 0:
+                adjusted = total
+
+                while adjusted % self.payment_config['months'] != 0:
+                    adjusted += 1
+
+                initial_payment = adjusted / self.payment_config['months']
+
+                final_payment = total - (initial_payment * (self.payment_config['months']-1))
+
+                amounts = [initial_payment / 100, final_payment / 100]
+            else:
+                amounts = [int(self.payment_config['amount'] / self.payment_config['months'] * 100) / 100]
+        else:
+            amounts = [int(self.payment_config['amount'] / self.payment_config['months'] * 100) / 100]
+
+            final_payment = round(self.payment_config['amount'] - (amounts[0] * (self.payment_config['months']-1)), 2)
+
+            if final_payment not in amounts:
+                amounts.append(final_payment)
 
         if final_payment not in amounts:
             amounts.append(final_payment)

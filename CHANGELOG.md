@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.6 - 19/06/2024
+
+- allow configuring how rounding occurs for finance transactions
+
 ## 0.1.5 - 18/06/2024
 
 - fixed incorrect payment status for Flex transactions
