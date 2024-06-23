@@ -31,6 +31,9 @@ class FlexSummary(Payment):
 
     @property
     def display_amount(self):
+        if self.last_payment:
+            return self.last_payment.money_in
+
         return self.flex_total
 
 
@@ -72,15 +75,25 @@ class FlexSummary(Payment):
 
         account = Account.one("select * from account where name = %s", [self.config['flex_account']])
 
-        transaction = Transaction.one("select * from transaction where account_id = %s and declined = %s and money_in = %s and description = %s and `date` > %s order by created_at asc limit 1", [
-            account.id,
-            0,
-            self.display_amount,
-            'Flex',
-            self.last_salary_date
-        ])
+        transactions_by_diff = {}
 
-        if not transaction:
+        for transaction in Transaction.find("select * from transaction where account_id = %s and declined = %s and description = %s and `date` > %s order by created_at asc", [
+                account.id,
+                0,
+                'Flex',
+                self.last_salary_date
+            ]):
+            if transaction.settled.day == 16:
+                diff = int(abs(self.flex_total - transaction.money_in) * 100)
+
+                if diff not in transactions_by_diff:
+                    transactions_by_diff[diff] = []
+
+                transactions_by_diff[diff].append(transaction)
+
+        if len(transactions_by_diff) >0:
+            transaction = transactions_by_diff[sorted(transactions_by_diff.keys())[0]][0]
+        else:
             transaction = None
 
         self.cache['last_payment'] = transaction

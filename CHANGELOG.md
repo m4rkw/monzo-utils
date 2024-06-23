@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.7 - 23/06/2024
+
+- Fixed Flex total display amount when paid off flex items removed from the list
+
 ## 0.1.6 - 19/06/2024
 
 - allow configuring how rounding occurs for finance transactions
