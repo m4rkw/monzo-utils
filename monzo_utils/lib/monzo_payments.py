@@ -112,46 +112,62 @@ class MonzoPayments:
 
 
     def main(self):
-        self.last_salary_date = self.get_last_salary_date()
-        self.next_salary_date = self.get_next_salary_date(self.last_salary_date)
-        self.following_salary_date = self.get_next_salary_date(self.next_salary_date)
+        try:
+            self.last_salary_date = self.get_last_salary_date()
+            self.next_salary_date = self.get_next_salary_date(self.last_salary_date)
+            self.following_salary_date = self.get_next_salary_date(self.next_salary_date)
 
-        if self.json is False:
-            self.widths = {
-                'Status': 9,
-                'Type': 15,
-                'Name': 25,
-                'Count': 5,
-                'Amount': 19,
-                'Left': 8,
-                'Last date': 12,
-                'Due date': 10
+            if self.json is False:
+                self.widths = {
+                    'Status': 9,
+                    'Type': 15,
+                    'Name': 25,
+                    'Count': 5,
+                    'Amount': 19,
+                    'Left': 8,
+                    'Last date': 12,
+                    'Due date': 10
+                }
+                self.fields = ['Status','Type','Name','Count','Amount','Left','Last date','Due date']
+
+            payment_lists = {
+                'yearly': [],
+                'monthly': []
             }
-            self.fields = ['Status','Type','Name','Count','Amount','Left','Last date','Due date']
 
-        payment_lists = {
-            'yearly': [],
-            'monthly': []
-        }
+            if 'payments' in self.config:
+                for payment_list in self.config['payments']:
+                    if not payment_list['payments']:
+                        continue
 
-        if 'payments' in self.config:
-            for payment_list in self.config['payments']:
-                if not payment_list['payments']:
-                    continue
+                    due, total_due_this_month, total_due_next_month, payments = self.process_payment_list(payment_list, True)
 
-                due, total_due_this_month, total_due_next_month, payments = self.process_payment_list(payment_list, True)
+                    payment_lists['yearly'] += payments
 
-                payment_lists['yearly'] += payments
+                    self.due += due
+                    self.total_this_month += total_due_this_month
+                    self.next_month += total_due_next_month
 
-                self.due += due
-                self.total_this_month += total_due_this_month
-                self.next_month += total_due_next_month
+                for payment_list in self.config['payments']:
+                    if not payment_list['payments']:
+                        continue
 
-            for payment_list in self.config['payments']:
-                if not payment_list['payments']:
-                    continue
+                    due, total_due_this_month, total_due_next_month, payments = self.process_payment_list(payment_list, False)
 
-                due, total_due_this_month, total_due_next_month, payments = self.process_payment_list(payment_list, False)
+                    payment_lists['monthly'] += payments
+
+                    self.due += due
+                    self.total_this_month += total_due_this_month
+                    self.next_month += total_due_next_month
+
+            if 'refunds_due' in self.config and self.config['refunds_due']:
+                due, total_due_this_month, total_due_next_month, payments = self.process_payment_list(
+                    {
+                        'type': 'Refund',
+                        'payments': self.config['refunds_due']
+                    },
+                    False
+                )
 
                 payment_lists['monthly'] += payments
 
@@ -159,127 +175,136 @@ class MonzoPayments:
                 self.total_this_month += total_due_this_month
                 self.next_month += total_due_next_month
 
-        if 'refunds_due' in self.config and self.config['refunds_due']:
-            due, total_due_this_month, total_due_next_month, payments = self.process_payment_list(
-                {
-                    'type': 'Refund',
-                    'payments': self.config['refunds_due']
-                },
-                False
-            )
-
-            payment_lists['monthly'] += payments
-
-            self.due += due
-            self.total_this_month += total_due_this_month
-            self.next_month += total_due_next_month
-
-        if 'pot' in self.config:
-            pot = self.account.get_pot(self.config['pot'])
-        else:
-            pot = self.account
-
-        shortfall = (self.due - (round(pot.balance * 100))) / 100
-
-        if self.json:
-            data = {
-                'balance': float(pot.balance),
-                'due': float(self.due) / 100,
-                'total_this_month': self.total_this_month / 100,
-                'total_next_month': self.next_month / 100,
-                'payments': self.sanitise(self.output)
-            }
-
-            if shortfall * 100 <0:
-                data['credit'] = (round(pot.balance * 100) - self.due) / 100
-                data['shortfall'] = 0
+            if 'pot' in self.config:
+                pot = self.account.get_pot(self.config['pot'])
             else:
-                data['shortfall'] = shortfall
-                data['credit'] = 0
+                pot = self.account
 
-            print(json.dumps(data,indent=4))
-            return
+            shortfall = (self.due - (round(pot.balance * 100))) / 100
 
-        self.adjust_column_widths(payment_lists)
+            if self.json:
+                data = {
+                    'balance': float(pot.balance),
+                    'due': float(self.due) / 100,
+                    'total_this_month': self.total_this_month / 100,
+                    'total_next_month': self.next_month / 100,
+                    'payments': self.sanitise(self.output)
+                }
 
-        self.display_columns('yearly')
-        self.display_table(payment_lists['yearly'])
+                if shortfall * 100 <0:
+                    data['credit'] = (round(pot.balance * 100) - self.due) / 100
+                    data['shortfall'] = 0
+                else:
+                    data['shortfall'] = shortfall
+                    data['credit'] = 0
 
-        self.display_spacer('monthly')
-        self.display_table(payment_lists['monthly'])
+                print(json.dumps(data,indent=4))
+                return
 
-        sys.stdout.write("\n")
+            self.adjust_column_widths(payment_lists)
 
-        indent = self.widths['Status'] + self.widths['Type'] + 2
-        width = self.widths['Name'] + self.widths['Count'] + 2
+            self.display_columns('yearly')
+            self.display_table(payment_lists['yearly'])
 
-        sys.stdout.write(" " * indent)
+            self.display_spacer('monthly')
+            self.display_table(payment_lists['monthly'])
 
-        sys.stdout.write("TOTAL THIS MONTH:".ljust(width))
-        print("£%.2f" % (self.total_this_month / 100))
-
-        if 'exclude_yearly_from_bills' in self.config and self.config['exclude_yearly_from_bills']:
             sys.stdout.write("\n")
 
-        sys.stdout.write(" " * indent)
-        sys.stdout.write("TOTAL NEXT MONTH:".ljust(width))
-        print("£%.2f" % (self.next_month / 100))
+            indent = self.widths['Status'] + self.widths['Type'] + 2
+            width = self.widths['Name'] + self.widths['Count'] + 2
 
-        credit = (round(pot.balance * 100) - self.due) / 100
-
-        if round(shortfall * 100) <0:
             sys.stdout.write(" " * indent)
-            sys.stdout.write("LESS CREDIT BALANCE:".ljust(width))
-            print("£%.2f" % ((self.next_month / 100) - credit))
 
-        if 'exclude_yearly_from_bills' in self.config and self.config['exclude_yearly_from_bills']:
+            sys.stdout.write("TOTAL THIS MONTH:".ljust(width))
+            print("£%.2f" % (self.total_this_month / 100))
+
+            if 'exclude_yearly_from_bills' in self.config and self.config['exclude_yearly_from_bills']:
+                sys.stdout.write("\n")
+
             sys.stdout.write(" " * indent)
-            sys.stdout.write("Bills pot payment:".ljust(width))
-            print("£%.2f" % (self.next_month_bills_pot / 100))
+            sys.stdout.write("TOTAL NEXT MONTH:".ljust(width))
+            print("£%.2f" % (self.next_month / 100))
 
-        sync_required = False
+            credit = (round(pot.balance * 100) - self.due) / 100
 
-        if round(shortfall * 100) >0:
-            print("      due: £%.2f" % (self.due / 100))
-            print("  balance: £%.2f" % (pot.balance))
-            print("shortfall: £%.2f" % (shortfall))
+            if round(shortfall * 100) <0:
+                sys.stdout.write(" " * indent)
+                sys.stdout.write("LESS CREDIT BALANCE:".ljust(width))
+                print("£%.2f" % ((self.next_month / 100) - credit))
 
-            sync_required = self.handle_shortfall(pot, shortfall)
+            if 'exclude_yearly_from_bills' in self.config and self.config['exclude_yearly_from_bills']:
+                sys.stdout.write(" " * indent)
+                sys.stdout.write("Bills pot payment:".ljust(width))
+                print("£%.2f" % (self.next_month_bills_pot / 100))
 
-        else:
-            state = State.one(key='shortfall_tracker')
+            sync_required = False
 
-            if state:
-                state.delete()
+            if round(shortfall * 100) >0:
+                print("      due: £%.2f" % (self.due / 100))
+                print("  balance: £%.2f" % (pot.balance))
+                print("shortfall: £%.2f" % (shortfall))
 
-            print("    due: £%.2f" % (self.due / 100))
-            print("balance: £%.2f" % (pot.balance))
+                sync_required = self.handle_shortfall(pot, shortfall)
 
-            if round(credit * 100) == 0:
-                credit = 0
-
-                state = State.one(key='credit_tracker')
+            else:
+                state = State.one(key='shortfall_tracker')
 
                 if state:
                     state.delete()
 
-            else:
-                print(" credit: £%.2f" % (credit))
+                print("    due: £%.2f" % (self.due / 100))
+                print("balance: £%.2f" % (pot.balance))
 
-                sync_required = self.handle_credit(pot, credit)
+                if round(credit * 100) == 0:
+                    credit = 0
 
-        today = datetime.datetime.now()
+                    state = State.one(key='credit_tracker')
 
-        if today.strftime('%Y%m%d') == self.last_salary_date.strftime('%Y%m%d'):
-            if self.check_pot_payments():
+                    if state:
+                        state.delete()
+
+                else:
+                    print(" credit: £%.2f" % (credit))
+
+                    sync_required = self.handle_credit(pot, credit)
+
+            today = datetime.datetime.now()
+
+            if today.strftime('%Y%m%d') == self.last_salary_date.strftime('%Y%m%d'):
+                if self.check_pot_payments():
+                    sync_required = True
+
+            if self.check_pot_auto_topup():
                 sync_required = True
 
-        if self.check_pot_auto_topup():
-            sync_required = True
+            if sync_required:
+                ms = MonzoSync()
+                ms.sync(3, self.account)
 
-        if sync_required:
-            ms = MonzoSync()
-            ms.sync(3, self.account)
+        except Exception as e:
+            sys.stderr.write(f"FATAL ERROR: {str(e)}")
+
+            state = State.one(key=f'payments_status_{self.account_name}')
+
+            if state is None:
+                state = State()
+
+            state.update({
+                'key': f'payments_status_{self.account_name}',
+                'success': False
+            })
+
+            state.save()
+            sys.exit(1)
+
+        state = State()
+        state.update({
+            'key': f'payments_status_{self.account_name}',
+            'success': True,
+            'last_success': int(time.time())
+        })
+        state.save()
 
 
     def display_columns(self, title):
