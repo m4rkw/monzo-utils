@@ -76,13 +76,12 @@ class MonzoPayments:
 
             self.config_path = f"{homedir}/.monzo"
 
-            os.chdir(self.config_path)
+            if os.path.exists(self.config_path):
+                os.chdir(self.config_path)
 
-            if not os.path.exists(self.config_path):
-                if not os.path.exists(self.config_path):
-                    os.mkdir(self.config_path, 0o755)
-
-            account_config_file = f"{self.config_path}/{self.account_name}.yaml"
+                account_config_file = f"{self.config_path}/{self.account_name}.yaml"
+            else:
+                account_config_file = f"{self.account_name}.yaml"
 
         if not os.path.exists(account_config_file):
             sys.stderr.write(f"Cannot find account config file: {account_config_file}\n")
