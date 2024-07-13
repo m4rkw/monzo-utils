@@ -403,7 +403,8 @@ class MonzoSync:
 
         if type(mo_transaction.metadata) == dict:
             for key in mo_transaction.metadata:
-                transaction_data[key] = mo_transaction.metadata[key]
+                if key.split('_')[0] != 'metadata':
+                    transaction_data['metadata_' + key] = mo_transaction.metadata[key]
 
         transaction.update(transaction_data)
 

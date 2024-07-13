@@ -312,7 +312,7 @@ class dynamodb:
 
 
     def put_item(self, table, data):
-        self.dbd.put_item(
+        resp = self.dbd.put_item(
             TableName=f"{self.prefix}_{table}",
             Item=self.to_dbd(data)
         )

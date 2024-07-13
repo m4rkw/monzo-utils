@@ -200,8 +200,8 @@ class Monzo:
 
             filter_expression = 'contains(#description, :description)'
 
-            attr_names['#description'] = 'description'
-            attr_values[':description'] = {'S': query_string}
+            attr_names['#description'] = 'description_search'
+            attr_values[':description'] = {'S': query_string.lower()}
 
             if query_string.replace('.','').isdigit():
                 # integer value is queried as a range <n>.00 - <n>.99
@@ -224,7 +224,7 @@ class Monzo:
                     attr_values[':zero'] = {'N': '0'}
                     attr_values[':money_value'] = {'N': query_string}
 
-        transactions = Transaction.search(filter_expression=filter_expression, attr_names=attr_names, attr_values=attr_values)
+        transactions = self.sort_transactions(Transaction.search(filter_expression=filter_expression, attr_names=attr_names, attr_values=attr_values))
 
 #        transactions = query.groupBy('`transaction`.id') \
 #            .orderBy('date, created_at', 'asc') \
@@ -232,7 +232,7 @@ class Monzo:
 #
 #        transactions = self.process_pending_refunds(transactions)
 
-        display_columns = ['id','account','pot','date','money_in','money_out','description']
+        display_columns = ['account','pot','date','money_in','money_out','description']
 
         if show_declined:
             display_columns.append('decline_reason')
@@ -396,6 +396,23 @@ class Monzo:
         if self.is_within_bst(dt):
             return dt + datetime.timedelta(hours=1)
         return dt
+
+
+    def sort_transactions(self, transactions):
+        sorted_transactions = []
+        transactions_by_timestamp = {}
+
+        for transaction in transactions:
+            if transaction.timestamp not in transactions_by_timestamp:
+                transactions_by_timestamp[transaction.timestamp] = []
+
+            transactions_by_timestamp[transaction.timestamp].append(transaction)
+
+        for timestamp in sorted(transactions_by_timestamp):
+            for transaction in transactions_by_timestamp[timestamp]:
+                sorted_transactions.append(transaction)
+
+        return sorted_transactions
 
 
 Monzo(sys.argv)
