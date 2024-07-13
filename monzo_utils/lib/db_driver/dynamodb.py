@@ -46,6 +46,10 @@ class dynamodb:
         if len(expression) == 1 and filter_expression is None and key_condition_expression is None:
             key = list(expression.keys())[0]
 
+            if 'QUERY_PROFILE' in os.environ:
+                sys.stdout.write('.')
+                sys.stdout.flush()
+
             resp = self.dbd.get_item(
                 TableName=f"{self.prefix}_{table}",
                 Key={
@@ -93,6 +97,10 @@ class dynamodb:
 
         while 1:
             resp = self.dbd.query(**params)
+
+            if 'QUERY_PROFILE' in os.environ:
+                sys.stdout.write('q')
+                sys.stdout.flush()
 
             if 'Items' in resp:
                 for item in resp['Items']:
@@ -167,6 +175,10 @@ class dynamodb:
 
 
     def cache_table(self, table):
+        if 'QUERY_PROFILE' in os.environ:
+            sys.stdout.write('s')
+            sys.stdout.flush()
+
         resp = self.dbd.scan(
             TableName=f"{self.prefix}_{table}"
         )
@@ -356,6 +368,10 @@ class dynamodb:
         results = []
 
         while 1:
+            if 'QUERY_PROFILE' in os.environ:
+                sys.stdout.write('q')
+                sys.stdout.flush()
+
             resp = self.dbd.query(**params)
 
             if 'Items' in resp:
@@ -396,6 +412,10 @@ class dynamodb:
         results = []
 
         while 1:
+            if 'QUERY_PROFILE' in os.environ:
+                sys.stdout.write('s')
+                sys.stdout.flush()
+
             resp = self.dbd.scan(**params)
 
             if 'Items' in resp:
