@@ -3,6 +3,7 @@ from monzo_utils.model.payment import Payment
 from monzo_utils.model.transaction import Transaction
 from monzo_utils.model.provider import Provider
 from monzo_utils.model.account import Account
+from monzo_utils.model.payments import Payments
 
 class Finance(Payment):
 
@@ -62,6 +63,16 @@ class Finance(Payment):
         if 'single_payment' in self.payment_config and self.payment_config['single_payment']:
             filter_expression, attr_names, attr_values, key_condition_expression = self.get_transaction_where_condition(amounts=False)
 
+            all_transactions_hash = self.hash('all_finance_transactions', filter_expression, attr_names, attr_values, key_condition_expression, self.account.id)
+
+            all_transactions = Payments().one(key=all_transactions_hash)
+
+            if all_transactions is not None:
+                all_finance_transactions = Transaction.all(id=all_transactions.transaction_ids.split(','))
+
+                self.cache['all_finance_transactions'] = all_finance_transactions
+                return all_finance_transactions
+
             self.cache['all_finance_transactions'] = []
 
             account_ids = [self.account.id]
@@ -86,14 +97,35 @@ class Finance(Payment):
                     key_condition_expression=key_condition_expression
                 )
 
+            transaction_ids = []
             for transaction in transactions:
                 if 'monthly_day' in self.payment_config and transaction.date.day != self.payment_config['monthly_day']:
                     continue
 
                 self.cache['all_finance_transactions'].append(transaction)
+                transaction_ids.append(transaction.id)
+
+            all_transactions = Payments()
+            all_transactions.update({
+                'key': all_transactions_hash,
+                'transaction_ids': ','.join(transaction_ids),
+                'account_id': self.account.id
+            })
+            all_transactions.save()
+
         else:
             filter_expression, attr_names, attr_values, key_condition_expression = self.get_transaction_where_condition(amounts)
 
+            all_transactions_hash = self.hash('all_finance_transactions', filter_expression, attr_names, attr_values, key_condition_expression, self.account.id)
+
+            all_transactions = Payments().one(key=all_transactions_hash)
+
+            if all_transactions is not None:
+                all_finance_transactions = Transaction.all(id=all_transactions.transaction_ids.split(','))
+
+                self.cache['all_finance_transactions'] = all_finance_transactions
+                return all_finance_transactions
+
             self.cache['all_finance_transactions'] = []
 
             account_ids = [self.account.id]
@@ -118,11 +150,23 @@ class Finance(Payment):
                     key_condition_expression=key_condition_expression
                 )
 
+            transaction_ids = []
+
             for transaction in transactions:
                 if 'monthly_day' in self.payment_config and transaction.date.day != self.payment_config['monthly_day']:
                     continue
 
                 self.cache['all_finance_transactions'].append(transaction)
+
+                transaction_ids.append(transaction.id)
+
+            all_transactions = Payments()
+            all_transactions.update({
+                'key': all_transactions_hash,
+                'transaction_ids': ','.join(transaction_ids),
+                'account_id': self.account.id
+            })
+            all_transactions.save()
 
         return self.cache['all_finance_transactions']
 

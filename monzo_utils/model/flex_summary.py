@@ -3,6 +3,7 @@ import math
 from monzo_utils.model.payment import Payment
 from monzo_utils.model.account import Account
 from monzo_utils.model.transaction import Transaction
+from monzo_utils.model.payments import Payments
 from monzo_utils.lib.transactions_seen import TransactionsSeen
 
 class FlexSummary(Payment):
@@ -119,6 +120,19 @@ class FlexSummary(Payment):
 
         filter_expression, attr_names, attr_values, key_condition_expression = self.get_transaction_where_condition()
 
+        older_last_payment_hash = self.hash('older_last_payment', filter_expression, attr_names, attr_values, key_condition_expression)
+
+        older_last_payment = Payments().one(key=older_last_payment_hash)
+
+        if older_last_payment is not None:
+            if older_last_payment.transaction_id:
+                older_last_payment = Transaction.one(id=older_last_payment.transaction_id)
+            else:
+                older_last_payment = None
+
+            self.cache['older_last_payment'] = older_last_payment
+            return older_last_payment
+
         transactions = Transaction.find(
             {'account_id': self.account.id},
             filter_expression=filter_expression,
@@ -138,8 +152,24 @@ class FlexSummary(Payment):
 
                 self.cache['older_last_payment'] = transaction
 
+                payments = Payments()
+                payments.update({
+                    'key': older_last_payment_hash,
+                    'transaction_id': transaction.id,
+                    'account_id': self.account.id
+                })
+                payments.save()
+
                 return self.cache['older_last_payment']
 
         self.cache['older_last_payment'] = None
+
+        payments = Payments()
+        payments.update({
+            'key': older_last_payment_hash,
+            'transaction_id': None,
+            'account_id': self.account.id
+        })
+        payments.save()
 
         return self.cache['older_last_payment']

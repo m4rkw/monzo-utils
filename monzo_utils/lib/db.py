@@ -97,6 +97,10 @@ class DB(metaclass=Singleton):
         return False
 
 
+    def all(self, table, **kwargs):
+        return self.query('select', table, kwargs)
+
+
     def find(self, table):
         self.query_table = table
         self.sel = []

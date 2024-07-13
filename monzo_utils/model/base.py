@@ -18,11 +18,23 @@ class BaseModel:
         row = DB().one(table, **kwargs)
 
         if row:
-            table = re.sub(r'(?<!^)(?=[A-Z])', '_', cls.__name__).lower()
-
             return getattr(importlib.import_module(f"monzo_utils.model.{table}"), cls.__name__)(row)
 
         return None
+
+
+    @classmethod
+    def all(cls, **kwargs):
+        table = re.sub(r'(?<!^)(?=[A-Z])', '_', cls.__name__).lower()
+
+        resp = DB().all(table, **kwargs)
+
+        results = []
+
+        for row in resp:
+            results.append(getattr(importlib.import_module(f"monzo_utils.model.{table}"), cls.__name__)(row))
+
+        return results
 
 
     @classmethod
@@ -178,12 +190,14 @@ class BaseModel:
 
     def save(self):
         if self.state['modified'] is False:
-            return
+            return False
 
         if self.id:
             DB().update(self.table, self.id, self.attributes)
         else:
             self.id = DB().create(self.table, self.attributes.copy())
+
+        return True
 
 
     def delete(self):

@@ -21,6 +21,7 @@ from monzo_utils.model.pot import Pot
 from monzo_utils.model.transaction import Transaction
 from monzo_utils.model.counterparty import Counterparty
 from monzo_utils.model.transaction_metadata import TransactionMetadata
+from monzo_utils.model.payments import Payments
 from monzo.exceptions import MonzoAuthenticationError, MonzoServerError, MonzoHTTPError, MonzoPermissionsError
 from boto3.dynamodb.conditions import Key
 
@@ -408,9 +409,9 @@ class MonzoSync:
 
         transaction.update(transaction_data)
 
-        transaction.save()
+        changed = transaction.save()
 
-        return transaction
+        return transaction, changed
 
 
     def get_or_create_provider(self, provider_name):
@@ -474,11 +475,16 @@ class MonzoSync:
 
         Log().info(f'syncing transactions for account: {account.name}')
 
-        pot_account_ids, total = self.sync_account_transactions(account, pot_lookup, days)
+        pot_account_ids, total, changed = self.sync_account_transactions(account, pot_lookup, days)
 
         Log().info(f'syncing pot transactions for account: {account.name}')
 
-        self.sync_account_pot_transactions(account, pot_account_ids, pot_lookup, total, days)
+        pot_changed = self.sync_account_pot_transactions(account, pot_account_ids, pot_lookup, total, days)
+
+        if changed or pot_changed:
+            Log().info(f'transaction changes detected, dropping cached payments for {account.name}')
+
+            self.drop_payments_cache(account)
 
 
     def sync_account_transactions(self, account, pot_lookup, days):
@@ -502,15 +508,22 @@ class MonzoSync:
 
         pot_account_ids = {}
 
+        changed = False
+
         for mo_transaction in mo_transactions:
-            transaction = self.add_transaction(account, mo_transaction, pot_account_ids)
+            transaction, was_changed = self.add_transaction(account, mo_transaction, pot_account_ids)
+
+            if was_changed and transaction.money_out:
+                changed = True
 
             total += 1
 
-        return pot_account_ids, total
+        return pot_account_ids, total, changed
 
 
     def sync_account_pot_transactions(self, account, pot_account_ids, pot_lookup, total, days):
+        changed = False
+
         for pot_account_id in pot_account_ids:
             if pot_lookup[pot_account_ids[pot_account_id]].deleted:
                 continue
@@ -520,11 +533,16 @@ class MonzoSync:
             mo_pot_transactions = self.api.transactions(pot_account_id, days=days)
 
             for mo_pot_transaction in mo_pot_transactions:
-                transaction = self.add_transaction(account, mo_pot_transaction, pot_account_ids, pot_lookup[pot_account_ids[pot_account_id]].id)
+                transaction, was_changed = self.add_transaction(account, mo_pot_transaction, pot_account_ids, pot_lookup[pot_account_ids[pot_account_id]].id)
+
+                if was_changed and transaction.money_out:
+                    changed = True
 
                 total += 1
 
         Log().info(f"account {account.name} synced {total} transactions")
+
+        return changed
 
 
     def sync_account_pots(self, account):
@@ -582,3 +600,34 @@ class MonzoSync:
         account.save()
 
         return account
+
+
+    def drop_payments_cache(self, account):
+        resp = Payments.search(filter_expression='account_id = :account_id', attr_values={':account_id': {'S': account.id}})
+
+        batch = []
+
+        for item in resp:
+            batch.append({
+                'DeleteRequest': {
+                    'Key': {
+                        'key': {'S': item.key}
+                    }
+                }
+            })
+
+            if len(batch) >= 25:
+                self.db.driver.dbd.batch_write_item(
+                    RequestItems={
+                        f"banking_payments": batch
+                    }
+                )
+
+                batch = []
+
+        if len(batch) >0:
+            self.db.driver.dbd.batch_write_item(
+                RequestItems={
+                    f"banking_payments": batch
+                }
+            )

@@ -1,9 +1,11 @@
 import re
 import datetime
+import hashlib
 from monzo_utils.lib.config import Config
 from monzo_utils.model.transaction import Transaction
 from monzo_utils.model.provider import Provider
 from monzo_utils.model.account import Account
+from monzo_utils.model.payments import Payments
 from monzo_utils.lib.transactions_seen import TransactionsSeen
 from currency_converter import CurrencyConverter
 
@@ -24,6 +26,32 @@ class Payment:
         self.today = datetime.datetime.now()
 
         self.cache = {}
+
+
+    def hash(self, *params):
+        identifier = ''
+
+        for key in sorted(self.payment_config):
+            if type(self.payment_config[key]) == list:
+                for value in self.payment_config[key]:
+                    identifier += str(value)
+            else:
+                identifier += str(self.payment_config[key])
+
+        for item in params:
+            if type(item) == list:
+                for child in item:
+                    identifier += str(child)
+            elif type(item) == dict:
+                for key in sorted(item):
+                    identifier += str(item[key])
+            else:
+                identifier += str(item)
+
+        h = hashlib.sha256()
+        h.update(identifier.encode('utf8'))
+
+        return h.hexdigest()
 
 
     def data(self, abbreviate=False):
@@ -423,6 +451,19 @@ class Payment:
 
         filter_expression, attr_names, attr_values, key_condition_expression = self.get_transaction_where_condition()
 
+        last_payment_hash = self.hash('last_payment', filter_expression, attr_names, attr_values, key_condition_expression)
+
+        last_payment = Payments().one(key=last_payment_hash)
+
+        if last_payment is not None:
+            if last_payment.transaction_id:
+                last_payment = Transaction.one(id=last_payment.transaction_id)
+            else:
+                last_payment = None
+
+            self.cache['last_payment'] = last_payment
+            return last_payment
+
         account_ids = [self.account.id]
 
         if 'other_accounts' in self.payment_config:
@@ -454,7 +495,23 @@ class Payment:
 
                 self.cache['last_payment'] = transaction
 
+                last_payment = Payments()
+                last_payment.update({
+                    'key': last_payment_hash,
+                    'transaction_id': transaction.id,
+                    'account_id': self.account.id
+                })
+                last_payment.save()
+
                 return self.cache['last_payment']
+
+        last_payment = Payments()
+        last_payment.update({
+            'key': last_payment_hash,
+            'transaction_id': None,
+            'account_id': self.account.id
+        })
+        last_payment.save()
 
         self.cache['last_payment'] = None
 
@@ -468,6 +525,19 @@ class Payment:
             return self.cache['older_last_payment']
 
         filter_expression, attr_names, attr_values, key_condition_expression = self.get_transaction_where_condition()
+
+        last_payment_hash = self.hash('older_last_payment', filter_expression, attr_names, attr_values, key_condition_expression)
+
+        last_payment = Payments().one(key=last_payment_hash)
+
+        if last_payment is not None:
+            if last_payment.transaction_id:
+                last_payment = Transaction.one(id=last_payment.transaction_id)
+            else:
+                last_payment = None
+
+            self.cache['older_last_payment'] = last_payment
+            return last_payment
 
         account_ids = [self.account.id]
 
@@ -498,9 +568,25 @@ class Payment:
             if transaction.id not in TransactionsSeen().seen:
                 TransactionsSeen().seen[transaction.id] = 1
 
+                older_last_payment = Payments()
+                older_last_payment.update({
+                    'key': last_payment_hash,
+                    'transaction_id': transaction.id,
+                    'account_id': self.account.id
+                })
+                older_last_payment.save()
+
                 self.cache['older_last_payment'] = transaction
 
                 return self.cache['older_last_payment']
+
+        older_last_payment = Payments()
+        older_last_payment.update({
+            'key': last_payment_hash,
+            'transaction_id': None,
+            'account_id': self.account.id
+        })
+        older_last_payment.save()
 
         self.cache['older_last_payment'] = None
 

@@ -8,7 +8,8 @@ import datetime
 CACHE_WHOLE_TABLES = [
     'provider',
     'account',
-    'pot'
+    'pot',
+    'payments'
 ]
 
 SECONDARY_INDICES = {
@@ -49,6 +50,45 @@ class dynamodb:
             if 'QUERY_PROFILE' in os.environ:
                 sys.stdout.write('.')
                 sys.stdout.flush()
+
+            if type(expression[key]) == list:
+                batch = []
+                results = []
+
+                for value in expression[key]:
+                    batch.append({
+                        key: { 'S': value }
+                    })
+
+                    if len(batch) >= 100:
+                        resp = self.dbd.batch_get_item(
+                            RequestItems={
+                                f"{self.prefix}_{table}": {
+                                    'Keys': batch
+                                }
+                            }
+                        )
+
+                        if 'Responses' in resp and f"{self.prefix}_{table}" in resp['Responses']:
+                            for item in resp['Responses'][f"{self.prefix}_{table}"]:
+                                results.append(self.to_obj(item))
+
+                        batch = []
+
+                if len(batch) > 0:
+                    resp = self.dbd.batch_get_item(
+                        RequestItems={
+                            f"{self.prefix}_{table}": {
+                                'Keys': batch
+                            }
+                        }
+                    )
+
+                    if 'Responses' in resp and f"{self.prefix}_{table}" in resp['Responses']:
+                        for item in resp['Responses'][f"{self.prefix}_{table}"]:
+                            results.append(self.to_obj(item))
+
+                return results
 
             resp = self.dbd.get_item(
                 TableName=f"{self.prefix}_{table}",

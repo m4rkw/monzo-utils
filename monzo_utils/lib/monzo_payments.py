@@ -23,6 +23,7 @@ from monzo_utils.model.pot import Pot
 from monzo_utils.model.transaction import Transaction
 from monzo_utils.model.flex_summary import FlexSummary
 from monzo_utils.model.state import State
+from monzo_utils.model.payments import Payments
 from govuk_bank_holidays.bank_holidays import BankHolidays
 from calendar import monthrange
 
@@ -39,6 +40,7 @@ class MonzoPayments:
         self.total_this_month = 0
         self.next_month = 0
         self.next_month_bills_pot = 0
+        self.cache = {}
 
         self.config = self.load_config()
         self.validate_config()
@@ -468,6 +470,19 @@ class MonzoPayments:
         else:
             account = self.account
 
+        if 'last_salary_transaction' in self.cache:
+            last_salary_transaction = self.cache['last_salary_transaction']
+
+            return last_salary_transaction.date
+
+        last_salary_transaction = Payments.one(key='last_salary_transaction')
+
+        if last_salary_transaction:
+            last_salary_transaction = Transaction.one(id=last_salary_transaction.transaction_id)
+
+            self.cache['last_salary_transaction'] = last_salary_transaction
+            return last_salary_transaction.date
+
         last_salary_transaction = account.last_salary_transaction(
             description=self.config['salary_description'],
             salary_minimum=self.config['salary_minimum'] if 'salary_minimum' in self.config else 1000,
@@ -477,6 +492,14 @@ class MonzoPayments:
         if not last_salary_transaction:
             sys.stderr.write("failed to find last salary transaction.\n")
             sys.exit(1)
+
+        payments = Payments()
+        payments.update({
+            'key': 'last_salary_transaction',
+            'transaction_id': last_salary_transaction.id,
+            'account_id': account.id
+        })
+        payments.save()
 
         last_salary_date = last_salary_transaction.date
 
