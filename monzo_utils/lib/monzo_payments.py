@@ -56,12 +56,6 @@ class MonzoPayments:
             sys.stderr.write(f"account {self.account_name} not found in the database\n")
             sys.exit(1)
 
-#        homedir = pwd.getpwuid(os.getuid()).pw_dir
-#        self.credit_tracker = f"{homedir}/.monzo/{self.config['account']}.credit"
-#        self.credit_notify_tracker = f"{homedir}/.monzo/{self.config['account']}.credit_notify"
-#        self.shortfall_tracker = f"{homedir}/.monzo/{self.config['account']}.shortfall"
-#        self.shortfall_notify_tracker = f"{homedir}/.monzo/{self.config['account']}.shortfall_notify"
-
 
     def get_db(self):
         try:
@@ -187,7 +181,6 @@ class MonzoPayments:
             pot = self.account
 
         shortfall = (self.due - (round(pot.balance * 100))) / 100
-        shortfall = 10
 
         if self.json:
             data = {
