@@ -150,32 +150,6 @@ class Monzo:
             for exclude_account in Config().exclude_accounts:
                 query.andWhere('account.name != %s', [exclude_account])
 
-#        if len(query_args) >0:
-#            query_string = (' '.join(query_args))
-#            query_param = '%' + query_string + '%'
-#
-#            clause = 'description like %s'
-#            params = [query_param]
-#
-#            if query_string.replace('.','').isdigit():
-#                # integer value is queried as a range <n>.00 - <n>.99
-#                if query_string.isdigit():
-#                    money_from = '%s.00' % (query_string)
-#                    money_to = '%s.99' % (query_string)
-#
-#                    clause += " or (money_in >0 and money_in >= %s and money_in <= %s) or (money_out >0 and money_out >= %s and money_out <= %s)"
-#                    params += [money_from, money_to, money_from, money_to]
-#
-#                # query for specific value, eg 10.99
-#                else:
-#                    while len(query_string.split('.')[1]) <2:
-#                        query_string += '0'
-#
-#                    clause += "or (money_in >0 and money_in = %s) or (money_out >0 and money_out = %s)"
-#                    params += [query_string, query_string]
-#
-#            query.andWhere(clause, params)
-
         if include_pots is False:
             query.andWhere('description not like %s', ['pot_0000%'])
 
@@ -224,7 +198,24 @@ class Monzo:
                     attr_values[':zero'] = {'N': '0'}
                     attr_values[':money_value'] = {'N': query_string}
 
-        transactions = self.sort_transactions(Transaction.search(filter_expression=filter_expression, attr_names=attr_names, attr_values=attr_values))
+        if not show_declined:
+            if filter_expression:
+                filter_expression = "(" + filter_expression + ") AND declined = :zero"
+
+                if attr_values is None:
+                    attr_values = {}
+
+                attr_values[':zero'] = {'N': '0'}
+
+            else:
+                filter_expression = "declined = :zero"
+
+                if attr_values is None:
+                    attr_values = {}
+
+                attr_values[':zero'] = {'N': '0'}
+
+        transactions = self.sort_transactions(Transaction.search(filter_expression=filter_expression, attr_names=attr_names, attr_values=attr_values), include_pots=include_pots)
 
 #        transactions = query.groupBy('`transaction`.id') \
 #            .orderBy('date, created_at', 'asc') \
@@ -292,6 +283,14 @@ class Monzo:
                     data[i]['pot'] = Pot.one(id=data[i]['pot_id']).name
                 else:
                     data[i]['pot'] = None
+
+            if data[i]['money_in']:
+                data[i]['money_in'] = '%.2f' % (float(data[i]['money_in']))
+            if data[i]['money_out']:
+                data[i]['money_out'] = '%.2f' % (float(data[i]['money_out']))
+
+            if len(data[i]['description']) > 50:
+                data[i]['description'] = data[i]['description'][0:50]
 
             for key in columns:
                 if key in FIELD_MAP:
@@ -398,15 +397,18 @@ class Monzo:
         return dt
 
 
-    def sort_transactions(self, transactions):
+    def sort_transactions(self, transactions, include_pots):
         sorted_transactions = []
         transactions_by_timestamp = {}
 
         for transaction in transactions:
-            if transaction.timestamp not in transactions_by_timestamp:
-                transactions_by_timestamp[transaction.timestamp] = []
+            if include_pots is False and transaction.description[0:len('pot_0000')] == 'pot_0000':
+                continue
 
-            transactions_by_timestamp[transaction.timestamp].append(transaction)
+            if transaction.created_at not in transactions_by_timestamp:
+                transactions_by_timestamp[transaction.created_at] = []
+
+            transactions_by_timestamp[transaction.created_at].append(transaction)
 
         for timestamp in sorted(transactions_by_timestamp):
             for transaction in transactions_by_timestamp[timestamp]:
