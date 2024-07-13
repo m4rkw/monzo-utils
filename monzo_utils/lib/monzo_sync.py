@@ -364,6 +364,7 @@ class MonzoSync:
             'date': date,
             'type': _type,
             'description': description,
+            'description_search': description.lower(),
             'ref': mo_transaction.description,
             'money_in': money_in,
             'money_out': money_out,
