@@ -1,6 +1,7 @@
 import sys
 from monzo_utils.model.base import BaseModel
 from monzo_utils.model.pot import Pot
+from monzo_utils.model.transaction import Transaction
 from monzo_utils.lib.db import DB
 
 class Account(BaseModel):
@@ -8,8 +9,8 @@ class Account(BaseModel):
     DISPLAY_KEYS = ['name','sortcode','account_no','balance','available']
 
 
-    def transactions(self, orderby='created_at', orderdir='asc', limit=None):
-        return super().related('Transaction', 'account_id', self.id, orderby, orderdir, limit)
+    def transactions(self, orderby='timestamp', orderdir='asc', limit=None):
+        return super().related_query('Transaction', 'account_id', self.id, orderby, orderdir, limit)
 
 
     def pots(self, orderby='name', orderdir='asc', limit=None):
@@ -17,7 +18,7 @@ class Account(BaseModel):
 
 
     def get_pot(self, name):
-        return Pot.one("select * from pot where account_id = %s and name = %s and deleted = %s", [self.id, name, 0])
+        return Pot.one(account_id=self.id, name=name, deleted=0)
 
 
     @property
@@ -54,21 +55,28 @@ class Account(BaseModel):
         else:
             salary_desc = [description]
 
-        where = f"account_id = %s and declined = %s and money_in >= %s and ("
-        params = [self.id, 0, salary_minimum]
+        filter_expression = 'declined = :declined AND money_in >= :salary_minimum AND ('
+        attr_names = {
+            '#description': 'description'
+        }
+        attr_values = {
+            ':declined': {'N': '0'},
+            ':salary_minimum': {'N': str(salary_minimum)}
+        }
 
         for i in range(0, len(salary_desc)):
             if i >0:
-                where += ' or '
-            where += " description like %s"
-            params.append('%' + salary_desc[i] + '%')
+                filter_expression += ' OR '
 
-        where += ")"
+            filter_expression += f'contains(#description, :salarydesc{i})'
+            attr_values[f':salarydesc{i}'] = {'S': salary_desc[i]}
 
-        for row in DB().query(f"select * from transaction where {where} order by created_at desc", params):
-            day = row['date'].day
+        filter_expression += ' )'
 
-            if row['date'].day >= salary_payment_day - 4 and row['date'].day <= salary_payment_day:
-                return row
+        for transaction in Transaction().find({'account_id': self.id}, filter_expression=filter_expression, attr_names=attr_names, attr_values=attr_values, orderby='created_at', orderdir='desc'):
+            day = transaction.date.day
+
+            if day >= salary_payment_day - 4 and day <= salary_payment_day:
+                return transaction
 
         return None

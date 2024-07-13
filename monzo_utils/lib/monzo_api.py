@@ -17,27 +17,21 @@ from monzo.exceptions import MonzoAuthenticationError, MonzoServerError, MonzoHT
 from monzo_utils.lib.log import Log
 from monzo_utils.lib.config import Config
 from pushover import Client
+from monzo_utils.model.state import State
+from monzo_utils.model.reauth import Reauth
 
 class MonzoAPI:
 
     def __init__(self):
-        homedir = pwd.getpwuid(os.getuid()).pw_dir
-        self.monzo_dir = f"{homedir}/.monzo"
-        self.token_file = f"{self.monzo_dir}/tokens"
-
         self.load_tokens()
 
         self.client = self.get_client()
 
 
     def load_tokens(self):
-        if os.path.exists(self.token_file):
-            data = json.loads(open(self.token_file).read())
+        self.state = State().one(key='tokens')
 
-            self.access_token = data['access_token']
-            self.access_token_expiry = data['expiry']
-            self.refresh_token = data['refresh_token']
-        else:
+        if self.state is None:
             self.authenticate()
 
  
@@ -48,18 +42,16 @@ class MonzoAPI:
             redirect_url=Config().redirect_url
         )
 
-        auth_required_file = f"{self.monzo_dir}/.auth_required"
-
         if not sys.stdout.isatty():
             if 'pushover' in Config().keys:
                 pushover = Client(Config().pushover['user_key'], api_token=Config().pushover['app_key'])
                 pushover.send_message('Auth required', title='Monzo Sync', url=client.authentication_url)
-            elif 'email' in Config().keys:
-                if not os.path.exists(auth_required_file):
-                    with open(auth_required_file,'w') as f:
-                        pass
-
-                    os.system("echo '%s'| mail -s 'Monzo auth required' '%s'" % (client.authentication_url, Config().email))
+#            elif 'email' in Config().keys:
+#                if not os.path.exists(auth_required_file):
+#                    with open(auth_required_file,'w') as f:
+#                        pass
+#
+#                    os.system("echo '%s'| mail -s 'Monzo auth required' '%s'" % (client.authentication_url, Config().email))
 
             Log().error('Authentication required, unable to sync.')
         else:
@@ -69,18 +61,27 @@ class MonzoAPI:
         if os.path.exists(Config().oauth_token_file):
             os.remove(Config().oauth_token_file)
 
-        if 'execute_before_auth' in Config().keys:
-            os.system(Config().execute_before_auth)
+        auth_token = Reauth().one(key='authcode')
 
-        while not os.path.exists(Config().oauth_token_file):
-            time.sleep(1)
+        if auth_token is not None:
+            auth_token.delete()
 
-        data = json.loads(open(Config().oauth_token_file).read().rstrip())
+        while 1:
+            time.sleep(10)
 
-        os.remove(Config().oauth_token_file)
+            auth_token = Reauth().one(key='authcode')
+
+            if auth_token is not None:
+                break
+
+        auth_token.delete()
+
+        if 'DEBUG' in os.environ:
+            Log().info(f"CODE: {auth_token.auth_code}")
+            Log().info(f"STATE: {auth_token.auth_state}")
 
         try:
-            client.authenticate(authorization_token=data['token'], state_token=data['state'])
+            client.authenticate(authorization_token=auth_token.auth_code, state_token=auth_token.auth_state)
         except MonzoAuthenticationError:
             Log().error('State code does not match')
             exit(1)
@@ -88,17 +89,18 @@ class MonzoAPI:
             Log().error('Monzo Server Error')
             exit(1)
 
-        self.access_token = client.access_token
-        self.access_token_expiry = client.access_token_expiry
-        self.refresh_token = client.refresh_token
+        if self.state is None:
+            self.state = State()
 
-        self.save_tokens()
+        self.state.update({
+            'key': 'tokens',
+            'access_token': client.access_token,
+            'access_token_expiry': client.access_token_expiry,
+            'refresh_token': client.refresh_token,
+            'updated_at': datetime.datetime.now()
+        })
 
-        if os.path.exists(auth_required_file):
-            os.remove(auth_required_file)
-
-        if 'execute_after_auth' in Config().keys:
-            os.system(Config().execute_after_auth)
+        self.state.save()
 
         self.client = self.get_client()
 
@@ -114,29 +116,14 @@ class MonzoAPI:
                 pass
 
 
-    def save_tokens(self):
-        self.set_file_contents(self.token_file, json.dumps({
-            'access_token': self.access_token,
-            'expiry': self.access_token_expiry,
-            'refresh_token': self.refresh_token
-        }))
-
-
-    def set_file_contents(self, path, content):
-        with open(path + ".new", 'w') as f:
-            f.write(content)
-
-        os.rename(path + ".new", path)
-
-
     def get_client(self):
         return Authentication(
             client_id=Config().client_id,
             client_secret=Config().client_secret,
             redirect_url=Config().redirect_url,
-            access_token=self.access_token,
-            access_token_expiry=self.access_token_expiry,
-            refresh_token=self.refresh_token
+            access_token=self.state.access_token,
+            access_token_expiry=self.state.access_token_expiry,
+            refresh_token=self.state.refresh_token
         )
 
 
@@ -192,16 +179,19 @@ class MonzoAPI:
 
 
     def update_tokens(self):
-        if self.access_token == self.client.access_token and \
-            self.access_token_expiry == self.client.access_token_expiry and \
-            self.refresh_token == self.client.refresh_token:
+        if self.state.access_token == self.client.access_token and \
+            self.state.access_token_expiry == self.client.access_token_expiry and \
+            self.state.refresh_token == self.client.refresh_token:
             return
 
-        self.access_token = self.client.access_token
-        self.access_token_expiry = self.client.access_token_expiry
-        self.refresh_token = self.client.refresh_token
+        self.state.update({
+            'access_token': self.client.access_token,
+            'access_token_expiry': self.client.access_token_expiry,
+            'refresh_token': self.client.refresh_token,
+            'updated_at': datetime.datetime.now()
+        })
 
-        self.save_tokens()
+        self.state.save()
 
 
     def transactions(self, account_id, days=3):

@@ -1,6 +1,8 @@
 from monzo_utils.lib.config import Config
 from monzo_utils.model.payment import Payment
 from monzo_utils.model.transaction import Transaction
+from monzo_utils.model.provider import Provider
+from monzo_utils.model.account import Account
 
 class Finance(Payment):
 
@@ -58,19 +60,71 @@ class Finance(Payment):
             amounts.append(final_payment)
 
         if 'single_payment' in self.payment_config and self.payment_config['single_payment']:
-            where, params = self.get_transaction_where_condition(amounts=False)
+            filter_expression, attr_names, attr_values, key_condition_expression = self.get_transaction_where_condition(amounts=False)
 
-            self.cache['all_finance_transactions'] = Transaction.find(
-                f"select * from transaction where {where} order by created_at asc",
-                params
-            )
+            print(self.payment_config['name'])
+
+            self.cache['all_finance_transactions'] = []
+
+            account_ids = [self.account.id]
+
+            if 'other_accounts' in self.payment_config:
+                for other_account in self.payment_config['other_accounts']:
+                    provider = Provider.one(name=other_account['provider'])
+                    account = Account.one(provider_id=provider.id, name=other_account['name'])
+
+                    account_ids.append(account.id)
+
+            transactions = []
+
+            for account_id in account_ids:
+                transactions += Transaction.find(
+                    {'account_id': account_id},
+                    filter_expression=filter_expression,
+                    attr_names=attr_names,
+                    attr_values=attr_values,
+                    orderby='created_at',
+                    orderdir='asc',
+                    key_condition_expression=key_condition_expression
+                )
+
+            for transaction in transactions:
+                if 'monthly_day' in self.payment_config and transaction.date.day != self.payment_config['monthly_day']:
+                    continue
+
+                self.cache['all_finance_transactions'].append(transaction)
         else:
-            where, params = self.get_transaction_where_condition(amounts)
+            filter_expression, attr_names, attr_values, key_condition_expression = self.get_transaction_where_condition(amounts)
 
-            self.cache['all_finance_transactions'] = Transaction.find(
-                f"select * from transaction where {where} order by created_at asc",
-                params
-            )
+            self.cache['all_finance_transactions'] = []
+
+            account_ids = [self.account.id]
+
+            if 'other_accounts' in self.payment_config:
+                for other_account in self.payment_config['other_accounts']:
+                    provider = Provider.one(name=other_account['provider'])
+                    account = Account.one(provider_id=provider.id, name=other_account['name'])
+
+                    account_ids.append(account.id)
+
+            transactions = []
+
+            for account_id in account_ids:
+                transactions += Transaction.find(
+                    {'account_id': account_id},
+                    filter_expression=filter_expression,
+                    attr_names=attr_names,
+                    attr_values=attr_values,
+                    orderby='created_at',
+                    orderdir='asc',
+                    key_condition_expression=key_condition_expression
+                )
+
+            for transaction in transactions:
+                if 'monthly_day' in self.payment_config and transaction.date.day != self.payment_config['monthly_day']:
+                    continue
+
+                self.cache['all_finance_transactions'].append(transaction)
 
         return self.cache['all_finance_transactions']
 

@@ -24,7 +24,7 @@ class mysql:
         self.cur = self.db.cursor()
 
 
-    def query(self, sql, params=[]):
+    def query(self, sql, params=[], param3=None):
         self.cur.execute((sql), params)
 
         if sql[0:6].lower() == "select":

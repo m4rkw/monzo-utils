@@ -277,6 +277,73 @@ class Payment:
         if 'desc' not in self.payment_config:
             self.payment_config['desc'] = type(self).__name__
 
+        if type(self.payment_config['desc']) == list:
+            desc_list = self.payment_config['desc']
+        else:
+            desc_list = [self.payment_config['desc']]
+
+        key_condition_expression = None
+        filter_expression = f'{self.transaction_type} > :zero AND declined = :zero'
+        attr_names = {
+            '#description': 'description'
+        }
+        attr_values = {
+            ':zero': {'N': '0'}
+        }
+
+        filter_expression += ' AND ('
+
+        for i in range(0, len(desc_list)):
+            if i >0:
+                filter_expression += " OR "
+
+            filter_expression += f"contains(#description, :desc{i})"
+            attr_values[f':desc{i}'] = {'S': desc_list[i]}
+
+        filter_expression += ")"
+
+        if 'metadata' in self.payment_config:
+            keys = list(sorted(list(self.payment_config['metadata'].keys())))
+
+            for i in range(0, len(keys)):
+                filter_expression += f" AND {keys[i]} = :meta{i}"
+                attr_values[f':meta{i}'] = {'S': self.payment_config['metadata'][keys[i]]}
+
+        if 'start_date' in self.payment_config:
+            timestamp = datetime.datetime.strptime(self.payment_config['start_date'].strftime('%Y-%m-%d'), '%Y-%m-%d').timestamp()
+
+            key_condition_expression = "#timestamp >= :timestamp"
+            attr_names['#timestamp'] = 'timestamp'
+            attr_values[':timestamp'] = {'N': str(timestamp)}
+
+        if amounts is True and (self.always_fixed or ('fixed' in self.payment_config and self.payment_config['fixed'])):
+            filter_expression += f" AND {self.transaction_type} = :value"
+
+            if int(self.payment_config['amount']) == self.payment_config['amount']:
+                attr_values[':value'] = {'N': str(self.payment_config['amount'])}
+            else:
+                attr_values[':value'] = {'N': '%.2f' % (self.payment_config['amount'])}
+        elif amounts is not False and amounts is not True and amounts is not None:
+            if type(amounts) != list:
+                amounts = [amounts]
+
+            filter_expression += " AND ("
+
+            for i in range(0, len(amounts)):
+                if i >0:
+                    filter_expression += " OR "
+
+                filter_expression += f" {self.transaction_type} = :value{i}"
+
+                if int(amounts[i]) == amounts[i]:
+                    attr_values[f':value{i}'] = {'N': str(amounts[i])}
+                else:
+                    attr_values[f':value{i}'] = {'N': '%.2f' % (amounts[i])}
+
+            filter_expression += ')'
+
+        return filter_expression, attr_names, attr_values, key_condition_expression
+
         where = "( account_id = %s"
         params = [self.account.id]
 
@@ -354,18 +421,32 @@ class Payment:
         if 'last_payment' in self.cache:
             return self.cache['last_payment']
 
-        where, params = self.get_transaction_where_condition()
+        filter_expression, attr_names, attr_values, key_condition_expression = self.get_transaction_where_condition()
 
-        sql = "select * from transaction"
+        account_ids = [self.account.id]
 
-        if 'metadata' in self.payment_config:
-            for i in range(0, len(self.payment_config['metadata'])):
-                sql += " join transaction_metadata meta%d on transaction.id = meta%d.transaction_id" % (i+1, i+1)
+        if 'other_accounts' in self.payment_config:
+            for other_account in self.payment_config['other_accounts']:
+                provider = Provider.one(name=other_account['provider'])
+                account = Account.one(provider_id=provider.id, name=other_account['name'])
 
-        transactions = Transaction.find(f"{sql} where {where} order by created_at desc", params)
+                account_ids.append(account.id)
+
+        transactions = []
+
+        for account_id in account_ids:
+            transactions += Transaction.find(
+                {'account_id': account_id},
+                filter_expression=filter_expression,
+                attr_names=attr_names,
+                attr_values=attr_values,
+                orderby='created_at',
+                orderdir='desc',
+                key_condition_expression=key_condition_expression
+            )
 
         for transaction in transactions:
-            if 'start_date' in self.payment_config and transaction.date < self.payment_config['start_date']:
+            if 'monthly_day' in self.payment_config and transaction.date.day != self.payment_config['monthly_day']:
                 continue
 
             if transaction.id not in TransactionsSeen().seen:
@@ -386,20 +467,34 @@ class Payment:
         if 'older_last_payment' in self.cache:
             return self.cache['older_last_payment']
 
-        where, params = self.get_transaction_where_condition()
+        filter_expression, attr_names, attr_values, key_condition_expression = self.get_transaction_where_condition()
 
-        sql = "select * from transaction"
+        account_ids = [self.account.id]
 
-        if 'metadata' in self.payment_config:
-            for i in range(0, len(self.payment_config['metadata'])):
-                sql += " join transaction_metadata meta%d on transaction.id = meta%d.transaction_id" % (i+1, i+1)
+        if 'other_accounts' in self.payment_config:
+            for other_account in self.payment_config['other_accounts']:
+                provider = Provider.one(name=other_account['provider'])
+                account = Account.one(provider_id=provider.id, name=other_account['name'])
 
-        transactions = Transaction.find(
-            f"{sql} where {where} order by created_at desc",
-            params
-        )
+                account_ids.append(account.id)
+
+        transactions = []
+
+        for account_id in account_ids:
+            transactions += Transaction.find(
+                {'account_id': account_id},
+                filter_expression=filter_expression,
+                attr_names=attr_names,
+                attr_values=attr_values,
+                orderby='created_at',
+                orderdir='desc',
+                key_condition_expression=key_condition_expression
+            )
 
         for transaction in transactions:
+            if 'monthly_day' in self.payment_config and transaction.date.day != self.payment_config['monthly_day']:
+                continue
+
             if transaction.id not in TransactionsSeen().seen:
                 TransactionsSeen().seen[transaction.id] = 1
 

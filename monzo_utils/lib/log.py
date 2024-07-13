@@ -4,6 +4,7 @@ import datetime
 import inspect
 import pwd
 from monzo_utils.lib.singleton import Singleton
+from monzo_utils.lib.config import Config
 
 MAX_SIZE_MB = 10
 MAX_FILES = 5
@@ -11,8 +12,9 @@ MAX_FILES = 5
 class Log(metaclass=Singleton):
 
     def __init__(self):
-        homedir = pwd.getpwuid(os.getuid()).pw_dir
-        self.logfile = f"{homedir}/.monzo/logfile"
+        if Config().db['driver'] != 'dynamodb':
+            homedir = pwd.getpwuid(os.getuid()).pw_dir
+            self.logfile = f"{homedir}/.monzo/logfile"
 
 
     def info(self, message):
@@ -38,8 +40,9 @@ class Log(metaclass=Singleton):
             message
         )
 
-        with open(self.logfile, 'a+') as f:
-            f.write(log_line)
+        if Config().db['driver'] != 'dynamodb':
+            with open(self.logfile, 'a+') as f:
+                f.write(log_line)
 
         if sys.stdin.isatty():
             if level == 'info':
@@ -48,8 +51,16 @@ class Log(metaclass=Singleton):
             else:
                 sys.stderr.write(log_line)
                 sys.stderr.flush()
+        else:
+            if level in ['warning','error','fatal']:
+                sys.stderr.write(log_line)
+                sys.stderr.flush()
+            elif 'DEBUG' in os.environ:
+                sys.stdout.write(log_line)
+                sys.stdout.flush()
 
-        self.rotate()
+        if Config().db['driver'] != 'dynamodb':
+            self.rotate()
 
 
     def rotate(self):

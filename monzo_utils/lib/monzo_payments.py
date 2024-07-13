@@ -47,18 +47,19 @@ class MonzoPayments:
         self.seen = []
         self.exchange_rates = {}
 
-        self.provider = Provider.one("select * from provider where name = %s", [PROVIDER])
-        self.account = Account.one("select * from account where provider_id = %s and name = %s", [self.provider.id, self.account_name])
+        self.provider = Provider.one(name=PROVIDER)
+
+        self.account = Account.one(provider_id=self.provider.id, name=self.account_name)
 
         if not self.account:
             sys.stderr.write(f"account {self.account_name} not found in the database\n")
             sys.exit(1)
 
-        homedir = pwd.getpwuid(os.getuid()).pw_dir
-        self.credit_tracker = f"{homedir}/.monzo/{self.config['account']}.credit"
-        self.credit_notify_tracker = f"{homedir}/.monzo/{self.config['account']}.credit_notify"
-        self.shortfall_tracker = f"{homedir}/.monzo/{self.config['account']}.shortfall"
-        self.shortfall_notify_tracker = f"{homedir}/.monzo/{self.config['account']}.shortfall_notify"
+#        homedir = pwd.getpwuid(os.getuid()).pw_dir
+#        self.credit_tracker = f"{homedir}/.monzo/{self.config['account']}.credit"
+#        self.credit_notify_tracker = f"{homedir}/.monzo/{self.config['account']}.credit_notify"
+#        self.shortfall_tracker = f"{homedir}/.monzo/{self.config['account']}.shortfall"
+#        self.shortfall_notify_tracker = f"{homedir}/.monzo/{self.config['account']}.shortfall_notify"
 
 
     def get_db(self):
@@ -251,8 +252,8 @@ class MonzoPayments:
 
         else:
 
-            if os.path.exists(self.shortfall_tracker):
-                os.remove(self.shortfall_tracker)
+#            if os.path.exists(self.shortfall_tracker):
+#                os.remove(self.shortfall_tracker)
 
             print("    due: £%.2f" % (self.due / 100))
             print("balance: £%.2f" % (pot.balance))
@@ -260,8 +261,8 @@ class MonzoPayments:
             if round(credit * 100) == 0:
                 credit = 0
 
-                if os.path.exists(self.credit_tracker):
-                    os.remove(self.credit_tracker)
+#                if os.path.exists(self.credit_tracker):
+#                    os.remove(self.credit_tracker)
 
             else:
                 print(" credit: £%.2f" % (credit))
@@ -447,7 +448,7 @@ class MonzoPayments:
             sys.stderr.write("failed to find last salary transaction.\n")
             sys.exit(1)
 
-        last_salary_date = last_salary_transaction['date']
+        last_salary_date = last_salary_transaction.date
 
         return last_salary_date
 
@@ -772,7 +773,7 @@ class MonzoPayments:
             return sync_required
 
         for payment in self.config['pot_auto_topup']:
-            pot = Pot.one("select * from pot where name = %s and deleted = %s", [payment['name'], 0])
+            pot = Pot.one(name=payment['name'], deleted=0)
 
             if not pot:
                 continue

@@ -14,6 +14,8 @@ import calendar
 from monzo_utils.lib.config import Config
 from monzo_utils.lib.db import DB
 from monzo_utils.model.transaction import Transaction
+from monzo_utils.model.account import Account
+from monzo_utils.model.pot import Pot
 
 # Ignore dateparser warnings regarding pytz
 warnings.filterwarnings(
@@ -58,13 +60,13 @@ class Monzo:
                 continue
 
             if args[i] == 'on' and i+1 < len(args):
-                if re.match('^[\d]{4}$', args[i+1]):
+                if re.match(r'^[\d]{4}$', args[i+1]):
                     date_from = datetime.datetime(int(args[i+1]), 1,1,0,0,0)
                     date_to = datetime.datetime(int(args[i+1]), 12,31,23,59,59)
                     skip = True
                     continue
 
-                m = re.match('^([\d]{4})-([\d]{1,2})$', args[i+1])
+                m = re.match(r'^([\d]{4})-([\d]{1,2})$', args[i+1])
 
                 if m:
                     year = int(m.group(1))
@@ -84,12 +86,12 @@ class Monzo:
                     sys.exit(1)
 
             if args[i] == 'from' and i+1 < len(args):
-                if re.match('^[\d]{4}$', args[i+1]):
+                if re.match(r'^[\d]{4}$', args[i+1]):
                     date_from = datetime.datetime(int(args[i+1]), 1,1,0,0,0)
                     skip = True
                     continue
 
-                m = re.match('^([\d]{4})-([\d]{1,2})$', args[i+1])
+                m = re.match(r'^([\d]{4})-([\d]{1,2})$', args[i+1])
 
                 if m:
                     year = int(m.group(1))
@@ -108,12 +110,12 @@ class Monzo:
                     sys.exit(1)
 
             if args[i] == 'to' and i+1 < len(args):
-                if re.match('^[\d]{4}$', args[i+1]):
+                if re.match(r'^[\d]{4}$', args[i+1]):
                     date_to = datetime.datetime(int(args[i+1]), 12,31,23,59,59)
                     skip = True
                     continue
 
-                m = re.match('^([\d]{4})-([\d]{1,2})$', args[i+1])
+                m = re.match(r'^([\d]{4})-([\d]{1,2})$', args[i+1])
 
                 if m:
                     year = int(m.group(1))
@@ -148,31 +150,31 @@ class Monzo:
             for exclude_account in Config().exclude_accounts:
                 query.andWhere('account.name != %s', [exclude_account])
 
-        if len(query_args) >0:
-            query_string = (' '.join(query_args))
-            query_param = '%' + query_string + '%'
-
-            clause = 'description like %s'
-            params = [query_param]
-
-            if query_string.replace('.','').isdigit():
-                # integer value is queried as a range <n>.00 - <n>.99
-                if query_string.isdigit():
-                    money_from = '%s.00' % (query_string)
-                    money_to = '%s.99' % (query_string)
-
-                    clause += " or (money_in >0 and money_in >= %s and money_in <= %s) or (money_out >0 and money_out >= %s and money_out <= %s)"
-                    params += [money_from, money_to, money_from, money_to]
-
-                # query for specific value, eg 10.99
-                else:
-                    while len(query_string.split('.')[1]) <2:
-                        query_string += '0'
-
-                    clause += "or (money_in >0 and money_in = %s) or (money_out >0 and money_out = %s)"
-                    params += [query_string, query_string]
-
-            query.andWhere(clause, params)
+#        if len(query_args) >0:
+#            query_string = (' '.join(query_args))
+#            query_param = '%' + query_string + '%'
+#
+#            clause = 'description like %s'
+#            params = [query_param]
+#
+#            if query_string.replace('.','').isdigit():
+#                # integer value is queried as a range <n>.00 - <n>.99
+#                if query_string.isdigit():
+#                    money_from = '%s.00' % (query_string)
+#                    money_to = '%s.99' % (query_string)
+#
+#                    clause += " or (money_in >0 and money_in >= %s and money_in <= %s) or (money_out >0 and money_out >= %s and money_out <= %s)"
+#                    params += [money_from, money_to, money_from, money_to]
+#
+#                # query for specific value, eg 10.99
+#                else:
+#                    while len(query_string.split('.')[1]) <2:
+#                        query_string += '0'
+#
+#                    clause += "or (money_in >0 and money_in = %s) or (money_out >0 and money_out = %s)"
+#                    params += [query_string, query_string]
+#
+#            query.andWhere(clause, params)
 
         if include_pots is False:
             query.andWhere('description not like %s', ['pot_0000%'])
@@ -185,11 +187,50 @@ class Monzo:
             if date_to:
                 query.andWhere('`transaction`.`date` <= %s', [date_to])
 
-        transactions = query.groupBy('`transaction`.id') \
-            .orderBy('date, created_at', 'asc') \
-            .getall()
+        filter_expression = None
+        attr_names = None
+        attr_values = None
 
-        transactions = self.process_pending_refunds(transactions)
+        if len(query_args) >0:
+            filter_expression = ''
+            attr_names = {}
+            attr_values = {}
+
+            query_string = (' '.join(query_args))
+
+            filter_expression = 'contains(#description, :description)'
+
+            attr_names['#description'] = 'description'
+            attr_values[':description'] = {'S': query_string}
+
+            if query_string.replace('.','').isdigit():
+                # integer value is queried as a range <n>.00 - <n>.99
+                if query_string.isdigit():
+                    money_from = '%s.00' % (query_string)
+                    money_to = '%s.99' % (query_string)
+
+                    filter_expression += ' OR (money_in > :zero AND money_in >= :money_from AND money_in <= :money_to) OR (money_out > :zero AND money_out >= :money_from AND money_out <= :money_to)'
+
+                    attr_values[':zero'] = {'N': '0'}
+                    attr_values[':money_from'] = {'N': money_from}
+                    attr_values[':money_to'] = {'N': money_to}
+
+                # query for specific value, eg 10.99
+                else:
+                    while len(query_string.split('.')[1]) <2:
+                        query_string += '0'
+
+                    filter_expression += " OR (money_in > :zero and money_in = :money_value) OR (money_out > :zero and money_out = :money_value)"
+                    attr_values[':zero'] = {'N': '0'}
+                    attr_values[':money_value'] = {'N': query_string}
+
+        transactions = Transaction.search(filter_expression=filter_expression, attr_names=attr_names, attr_values=attr_values)
+
+#        transactions = query.groupBy('`transaction`.id') \
+#            .orderBy('date, created_at', 'asc') \
+#            .getall()
+#
+#        transactions = self.process_pending_refunds(transactions)
 
         display_columns = ['account','pot','date','money_in','money_out','description']
 
@@ -241,7 +282,16 @@ class Monzo:
 
         for i in range(0, len(data)):
             if type(data[i]) != dict:
-                data[i] = data[i].__dict__
+                data[i] = data[i].__dict__['attributes']
+
+            if 'account' not in data[i]:
+                data[i]['account'] = Account.one(id=data[i]['account_id']).name
+
+            if 'pot' not in data[i]:
+                if data[i]['pot_id'] is not None:
+                    data[i]['pot'] = Pot.one(id=data[i]['pot_id']).name
+                else:
+                    data[i]['pot'] = None
 
             for key in columns:
                 if key in FIELD_MAP:
@@ -302,7 +352,7 @@ class Monzo:
 
 
     def sanitise(self, string):
-        return re.sub('[\s\t]+', ' ', string)
+        return re.sub(r'[\s\t]+', ' ', string)
 
 
     def process_pending_refunds(self, rows):

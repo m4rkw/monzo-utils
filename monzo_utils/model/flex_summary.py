@@ -73,16 +73,26 @@ class FlexSummary(Payment):
         if 'last_payment' in self.cache:
             return self.cache['last_payment']
 
-        account = Account.one("select * from account where name = %s", [self.config['flex_account']])
+        account = Account.one(name=self.config['flex_account'])
 
         transactions_by_diff = {}
 
-        for transaction in Transaction.find("select * from transaction where account_id = %s and declined = %s and description = %s and `date` > %s order by created_at asc", [
-                account.id,
-                0,
-                'Flex',
-                self.last_salary_date
-            ]):
+        timestamp = int(datetime.datetime.strptime(self.last_salary_date.strftime('%Y-%m-%d'), '%Y-%m-%d').timestamp())
+
+        for transaction in Transaction.find(
+                {'account_id': account.id},
+                filter_expression='declined = :zero AND #description = :description',
+                attr_names={
+                    '#description': 'description',
+                    '#timestamp': 'timestamp'
+                },
+                attr_values={
+                    ':zero': {'N': '0'},
+                    ':description': {'S': 'Flex'},
+                    ':timestamp': {'N': str(timestamp)}
+                },
+                key_condition_expression='#timestamp > :timestamp'
+            ):
             if transaction.settled.day == 16:
                 diff = int(abs(self.flex_total - transaction.money_in) * 100)
 
@@ -107,17 +117,16 @@ class FlexSummary(Payment):
         if 'older_last_payment' in self.cache:
             return self.cache['older_last_payment']
 
-        where, params = self.get_transaction_where_condition()
-
-        sql = "select * from transaction"
-
-        if 'metadata' in self.payment_config:
-            for i in range(0, len(self.payment_config['metadata'])):
-                sql += " join transaction_metadata meta%d on transaction.id = meta%d.transaction_id" % (i+1, i+1)
+        filter_expression, attr_names, attr_values, key_condition_expression = self.get_transaction_where_condition()
 
         transactions = Transaction.find(
-            f"{sql} where {where} order by created_at desc",
-            params
+            {'account_id': self.account.id},
+            filter_expression=filter_expression,
+            attr_names=attr_names,
+            attr_values=attr_values,
+            orderby='created_at',
+            orderdir='desc',
+            key_condition_expression=key_condition_expression
         )
 
         for transaction in transactions:

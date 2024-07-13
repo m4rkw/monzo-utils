@@ -1,4 +1,7 @@
-import MySQLdb
+try:
+    import MySQLdb
+except:
+    pass
 import re
 import sys
 import os
@@ -35,12 +38,22 @@ class DB(metaclass=Singleton):
         return json_params
 
 
-    def query(self, sql, params=[]):
-        if 'DEBUG' in os.environ and os.environ['DEBUG'] == '1':
-            print("SQL: %s" % (sql))
-            print("PARAMS: %s" % (json.dumps(self.json_params(params),indent=4)))
+    def query(self, param1, param2, param3, limit=None, orderby=None, orderdir=None, deleted=None, filter_expression=None, attr_names=None, attr_values=None, key_condition_expression=None):
+        result = self.driver.query(param1, param2, param3, limit=limit, orderby=orderby, orderdir=orderdir, deleted=deleted, filter_expression=filter_expression, attr_names=attr_names, attr_values=attr_values, key_condition_expression=key_condition_expression)
 
-        result = self.driver.query(sql, params)
+        if type(result) == list:
+            rows = []
+
+            for row in result:
+                rows.append(self.fix_dates(row))
+
+            result = rows
+
+        return result
+
+
+    def search(self, table, limit=None, orderby=None, orderdir=None, deleted=None, filter_expression=None, attr_names=None, attr_values=None):
+        result = self.driver.search(table, limit=limit, orderby=orderby, orderdir=orderdir, deleted=deleted, filter_expression=filter_expression, attr_names=attr_names, attr_values=attr_values)
 
         if type(result) == list:
             rows = []
@@ -75,8 +88,8 @@ class DB(metaclass=Singleton):
         return fixed_row
 
 
-    def one(self, sql, params=[]):
-        rows = self.query(sql, params)
+    def one(self, table, **kwargs):
+        rows = self.query('select', table, kwargs)
 
         if len(rows) >0:
             return rows[0]
@@ -267,6 +280,10 @@ class DB(metaclass=Singleton):
 
 
     def update(self, table, _id, data):
+        if Config().db['driver'] == 'dynamodb':
+            self.driver.put_item(table, data)
+            return
+
         if table not in self.columns:
             self.columns[table] = self.driver.get_columns(table, exclude=['id'])
 
@@ -287,6 +304,10 @@ class DB(metaclass=Singleton):
 
 
     def create(self, table, data):
+        if Config().db['driver'] == 'dynamodb':
+            self.driver.put_item(table, data)
+            return
+
         if table not in self.columns:
             self.columns[table] = self.driver.get_columns(table, exclude=['id'])
 
@@ -310,3 +331,7 @@ class DB(metaclass=Singleton):
         sql += ")"
 
         return self.query(sql, params)
+
+
+    def delete(self, table, primary_key, _id):
+        self.driver.delete(table, primary_key, _id)

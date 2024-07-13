@@ -22,20 +22,14 @@ from monzo_utils.model.transaction import Transaction
 from monzo_utils.model.counterparty import Counterparty
 from monzo_utils.model.transaction_metadata import TransactionMetadata
 from monzo.exceptions import MonzoAuthenticationError, MonzoServerError, MonzoHTTPError, MonzoPermissionsError
+from boto3.dynamodb.conditions import Key
 
 PROVIDER = 'Monzo'
 
 class MonzoSync:
 
     def __init__(self, no_init=False):
-        homedir = pwd.getpwuid(os.getuid()).pw_dir
-        self.monzo_dir = f"{homedir}/.monzo"
-
-        if not os.path.exists(self.monzo_dir):
-            os.mkdir(self.monzo_dir, 0o755)
-
-        self.config_file = f"{self.monzo_dir}/config.yaml"
-        self.token_file = f"{self.monzo_dir}/tokens"
+        self.config_file = "config.yaml"
 
         if no_init:
             return
@@ -260,6 +254,19 @@ class MonzoSync:
             sys.exit(1)
 
 
+    def collapse(self, obj):
+        new_obj = {}
+
+        for key in obj:
+            if type(obj[key]) == dict:
+                for key2 in obj[key]:
+                    new_obj[f"{key}_{key2}"] = obj[key][key2]
+            else:
+                new_obj[key] = obj[key]
+
+        return new_obj
+
+
     def get_or_create_merchant(self, mo_merchant):
         merchant_id = mo_merchant['id']
 
@@ -267,24 +274,22 @@ class MonzoSync:
         mo_merchant.pop('id')
         mo_address = mo_merchant.pop('address')
 
-        merchant = Merchant.one("select * from merchant where merchant_id = %s", [merchant_id])
+        if Config().db['driver'] == 'dynamodb':
+            merchant = Merchant.one(id=merchant_id)
+        else:
+            merchant = Merchant.one("select * from merchant where merchant_id = %s", [merchant_id])
 
         if not merchant:
             Log().info(f"creating merchant: {mo_merchant['name']} ({mo_merchant['merchant_id']})")
             merchant = Merchant()
 
+        mo_merchant = self.collapse(mo_merchant)
+        mo_merchant['emoji'] = mo_merchant['emoji'].encode('utf8')
+        mo_merchant['id'] = mo_merchant['merchant_id']
+        mo_merchant.pop('merchant_id')
+
         merchant.update(mo_merchant)
         merchant.save()
-
-        mo_address['merchant_id'] = merchant.id
-
-        address = MerchantAddress.one("select * from merchant_address where merchant_id = %s", [merchant.id])
-
-        if not address:
-            address = MerchantAddress()
-
-        address.update(mo_address)
-        address.save()
 
         return merchant
 
@@ -294,13 +299,9 @@ class MonzoSync:
 
 
     def add_transaction(self, account, mo_transaction, pot_account_ids, pot_id=None):
-        counterparty = None
-
         if mo_transaction.counterparty:
-            counterparty = self.get_or_create_counterparty(mo_transaction.counterparty)
-
-            if counterparty.name != mo_transaction.description:
-                description = self.sanitise('%s %s' % (counterparty.name, mo_transaction.description))
+            if mo_transaction.counterparty['name'] != mo_transaction.description:
+                description = self.sanitise('%s %s' % (mo_transaction.counterparty['name'], mo_transaction.description))
             else:
                 description = mo_transaction.description
         else:
@@ -319,17 +320,20 @@ class MonzoSync:
             verb = 'to'
             _type = 'debit'
 
-        if pot_id:
-            where = "pot_id = %s"
-            params = [pot_id]
+        if Config().db['driver'] == 'dynamodb':
+            transaction = Transaction.one(id=mo_transaction.transaction_id)
         else:
-            where = "pot_id is null"
-            params = []
+            if pot_id:
+                where = "pot_id = %s"
+                params = [pot_id]
+            else:
+                where = "pot_id is null"
+                params = []
 
-        where += " and account_id = %s and transaction_id = %s"
-        params += [account.id, mo_transaction.transaction_id]
+            where += " and account_id = %s and transaction_id = %s"
+            params += [account.id, mo_transaction.transaction_id]
 
-        transaction = Transaction.one(f"select * from transaction where {where}", params)
+            transaction = Transaction.one(f"select * from transaction where {where}", params)
 
         date = mo_transaction.created.strftime('%Y-%m-%d')
 
@@ -346,9 +350,17 @@ class MonzoSync:
         else:
             merchant = None
 
-        transaction.update({
+        m = re.match(r'^([\d]{4})-([\d]{2})-([\d]{2})$', date)
+        date = datetime.date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+
+        if mo_transaction.settled is not None:
+            timestamp = int(mo_transaction.settled.timestamp())
+        else:
+            timestamp = int(mo_transaction.created.timestamp())
+
+        transaction_data = {
             'account_id': account.id,
-            'transaction_id': mo_transaction.transaction_id,
+            'id': mo_transaction.transaction_id,
             'date': date,
             'type': _type,
             'description': description,
@@ -368,65 +380,42 @@ class MonzoSync:
             'settled': mo_transaction.settled,
             'declined': 1 if len(mo_transaction.decline_reason) >0 else 0,
             'decline_reason': mo_transaction.decline_reason,
-            'counterparty_id': counterparty.id if counterparty else None,
-            'pot_id': pot_id
-        })
+            'pot_id': pot_id,
+            'timestamp': timestamp
+        }
 
-        transaction.save()
-
-        metadata = {}
+        if mo_transaction.counterparty:
+            for key in mo_transaction.counterparty:
+                transaction_data['counterparty_' + key] = mo_transaction.counterparty[key]
 
         if type(mo_transaction.atm_fees_detailed) == dict:
             for key in mo_transaction.atm_fees_detailed:
-                metadata['atm_fees_detailed_%s' % (key)] = mo_transaction.atm_fees_detailed[key]
+                transaction_data['atm_fees_detailed_%s' % (key)] = mo_transaction.atm_fees_detailed[key]
 
         if type(mo_transaction.categories) == dict:
             for key in mo_transaction.categories:
-                metadata['categories_%s' % (key)] = mo_transaction.categories[key]
+                transaction_data['categories_%s' % (key)] = mo_transaction.categories[key]
 
         if type(mo_transaction.fees) == dict:
             for key in mo_transaction.fees:
-                metadata['fees_%s' % (key)] = mo_transaction.fees[key]
+                transaction_data['fees_%s' % (key)] = mo_transaction.fees[key]
 
         if type(mo_transaction.metadata) == dict:
             for key in mo_transaction.metadata:
-                metadata['metadata_%s' % (key)] = mo_transaction.metadata[key]
+                transaction_data[key] = mo_transaction.metadata[key]
 
-        for key in metadata:
-            transaction_metadata = TransactionMetadata.one("select * from transaction_metadata where transaction_id = %s and `key` = %s", [transaction.id, key])
+        transaction.update(transaction_data)
 
-            if not transaction_metadata:
-                transaction_metadata = TransactionMetadata()
-                transaction_metadata.transaction_id = transaction.id
-                transaction_metadata.key = key
-
-            transaction_metadata.value = metadata[key]
-
-            transaction_metadata.save()
-
-        for transaction_metadata in TransactionMetadata.find("select * from transaction_metadata where transaction_id = %s", [transaction.id]):
-            if transaction_metadata.key not in metadata:
-                transaction_metadata.delete()
+        transaction.save()
 
         return transaction
 
 
-    def get_or_create_counterparty(self, mo_counterparty):
-        counterparty = Counterparty.one("select * from counterparty where user_id = %s", [mo_counterparty['user_id']])
-
-        if not counterparty:
-            Log().info(f"creating counterparty: {mo_counterparty['name']} ({mo_counterparty['user_id']})")
-            counterparty = Counterparty()
-
-        counterparty.update(mo_counterparty)
-
-        counterparty.save()
-
-        return counterparty
-
-
     def get_or_create_provider(self, provider_name):
-        provider = Provider.one("select * from provider where name = %s", [provider_name])
+        if Config().db['driver'] == 'dynamodb':
+            provider = Provider.one(name=provider_name)
+        else:
+            provider = Provider.one("select * from provider where name = %s", [provider_name])
 
         if not provider:
             Log().info(f"creating provider: {provider_name}")
@@ -439,20 +428,37 @@ class MonzoSync:
 
 
     def sync(self, days=3, account=None):
-        mo_accounts = self.api.accounts()
+        try:
+            mo_accounts = self.api.accounts()
 
-        for mo_account in mo_accounts:
-            if 'monzoflexbackingloan' in mo_account.description:
-                continue
+            for mo_account in mo_accounts:
+                if 'monzoflexbackingloan' in mo_account.description:
+                    continue
 
-            if mo_account.account_id not in Config().accounts:
-                continue
+                if mo_account.account_id not in Config().accounts:
+                    continue
 
-            if account is None or account.account_id == mo_account.account_id:
-                self.sync_account(mo_account, days)
+                if account is None or account.account_id == mo_account.account_id:
+                    self.sync_account(mo_account, days)
+        except Exception as e:
+            Log().info(f"failed to sync: {str(e)}")
+
+            if Config().db['driver'] == 'dynamodb':
+                self.provider.update({
+                    'last_sync_success': False
+                })
+                self.provider.save()
+            return
 
         if 'touch_file' in Config().keys:
             Path(Config().touch_file).touch()
+
+        if Config().db['driver'] == 'dynamodb':
+            self.provider.update({
+                'last_sync_success': True,
+                'last_sync': int(time.time())
+            })
+            self.provider.save()
 
 
     def sync_account(self, mo_account, days):
@@ -525,7 +531,10 @@ class MonzoSync:
         pot_lookup = {}
 
         for mo_pot in mo_pots:
-            pot = Pot.one("select * from pot where account_id = %s and pot_id = %s", [account.id, mo_pot.pot_id])
+            if Config().db['driver'] == 'dynamodb':
+                pot = Pot.one(account_id=account.id, pot_id=mo_pot.pot_id)
+            else:
+                pot = Pot.one("select * from pot where account_id = %s and pot_id = %s", [account.id, mo_pot.pot_id])
 
             if not pot:
                 Log().info(f"creating pot: {mo_pot.name}")
@@ -545,7 +554,10 @@ class MonzoSync:
 
 
     def get_or_create_account(self, mo_account, account_config):
-        account = Account.one("select * from account where provider_id = %s and account_id = %s", [self.provider.id, mo_account.account_id])
+        if Config().db['driver'] == 'dynamodb':
+            account = Account.one(provider_id=self.provider.id, account_id=mo_account.account_id)
+        else:
+            account = Account.one("select * from account where provider_id = %s and account_id = %s", [self.provider.id, mo_account.account_id])
 
         if not account:
             account = Account()

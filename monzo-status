@@ -36,8 +36,18 @@ class Monzo:
 
         count = 0
 
-        providers = [Provider.one("select * from provider where name = %s", [PROVIDER])] + \
-            Provider.find("select * from provider where name != %s order by name asc", [PROVIDER])
+        provider_list = Provider.find(orderby='name')
+
+        providers = []
+
+        for provider in provider_list:
+            if provider.name == PROVIDER:
+                providers.append(provider)
+                break
+
+        for provider in provider_list:
+            if provider.name != PROVIDER:
+                providers.append(provider)
 
         for provider in providers:
             for account in provider.accounts(order=Config().account_order if 'account_order' in Config().keys else None):
@@ -55,7 +65,7 @@ class Monzo:
                 if transactions:
                     sys.stdout.write("\n")
 
-                    rows = list(reversed(account.transactions(orderby='created_at', orderdir='desc', limit=n)))
+                    rows = account.related_query('Transaction', 'account_id', account.id, orderby='timestamp', orderdir='desc', limit=n)
 
                     self.display(rows, Transaction.DISPLAY_KEYS)
 

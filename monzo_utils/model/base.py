@@ -5,12 +5,17 @@ import importlib
 import datetime
 import decimal
 from monzo_utils.lib.db import DB
+from monzo_utils.lib.config import Config
 
 class BaseModel:
 
+    primary_key = 'id'
+
     @classmethod
-    def one(cls, sql, params=[]):
-        row = DB().one(sql, params)
+    def one(cls, **kwargs):
+        table = re.sub(r'(?<!^)(?=[A-Z])', '_', cls.__name__).lower()
+
+        row = DB().one(table, **kwargs)
 
         if row:
             table = re.sub(r'(?<!^)(?=[A-Z])', '_', cls.__name__).lower()
@@ -21,10 +26,13 @@ class BaseModel:
 
 
     @classmethod
-    def find(cls, sql, params=[]):
+    def find(cls, param1=None, param2=None, param3=None, limit=None, orderby=None, orderdir=None, filter_expression=None, attr_names=None, attr_values=None, key_condition_expression=None):
         table = re.sub(r'(?<!^)(?=[A-Z])', '_', cls.__name__).lower()
 
-        data = DB().query(sql, params)
+        if Config().db['driver'] == 'dynamodb':
+            data = DB().query('select', table, param1, limit=limit, orderby=orderby, orderdir=orderdir, filter_expression=filter_expression, attr_names=attr_names, attr_values=attr_values, key_condition_expression=key_condition_expression)
+        else:
+            data = DB().query(param1, param2, param3, limit=limit, orderby=orderby, orderdir=orderdir)
 
         results = []
 
@@ -34,8 +42,29 @@ class BaseModel:
         return results
 
 
+    @classmethod
+    def search(cls, limit=None, orderby=None, orderdir=None, filter_expression=None, attr_names=None, attr_values=None):
+        table = re.sub(r'(?<!^)(?=[A-Z])', '_', cls.__name__).lower()
+
+        if Config().db['driver'] == 'dynamodb':
+            data = DB().search(table, limit=limit, orderby=orderby, orderdir=orderdir, filter_expression=filter_expression, attr_names=attr_names, attr_values=attr_values)
+        else:
+            data = DB().query(param1, param2, param3, limit=limit, orderby=orderby, orderdir=orderdir)
+
+        results = []
+
+        for row in data:
+            results.append(getattr(importlib.import_module(f"monzo_utils.model.{table}"), cls.__name__)(row))
+
+        return results
+
+
+
     def __init__(self, attributes=None):
         self.attributes = {}
+        self.state = {
+            'modified': False
+        }
         self.factory_query = False
         self.table = re.sub(r'(?<!^)(?=[A-Z])', '_', self.__class__.__name__).lower()
 
@@ -44,6 +73,11 @@ class BaseModel:
 
 
     def __getattr__(self, name):
+        try:
+            return self.state[name]
+        except:
+            pass
+
         try:
             return self.attributes[name]
         except:
@@ -60,7 +94,7 @@ class BaseModel:
 
 
     def __setattr__(self, name, value):
-        if name not in ['table','attributes','factory_query']:
+        if name not in ['table','state','attributes','factory_query']:
             self.attributes[name] = value
         else:
             super().__setattr__(name, value)
@@ -92,31 +126,60 @@ class BaseModel:
     def related(self, model, key_field, parent_id, orderby, orderdir, limit, deleted=None):
         table = model.lower()
 
-        sql = f"select * from `{table}` where {key_field} = %s"
-        params = [parent_id]
+        if Config().db['driver'] == 'dynamodb':
+            related = []
 
-        if deleted is not None:
-            sql += f" and deleted = %s"
-            params.append(deleted)
+            for row in DB().query('select', table, {key_field: parent_id}, orderby=orderby, orderdir=orderdir, deleted=deleted, limit=limit):
+                related.append(getattr(importlib.import_module(f"monzo_utils.model.{table}"), model)(row))
 
-        sql += f" order by {orderby} {orderdir}"
+        else:
+            sql = f"select * from `{table}` where {key_field} = %s"
+            params = [parent_id]
 
-        if limit:
-            sql += " limit %s"
-            params.append(limit)
+            if deleted is not None:
+                sql += f" and deleted = %s"
+                params.append(deleted)
+
+            sql += f" order by {orderby} {orderdir}"
+
+            if limit:
+                sql += " limit %s"
+                params.append(limit)
+
+            related = []
+            for row in DB().query(sql, params):
+                related.append(getattr(importlib.import_module(f"monzo_utils.model.{table}"), model)(row))
+
+        return related
+
+
+    def related_query(self, model, key_field, parent_id, orderby, orderdir, limit, deleted=None):
+        table = model.lower()
 
         related = []
-        for row in DB().query(sql, params):
+
+        for row in DB().query('find', table, {key_field: parent_id}, orderby=orderby, orderdir=orderdir, deleted=deleted, limit=limit):
             related.append(getattr(importlib.import_module(f"monzo_utils.model.{table}"), model)(row))
 
         return related
 
 
     def update(self, attributes):
-        self.attributes.update(attributes)
+        for key in attributes:
+            if key not in self.attributes or self.attributes[key] != attributes[key]:
+#                if key in self.attributes:
+#                    print(f"{self.table} {key} [{self.attributes[key]}] {type(self.attributes[key])} => [{attributes[key]}] {type(attributes[key])}")
+#                else:
+#                    print(f"{self.table} {key} [NONE] => [{attributes[key]}] {type(attributes[key])}")
+
+                self.attributes[key] = attributes[key]
+                self.state['modified'] = True
 
 
     def save(self):
+        if self.state['modified'] is False:
+            return
+
         if self.id:
             DB().update(self.table, self.id, self.attributes)
         else:
@@ -124,10 +187,7 @@ class BaseModel:
 
 
     def delete(self):
-        if self.id is None:
-            raise Exception("Unable to delete record with null id")
-
-        DB().query(f"delete from {self.table} where id = %s", [self.id])
+        DB().delete(self.table, self.primary_key, getattr(self, self.primary_key))
 
 
     def factory(self):
