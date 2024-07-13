@@ -7,3 +7,4 @@ test.sh
 .DS_Store
 venv/*
 .eggs/*
+*.yaml
