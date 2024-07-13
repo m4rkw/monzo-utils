@@ -434,7 +434,9 @@ class MonzoPayments:
 
     def get_last_salary_date(self):
         if 'salary_account' in self.config and self.config['salary_account'] != self.account_name:
-            account = Account.one("select * from account where provider_id = %s and name = %s", [self.provider.id, self.config['salary_account']])
+            account = Account.one(provider_id=self.provider.id, name=self.config['salary_account'])
+            if not account:
+                raise Exception("account not found")
         else:
             account = self.account
 

@@ -232,7 +232,7 @@ class Monzo:
 #
 #        transactions = self.process_pending_refunds(transactions)
 
-        display_columns = ['account','pot','date','money_in','money_out','description']
+        display_columns = ['id','account','pot','date','money_in','money_out','description']
 
         if show_declined:
             display_columns.append('decline_reason')

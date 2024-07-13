@@ -62,8 +62,6 @@ class Finance(Payment):
         if 'single_payment' in self.payment_config and self.payment_config['single_payment']:
             filter_expression, attr_names, attr_values, key_condition_expression = self.get_transaction_where_condition(amounts=False)
 
-            print(self.payment_config['name'])
-
             self.cache['all_finance_transactions'] = []
 
             account_ids = [self.account.id]
