@@ -25,6 +25,12 @@ class Monzo:
     widths = {}
 
     def accounts(self, first=True):
+        homedir = pwd.getpwuid(os.getuid()).pw_dir
+
+        self.config_path = f"{homedir}/.monzo"
+
+        os.chdir(self.config_path)
+
         transactions = False
         n = 10
 

@@ -81,6 +81,8 @@ class MonzoPayments:
 
             self.config_path = f"{homedir}/.monzo"
 
+            os.chdir(self.config_path)
+
             if not os.path.exists(self.config_path):
                 if not os.path.exists(self.config_path):
                     os.mkdir(self.config_path, 0o755)

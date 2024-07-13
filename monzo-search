@@ -30,6 +30,12 @@ FIELD_MAP = {
 class Monzo:
 
     def __init__(self, args):
+        homedir = pwd.getpwuid(os.getuid()).pw_dir
+
+        self.config_path = f"{homedir}/.monzo"
+
+        os.chdir(self.config_path)
+
         self.db = DB()
 
         include_pots = False
