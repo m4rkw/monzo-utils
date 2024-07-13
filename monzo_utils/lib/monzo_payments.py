@@ -285,26 +285,30 @@ class MonzoPayments:
         except Exception as e:
             sys.stderr.write(f"FATAL ERROR: {str(e)}")
 
-            state = State.one(key=f'payments_status_{self.account_name}')
+            if sys.stdin.isatty():
+                raise e
+            else:
+                state = State.one(key=f'payments_status_{self.account_name}')
 
-            if state is None:
-                state = State()
+                if state is None:
+                    state = State()
 
+                state.update({
+                    'key': f'payments_status_{self.account_name}',
+                    'success': False
+                })
+
+                state.save()
+                sys.exit(1)
+
+        if not sys.stdin.isatty():
+            state = State()
             state.update({
                 'key': f'payments_status_{self.account_name}',
-                'success': False
+                'success': True,
+                'last_success': int(time.time())
             })
-
             state.save()
-            sys.exit(1)
-
-        state = State()
-        state.update({
-            'key': f'payments_status_{self.account_name}',
-            'success': True,
-            'last_success': int(time.time())
-        })
-        state.save()
 
 
     def display_columns(self, title):
