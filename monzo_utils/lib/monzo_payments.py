@@ -22,6 +22,7 @@ from monzo_utils.model.account import Account
 from monzo_utils.model.pot import Pot
 from monzo_utils.model.transaction import Transaction
 from monzo_utils.model.flex_summary import FlexSummary
+from monzo_utils.model.state import State
 from govuk_bank_holidays.bank_holidays import BankHolidays
 from calendar import monthrange
 
@@ -186,6 +187,7 @@ class MonzoPayments:
             pot = self.account
 
         shortfall = (self.due - (round(pot.balance * 100))) / 100
+        shortfall = 10
 
         if self.json:
             data = {
@@ -253,9 +255,10 @@ class MonzoPayments:
             sync_required = self.handle_shortfall(pot, shortfall)
 
         else:
+            state = State.one(key='shortfall_tracker')
 
-#            if os.path.exists(self.shortfall_tracker):
-#                os.remove(self.shortfall_tracker)
+            if state:
+                state.delete()
 
             print("    due: £%.2f" % (self.due / 100))
             print("balance: £%.2f" % (pot.balance))
@@ -263,8 +266,10 @@ class MonzoPayments:
             if round(credit * 100) == 0:
                 credit = 0
 
-#                if os.path.exists(self.credit_tracker):
-#                    os.remove(self.credit_tracker)
+                state = State.one(key='credit_tracker')
+
+                if state:
+                    state.delete()
 
             else:
                 print(" credit: £%.2f" % (credit))
@@ -535,8 +540,10 @@ class MonzoPayments:
                         )
                     )
             else:
-                if os.path.exists(self.shortfall_tracker):
-                    os.remove(self.shortfall_tracker)
+                state = State.one(key='shortfall_tracker')
+
+                if state:
+                    state.delete()
 
                 if 'notify_deposit' in self.config and self.config['notify_deposit']:
                     self.notify(
@@ -569,45 +576,39 @@ class MonzoPayments:
     def shortfall_notified(self, account_name, shortfall):
         today = datetime.datetime.now().strftime('%Y%m%d')
 
-        if os.path.exists(self.shortfall_notify_tracker):
-            data = json.loads(open(self.shortfall_notify_tracker).read())
+        state = State.one(key='shortfall_notify')
 
-            if data['date'] == today and data['amount'] == shortfall:
-                return True
-
-        return False
+        return state and state.date == today
 
 
     def set_shortfall_notified(self, account_name, shortfall):
         today = datetime.datetime.now().strftime('%Y%m%d')
 
-        with open(self.shortfall_notify_tracker,'w') as f:
-            f.write(json.dumps({
-                'date': today,
-                'amount': shortfall
-            }))
+        state = State()
+        state.update({
+            'key': 'shortfall_notify',
+            'date': today
+        })
+        state.save()
 
 
     def credit_notified(self, account_name, credit):
         today = datetime.datetime.now().strftime('%Y%m%d')
 
-        if os.path.exists(self.credit_notify_tracker):
-            data = json.loads(open(self.credit_notify_tracker).read())
+        state = State.one(key='credit_notify')
 
-            if data['date'] == today and data['amount'] == credit:
-                return True
-
-        return False
+        return state and state.date == today
 
 
     def set_credit_notified(self, account_name, credit):
         today = datetime.datetime.now().strftime('%Y%m%d')
 
-        with open(self.credit_notify_tracker,'w') as f:
-            f.write(json.dumps({
-                'date': today,
-                'amount': credit
-            }))
+        state = State()
+        state.update({
+            'key': 'credit_notify',
+            'date': today
+        })
+        state.save()
 
 
     def handle_credit(self, pot, credit):
@@ -645,8 +646,10 @@ class MonzoPayments:
                         )
                     )
             else:
-                if os.path.exists(self.credit_tracker):
-                    os.remove(self.credit_tracker)
+                state = State.one(key='credit_tracker')
+
+                if state:
+                    state.delete()
 
                 if 'notify_withdraw' in self.config and self.config['notify_withdraw']:
                     self.notify(
@@ -676,13 +679,21 @@ class MonzoPayments:
     def handle_withdrawal_delay(self, credit):
         credit_s = str(int(credit * 100))
 
-        if not os.path.exists(self.credit_tracker) or self.get_file_contents(self.credit_tracker).rstrip() != credit_s:
-            with open(self.credit_tracker,'w') as f:
-                f.write(credit_s)
+        state = State.one(key='credit_tracker')
+
+        if state is None or state.credit != credit_s:
+            state = State()
+
+            state.update({
+                'key': 'credit_tracker',
+                'credit': credit_s,
+                'timestamp': int(time.time())
+            })
+            state.save()
 
             return False
 
-        elapsed = time.time() - os.stat(self.credit_tracker).st_mtime
+        elapsed = time.time() - state.timestamp
 
         return elapsed >= self.config['auto_withdraw_delay_mins'] * 60
 
@@ -696,13 +707,20 @@ class MonzoPayments:
 
         shortfall_s = str(int(shortfall * 100))
 
-        if not os.path.exists(self.shortfall_tracker) or self.get_file_contents(self.shortfall_tracker).rstrip() != shortfall_s:
-            with open(self.shortfall_tracker,'w') as f:
-                f.write(shortfall_s)
+        state = State.one(key='shortfall_tracker')
+
+        if state is None or state.shortfall != shortfall_s:
+            state = State()
+
+            state.update({
+                'key': 'shortfall_tracker',
+                'shortfall': shortfall_s,
+                'timestamp': int(time.time())
+            })
 
             return False
 
-        elapsed = time.time() - os.stat(self.shortfall_tracker).st_mtime
+        elapsed = time.time() - state.timestamp
 
         return elapsed >= self.config['auto_deposit_delay_mins'] * 60
 
