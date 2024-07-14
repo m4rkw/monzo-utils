@@ -453,7 +453,7 @@ class Payment:
 
         last_payment_hash = self.hash('last_payment', filter_expression, attr_names, attr_values, key_condition_expression)
 
-        last_payment = Payments().one(key=last_payment_hash)
+        last_payment = Payments.one(account_id=self.account.id, key=last_payment_hash)
 
         if last_payment is not None:
             if last_payment.transaction_id:
@@ -528,7 +528,7 @@ class Payment:
 
         last_payment_hash = self.hash('older_last_payment', filter_expression, attr_names, attr_values, key_condition_expression)
 
-        last_payment = Payments().one(key=last_payment_hash)
+        last_payment = Payments.one(account_id=self.account.id, key=last_payment_hash)
 
         if last_payment is not None:
             if last_payment.transaction_id:

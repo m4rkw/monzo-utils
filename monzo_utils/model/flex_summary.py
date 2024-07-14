@@ -122,7 +122,7 @@ class FlexSummary(Payment):
 
         older_last_payment_hash = self.hash('older_last_payment', filter_expression, attr_names, attr_values, key_condition_expression)
 
-        older_last_payment = Payments().one(key=older_last_payment_hash)
+        older_last_payment = Payments.one(account_id=self.account.id, key=older_last_payment_hash)
 
         if older_last_payment is not None:
             if older_last_payment.transaction_id:

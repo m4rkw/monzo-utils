@@ -475,7 +475,7 @@ class MonzoPayments:
 
             return last_salary_transaction.date
 
-        last_salary_transaction = Payments.one(key='last_salary_transaction')
+        last_salary_transaction = Payments.one(account_id=self.account.id, key='last_salary_transaction')
 
         if last_salary_transaction:
             last_salary_transaction = Transaction.one(id=last_salary_transaction.transaction_id)

@@ -65,7 +65,7 @@ class Finance(Payment):
 
             all_transactions_hash = self.hash('all_finance_transactions', filter_expression, attr_names, attr_values, key_condition_expression, self.account.id)
 
-            all_transactions = Payments().one(key=all_transactions_hash)
+            all_transactions = Payments.one(account_id=self.account.id, key=all_transactions_hash)
 
             if all_transactions is not None:
                 all_finance_transactions = Transaction.all(id=all_transactions.transaction_ids.split(','))
@@ -118,7 +118,7 @@ class Finance(Payment):
 
             all_transactions_hash = self.hash('all_finance_transactions', filter_expression, attr_names, attr_values, key_condition_expression, self.account.id)
 
-            all_transactions = Payments().one(key=all_transactions_hash)
+            all_transactions = Payments.one(account_id=self.account.id, key=all_transactions_hash)
 
             if all_transactions is not None:
                 all_finance_transactions = Transaction.all(id=all_transactions.transaction_ids.split(','))
