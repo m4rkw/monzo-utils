@@ -622,7 +622,7 @@ class MonzoPayments:
 
         state = State.one(key='shortfall_notify')
 
-        return state and state.date == today
+        return state is not None and state.date == today
 
 
     def set_shortfall_notified(self, account_name, shortfall):
@@ -641,7 +641,7 @@ class MonzoPayments:
 
         state = State.one(key='credit_notify')
 
-        return state and state.date == today
+        return state is not None and state.date == today
 
 
     def set_credit_notified(self, account_name, credit):
